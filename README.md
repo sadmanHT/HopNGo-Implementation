@@ -168,6 +168,115 @@ HopNGo/
 - **WSL2**: Requires administrator privileges to enable
 - **PATH Configuration**: Some tools need manual PATH updates
 
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- pnpm 8+
+- Docker & Docker Compose
+- Git
+
+### Quick Start
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd HopNGo
+
+# Install dependencies
+pnpm install
+
+# Start infrastructure services
+./scripts/dev.sh
+
+# Start development server
+pnpm dev
+```
+
+## Infrastructure Setup
+
+### Local Development Dependencies
+
+The project uses Docker Compose to manage local infrastructure dependencies:
+
+- **PostgreSQL 15** - Primary database (port 5432)
+- **MongoDB 7** - Document database (port 27017)
+- **Redis 7** - Caching and sessions (port 6379)
+- **RabbitMQ 3** - Message queue (ports 5672, 15672)
+- **Mailhog** - Email testing (ports 1025, 8025)
+
+### Starting Infrastructure
+
+```bash
+# Start all services
+./scripts/dev.sh
+
+# Or manually with Docker Compose
+cd infra/compose
+docker compose up -d
+```
+
+### Stopping Infrastructure
+
+```bash
+# Stop all services
+./scripts/down.sh
+
+# Stop and remove volumes (⚠️ deletes all data)
+./scripts/down.sh --volumes
+
+# Or manually with Docker Compose
+cd infra/compose
+docker compose down
+```
+
+### Health Checks
+
+```bash
+# Check service status
+cd infra/compose
+docker compose ps
+
+# View service logs
+docker compose logs [service-name]
+
+# Test database connections
+./scripts/test-postgres.sh
+./scripts/test-mongo.sh
+```
+
+### Service URLs
+
+- **Frontend**: http://localhost:5173
+- **RabbitMQ Management**: http://localhost:15672 (guest/guest)
+- **Mailhog Web UI**: http://localhost:8025
+- **PostgreSQL**: localhost:5432 (hopngo/hopngo_dev_2024!)
+- **MongoDB**: localhost:27017 (admin/mongo_dev_2024!)
+- **Redis**: localhost:6379 (redis_dev_2024!)
+
+### Environment Configuration
+
+Database credentials and configuration are stored in `infra/compose/.env`:
+
+```env
+# PostgreSQL
+POSTGRES_DB=hopngo
+POSTGRES_USER=hopngo
+POSTGRES_PASSWORD=hopngo_dev_2024!
+
+# MongoDB
+MONGO_INITDB_ROOT_USERNAME=admin
+MONGO_INITDB_ROOT_PASSWORD=mongo_dev_2024!
+
+# Redis
+REDIS_PASSWORD=redis_dev_2024!
+
+# RabbitMQ
+RABBITMQ_DEFAULT_USER=hopngo
+RABBITMQ_DEFAULT_PASS=rabbit_dev_2024!
+```
+
 ## 🎯 Next Steps
 
 1. Enable WSL2 (requires admin privileges)
