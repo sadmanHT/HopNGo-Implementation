@@ -1,0 +1,36 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: social-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/hopngo_social
+      auto-index-creation: false
+
+
+
+# OpenAPI configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+# Actuator configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Logging
+logging:
+  level:
+    com.hopngo.social: DEBUG
+    org.springframework.data.mongodb: DEBUG
