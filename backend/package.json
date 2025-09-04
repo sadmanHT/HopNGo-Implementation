@@ -1,0 +1,12 @@
+{
+  "name": "hopngo-backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "mvn spring-boot:run -Dspring-boot.run.profiles=local",
+    "build": "mvn clean package -DskipTests",
+    "test": "mvn test",
+    "clean": "mvn clean"
+  },
+  "description": "HopNGo Backend - Spring Boot REST API"
+}

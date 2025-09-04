@@ -1,0 +1,36 @@
+# Global ownership
+* @me
+
+# Frontend specific
+/frontend/ @me
+
+# Backend services
+/gateway/ @me
+/auth-service/ @me
+/social-service/ @me
+/booking-service/ @me
+/market-service/ @me
+/chat-service/ @me
+/notification-service/ @me
+/trip-planning-service/ @me
+/ai-service/ @me
+/emergency-service/ @me
+
+# Infrastructure
+/infra/ @me
+/docker-compose.yml @me
+/scripts/ @me
+
+# Documentation
+/docs/ @me
+/README.md @me
+/CONTRIBUTING.md @me
+/CODE_OF_CONDUCT.md @me
+/SECURITY.md @me
+
+# Configuration files
+/.github/ @me
+/package.json @me
+/pnpm-workspace.yaml @me
+/.editorconfig @me
+/.gitignore @me
