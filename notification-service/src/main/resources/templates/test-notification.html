@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #6f42c1;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+        }
+        .test-details {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #6f42c1;
+        }
+        .message-box {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #6c757d;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .test-icon {
+            font-size: 2em;
+            color: #6f42c1;
+            margin-bottom: 10px;
+        }
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="test-icon">🧪</div>
+        <h1>Test Notification</h1>
+        <p>HopNGo Notification Service Test</p>
+    </div>
+    
+    <div class="content">
+        <p>Hello!</p>
+        
+        <p>This is a test notification from the HopNGo notification service. If you're receiving this email, it means the notification system is working correctly!</p>
+        
+        <div class="test-details">
+            <h3>Test Details</h3>
+            
+            <div class="message-box">
+                <h4>Test Message:</h4>
+                <p th:text="${message}">Test message content</p>
+            </div>
+            
+            <p class="timestamp">Sent at: <span th:text="${timestamp}">Timestamp</span></p>
+        </div>
+        
+        <p><strong>System Information:</strong></p>
+        <ul>
+            <li>✅ Email delivery system is operational</li>
+            <li>✅ Template processing is working</li>
+            <li>✅ SMTP connection to Mailhog is successful</li>
+            <li>✅ Notification service is running on port 8086</li>
+        </ul>
+        
+        <p><strong>What this test validates:</strong></p>
+        <ul>
+            <li>Email template rendering with Thymeleaf</li>
+            <li>SMTP configuration with Mailhog</li>
+            <li>Notification service REST endpoint</li>
+            <li>Email channel implementation</li>
+        </ul>
+        
+        <p>If you can see this email in Mailhog (http://localhost:8025), then the notification service is properly configured and ready to handle real notifications!</p>
+    </div>
+    
+    <div class="footer">
+        <p>This is a test message from HopNGo Notification Service.</p>
+        <p>Generated automatically for testing purposes.</p>
+        <p>&copy; 2024 HopNGo. All rights reserved.</p>
+    </div>
+</body>
+</html>

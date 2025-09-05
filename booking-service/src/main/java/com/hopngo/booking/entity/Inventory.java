@@ -1,8 +1,7 @@
 package com.hopngo.booking.entity;
 
+import com.hopngo.booking.entity.base.Auditable;
 import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -13,7 +12,7 @@ import java.util.UUID;
 @Table(name = "inventory", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"listing_id", "date"})
 })
-public class Inventory {
+public class Inventory extends Auditable {
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -35,13 +34,7 @@ public class Inventory {
     @Column(name = "price_override", precision = 10, scale = 2)
     private BigDecimal priceOverride;
     
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-    
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+
     
     // Constructors
     public Inventory() {}
@@ -124,19 +117,5 @@ public class Inventory {
         this.priceOverride = priceOverride;
     }
     
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-    
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+
 }

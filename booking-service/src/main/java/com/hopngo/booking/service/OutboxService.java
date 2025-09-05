@@ -31,7 +31,7 @@ public class OutboxService {
         eventData.put("businessName", vendor.getBusinessName());
         eventData.put("contactEmail", vendor.getContactEmail());
         eventData.put("status", vendor.getStatus().toString());
-        eventData.put("createdAt", vendor.getCreatedAt().toString());
+        eventData.put("createdAt", vendor.getCreatedAt() != null ? vendor.getCreatedAt().toString() : null);
         
         OutboxEvent event = new OutboxEvent(
             "Vendor", 
@@ -50,7 +50,7 @@ public class OutboxService {
         eventData.put("businessName", vendor.getBusinessName());
         eventData.put("contactEmail", vendor.getContactEmail());
         eventData.put("status", vendor.getStatus().toString());
-        eventData.put("updatedAt", vendor.getUpdatedAt().toString());
+        eventData.put("updatedAt", vendor.getUpdatedAt() != null ? vendor.getUpdatedAt().toString() : null);
         
         OutboxEvent event = new OutboxEvent(
             "Vendor", 
@@ -69,7 +69,7 @@ public class OutboxService {
         eventData.put("businessName", vendor.getBusinessName());
         eventData.put("status", vendor.getStatus().toString());
         eventData.put("reason", reason);
-        eventData.put("suspendedAt", vendor.getUpdatedAt().toString());
+        eventData.put("suspendedAt", vendor.getUpdatedAt() != null ? vendor.getUpdatedAt().toString() : null);
         
         OutboxEvent event = new OutboxEvent(
             "Vendor", 
@@ -87,7 +87,7 @@ public class OutboxService {
         eventData.put("userId", vendor.getUserId());
         eventData.put("businessName", vendor.getBusinessName());
         eventData.put("status", vendor.getStatus().toString());
-        eventData.put("activatedAt", vendor.getUpdatedAt().toString());
+        eventData.put("activatedAt", vendor.getUpdatedAt() != null ? vendor.getUpdatedAt().toString() : null);
         
         OutboxEvent event = new OutboxEvent(
             "Vendor", 
@@ -105,7 +105,7 @@ public class OutboxService {
         eventData.put("userId", vendor.getUserId());
         eventData.put("businessName", vendor.getBusinessName());
         eventData.put("status", vendor.getStatus().toString());
-        eventData.put("deactivatedAt", vendor.getUpdatedAt().toString());
+        eventData.put("deactivatedAt", vendor.getUpdatedAt() != null ? vendor.getUpdatedAt().toString() : null);
         
         OutboxEvent event = new OutboxEvent(
             "Vendor", 
@@ -126,7 +126,7 @@ public class OutboxService {
         eventData.put("category", listing.getCategory());
         eventData.put("basePrice", listing.getBasePrice().toString());
         eventData.put("status", listing.getStatus().toString());
-        eventData.put("createdAt", listing.getCreatedAt().toString());
+        eventData.put("createdAt", listing.getCreatedAt() != null ? listing.getCreatedAt().toString() : null);
         
         OutboxEvent event = new OutboxEvent(
             "Listing", 
@@ -146,7 +146,7 @@ public class OutboxService {
         eventData.put("category", listing.getCategory());
         eventData.put("basePrice", listing.getBasePrice().toString());
         eventData.put("status", listing.getStatus().toString());
-        eventData.put("updatedAt", listing.getUpdatedAt().toString());
+        eventData.put("updatedAt", listing.getUpdatedAt() != null ? listing.getUpdatedAt().toString() : null);
         
         OutboxEvent event = new OutboxEvent(
             "Listing", 
@@ -171,7 +171,7 @@ public class OutboxService {
         eventData.put("totalAmount", booking.getTotalAmount().toString());
         eventData.put("status", booking.getStatus().toString());
         eventData.put("bookingReference", booking.getBookingReference());
-        eventData.put("createdAt", booking.getCreatedAt().toString());
+        eventData.put("createdAt", booking.getCreatedAt() != null ? booking.getCreatedAt().toString() : null);
         
         OutboxEvent event = new OutboxEvent(
             "Booking", 
@@ -194,7 +194,7 @@ public class OutboxService {
         eventData.put("totalAmount", booking.getTotalAmount().toString());
         eventData.put("status", booking.getStatus().toString());
         eventData.put("bookingReference", booking.getBookingReference());
-        eventData.put("confirmedAt", booking.getUpdatedAt().toString());
+        eventData.put("confirmedAt", booking.getUpdatedAt() != null ? booking.getUpdatedAt().toString() : null);
         
         OutboxEvent event = new OutboxEvent(
             "Booking", 
@@ -217,7 +217,7 @@ public class OutboxService {
         eventData.put("totalAmount", booking.getTotalAmount().toString());
         eventData.put("status", booking.getStatus().toString());
         eventData.put("bookingReference", booking.getBookingReference());
-        eventData.put("cancelledAt", booking.getUpdatedAt().toString());
+        eventData.put("cancelledAt", booking.getUpdatedAt() != null ? booking.getUpdatedAt().toString() : null);
         
         OutboxEvent event = new OutboxEvent(
             "Booking", 
@@ -240,7 +240,7 @@ public class OutboxService {
         eventData.put("rating", review.getRating());
         eventData.put("title", review.getTitle());
         eventData.put("comment", review.getComment());
-        eventData.put("createdAt", review.getCreatedAt().toString());
+        eventData.put("createdAt", review.getCreatedAt() != null ? review.getCreatedAt().toString() : null);
         
         OutboxEvent event = new OutboxEvent(
             "Review", 
@@ -262,7 +262,7 @@ public class OutboxService {
         eventData.put("rating", review.getRating());
         eventData.put("title", review.getTitle());
         eventData.put("comment", review.getComment());
-        eventData.put("updatedAt", review.getUpdatedAt().toString());
+        eventData.put("updatedAt", review.getUpdatedAt() != null ? review.getUpdatedAt().toString() : null);
         
         OutboxEvent event = new OutboxEvent(
             "Review", 
@@ -281,7 +281,7 @@ public class OutboxService {
         eventData.put("userId", review.getUserId());
         eventData.put("listingId", review.getListing().getId().toString());
         eventData.put("vendorId", review.getVendor().getId().toString());
-        eventData.put("deletedAt", review.getUpdatedAt().toString());
+        eventData.put("deletedAt", review.getUpdatedAt() != null ? review.getUpdatedAt().toString() : null);
         
         OutboxEvent event = new OutboxEvent(
             "Review", 

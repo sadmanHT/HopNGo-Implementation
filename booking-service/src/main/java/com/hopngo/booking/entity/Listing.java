@@ -1,8 +1,7 @@
 package com.hopngo.booking.entity;
 
+import com.hopngo.booking.entity.base.Auditable;
 import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -14,13 +13,13 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "listings")
-public class Listing {
+public class Listing extends Auditable {
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "vendor_id", nullable = false)
     private Vendor vendor;
     
@@ -63,13 +62,7 @@ public class Listing {
     @Column(nullable = false)
     private ListingStatus status = ListingStatus.ACTIVE;
     
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-    
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+
     
     @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Inventory> inventory = new ArrayList<>();
@@ -203,21 +196,7 @@ public class Listing {
         this.status = status;
     }
     
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-    
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+
     
     public List<Inventory> getInventory() {
         return inventory;

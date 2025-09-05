@@ -1,8 +1,7 @@
 package com.hopngo.booking.entity;
 
+import com.hopngo.booking.entity.base.Auditable;
 import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -11,7 +10,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "bookings")
-public class Booking {
+public class Booking extends Auditable {
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -20,11 +19,11 @@ public class Booking {
     @Column(name = "user_id", nullable = false)
     private String userId;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "listing_id", nullable = false)
     private Listing listing;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "vendor_id", nullable = false)
     private Vendor vendor;
     
@@ -53,13 +52,7 @@ public class Booking {
     @Column(name = "booking_reference", unique = true, length = 50)
     private String bookingReference;
     
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-    
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+
     
     @Version
     @Column(nullable = false)
@@ -207,21 +200,7 @@ public class Booking {
         this.bookingReference = bookingReference;
     }
     
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-    
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+
     
     public Integer getVersion() {
         return version;
@@ -239,7 +218,4 @@ public class Booking {
         this.review = review;
     }
     
-    public enum BookingStatus {
-        PENDING, CONFIRMED, CANCELLED, COMPLETED
-    }
 }

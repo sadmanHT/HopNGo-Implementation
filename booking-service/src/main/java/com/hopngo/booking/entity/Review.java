@@ -1,10 +1,9 @@
 package com.hopngo.booking.entity;
 
+import com.hopngo.booking.entity.base.Auditable;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -13,7 +12,7 @@ import java.util.UUID;
 @Table(name = "reviews", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"booking_id"})
 })
-public class Review {
+public class Review extends Auditable {
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -45,13 +44,7 @@ public class Review {
     @Column(columnDefinition = "TEXT")
     private String comment;
     
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-    
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+
     
     // Constructors
     public Review() {}
@@ -141,19 +134,5 @@ public class Review {
         this.comment = comment;
     }
     
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-    
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+
 }

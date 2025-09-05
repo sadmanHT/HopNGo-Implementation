@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Receipt</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #28a745;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+        }
+        .payment-details {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #28a745;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #555;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .total-amount {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #28a745;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 15px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .success-icon {
+            font-size: 2em;
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+        .order-items {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .item:last-child {
+            border-bottom: none;
+        }
+        .receipt-number {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            text-align: center;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="success-icon">💳</div>
+        <h1>Payment Received</h1>
+        <p>Thank you for your payment!</p>
+    </div>
+    
+    <div class="content">
+        <p>Dear <span th:text="${userName}">Customer</span>,</p>
+        
+        <p>We've successfully received your payment. Here's your receipt:</p>
+        
+        <div class="receipt-number">
+            <strong>Receipt #: </strong><span th:text="${transactionId}">TXN123456789</span>
+        </div>
+        
+        <div class="payment-details">
+            <h3>Payment Details</h3>
+            
+            <div class="detail-row">
+                <span class="detail-label">Payment ID:</span>
+                <span class="detail-value" th:text="${paymentId}">PAY123456</span>
+            </div>
+            
+            <div class="detail-row">
+                <span class="detail-label">Order ID:</span>
+                <span class="detail-value" th:text="${orderId}">ORD123456</span>
+            </div>
+            
+            <div class="detail-row">
+                <span class="detail-label">Payment Method:</span>
+                <span class="detail-value" th:text="${paymentMethod}">Credit Card</span>
+            </div>
+            
+            <div class="detail-row">
+                <span class="detail-label">Transaction ID:</span>
+                <span class="detail-value" th:text="${transactionId}">TXN123456789</span>
+            </div>
+            
+            <div class="detail-row">
+                <span class="detail-label">Payment Date:</span>
+                <span class="detail-value" th:text="${#temporals.format(#temporals.createNow(), 'MMMM dd, yyyy HH:mm')}">Payment Date</span>
+            </div>
+        </div>
+        
+        <div th:if="${orderItems}" class="order-items">
+            <h4>Order Items</h4>
+            <div th:each="item : ${orderItems}" class="item">
+                <span th:text="${item.name + ' x' + item.quantity}">Item Name x1</span>
+                <span th:text="${currency + ' ' + item.price}">$0.00</span>
+            </div>
+        </div>
+        
+        <div class="total-amount">
+            <strong>Total Paid: </strong><span th:text="${currency + ' ' + amount}">$0.00</span>
+        </div>
+        
+        <p><strong>What happens next?</strong></p>
+        <ul>
+            <li>You'll receive order confirmation and tracking information shortly</li>
+            <li>Keep this receipt for your records</li>
+            <li>Contact support if you have any questions about your order</li>
+        </ul>
+        
+        <p><strong>Need help?</strong></p>
+        <p>If you have any questions about this payment or your order, please contact our customer support team. Have your payment ID (<span th:text="${paymentId}">PAY123456</span>) ready when you call.</p>
+        
+        <p>Thank you for your business!</p>
+    </div>
+    
+    <div class="footer">
+        <p>This is an automated receipt from HopNGo. Please do not reply to this email.</p>
+        <p>Keep this receipt for your records.</p>
+        <p>&copy; 2024 HopNGo. All rights reserved.</p>
+    </div>
+</body>
+</html>

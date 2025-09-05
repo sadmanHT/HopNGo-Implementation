@@ -1,8 +1,7 @@
 package com.hopngo.booking.entity;
 
+import com.hopngo.booking.entity.base.Auditable;
 import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,7 +11,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "vendors")
-public class Vendor {
+public class Vendor extends Auditable {
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -46,13 +45,7 @@ public class Vendor {
     @Column(nullable = false)
     private VendorStatus status = VendorStatus.ACTIVE;
     
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-    
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+
     
     @OneToMany(mappedBy = "vendor", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Listing> listings = new ArrayList<>();
@@ -153,21 +146,7 @@ public class Vendor {
         this.status = status;
     }
     
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-    
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+
     
     public List<Listing> getListings() {
         return listings;

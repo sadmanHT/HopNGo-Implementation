@@ -1,6 +1,8 @@
 package com.hopngo.booking.controller;
 
+import com.hopngo.booking.dto.*;
 import com.hopngo.booking.entity.*;
+import com.hopngo.booking.mapper.*;
 import com.hopngo.booking.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,14 +13,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/bookings")
@@ -29,56 +35,70 @@ public class BookingController {
     private final ListingService listingService;
     private final BookingService bookingService;
     private final ReviewService reviewService;
+    private final VendorMapper vendorMapper;
+    private final ListingMapper listingMapper;
+    private final BookingMapper bookingMapper;
+    private final ReviewMapper reviewMapper;
     
     @Autowired
     public BookingController(VendorService vendorService,
                            ListingService listingService,
                            BookingService bookingService,
-                           ReviewService reviewService) {
+                           ReviewService reviewService,
+                           VendorMapper vendorMapper,
+                           ListingMapper listingMapper,
+                           BookingMapper bookingMapper,
+                           ReviewMapper reviewMapper) {
         this.vendorService = vendorService;
         this.listingService = listingService;
         this.bookingService = bookingService;
         this.reviewService = reviewService;
+        this.vendorMapper = vendorMapper;
+        this.listingMapper = listingMapper;
+        this.bookingMapper = bookingMapper;
+        this.reviewMapper = reviewMapper;
     }
     
     // Vendor Management
     
     @PostMapping("/vendors")
     @Operation(summary = "Create vendor profile", description = "Create a new vendor profile for PROVIDER users")
-    public ResponseEntity<Vendor> createVendor(
+    public ResponseEntity<VendorResponse> createVendor(
             @RequestHeader("X-User-ID") String userId,
             @RequestHeader("X-User-Role") String userRole,
-            @Valid @RequestBody CreateVendorRequest request) {
+            @Valid @RequestBody VendorCreateRequest request) {
         
         if (!"PROVIDER".equals(userRole)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         
-        Vendor vendor = vendorService.createVendor(
-            userId, request.getBusinessName(), request.getContactEmail(),
-            null, // description
-            null, // contactPhone
-            request.getAddress(), request.getLatitude(), request.getLongitude()
+        Vendor vendor = vendorMapper.toEntity(request);
+        vendor.setUserId(userId);
+        vendor = vendorService.createVendor(
+            userId, vendor.getBusinessName(), vendor.getContactEmail(),
+            vendor.getDescription(), vendor.getContactPhone(),
+            vendor.getAddress(), vendor.getLatitude(), vendor.getLongitude()
         );
         
-        return ResponseEntity.status(HttpStatus.CREATED).body(vendor);
+        VendorResponse response = vendorMapper.toResponse(vendor);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
     @GetMapping("/vendors/me")
     @Operation(summary = "Get my vendor profile")
-    public ResponseEntity<Vendor> getMyVendorProfile(
+    public ResponseEntity<VendorResponse> getMyVendorProfile(
             @RequestHeader("X-User-ID") String userId) {
         
         Optional<Vendor> vendor = vendorService.findByUserId(userId);
-        return vendor.map(v -> ResponseEntity.ok(v))
+        return vendor.map(v -> ResponseEntity.ok(vendorMapper.toResponse(v)))
                     .orElse(ResponseEntity.notFound().build());
     }
     
     @PutMapping("/vendors/me")
     @Operation(summary = "Update my vendor profile")
-    public ResponseEntity<Vendor> updateMyVendorProfile(
+    public ResponseEntity<VendorResponse> updateMyVendorProfile(
             @RequestHeader("X-User-ID") String userId,
-            @Valid @RequestBody UpdateVendorRequest request) {
+            @Valid @RequestBody VendorCreateRequest request) {
         
         // First get the vendor to get the vendorId
         Optional<Vendor> existingVendor = vendorService.findByUserId(userId);
@@ -86,41 +106,46 @@ public class BookingController {
             throw new IllegalArgumentException("Vendor not found for user: " + userId);
         }
         
-        Vendor vendor = vendorService.updateVendor(
-            existingVendor.get().getId(), request.getBusinessName(), null, // description
-            request.getContactEmail(), null, // contactPhone
-            request.getAddress(), request.getLatitude(), request.getLongitude()
+        Vendor vendor = existingVendor.get();
+        vendorMapper.updateEntity(request, vendor);
+        vendor = vendorService.updateVendor(
+            vendor.getId(), vendor.getBusinessName(), vendor.getContactEmail(),
+            vendor.getContactPhone(), vendor.getDescription(),
+            vendor.getAddress(), vendor.getLatitude(), vendor.getLongitude()
         );
         
-        return ResponseEntity.ok(vendor);
+        VendorResponse response = vendorMapper.toResponse(vendor);
+        return ResponseEntity.ok(response);
     }
     
     // Listing Management
     
     @PostMapping("/listings")
     @Operation(summary = "Create listing", description = "Create a new listing (PROVIDER only)")
-    public ResponseEntity<Listing> createListing(
+    public ResponseEntity<ListingResponse> createListing(
             @RequestHeader("X-User-ID") String userId,
             @RequestHeader("X-User-Role") String userRole,
-            @Valid @RequestBody CreateListingRequest request) {
+            @Valid @RequestBody ListingCreateRequest request) {
         
         if (!"PROVIDER".equals(userRole)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         
-        Listing listing = listingService.createListing(
-            userId, request.getTitle(), request.getDescription(), request.getCategory(),
-            request.getBasePrice(), request.getCurrency(), request.getMaxGuests(),
-            request.getAmenities(), request.getImages(), request.getAddress(),
-            request.getLatitude(), request.getLongitude()
+        Listing listing = listingMapper.toEntity(request);
+        listing = listingService.createListing(
+            userId, listing.getTitle(), listing.getDescription(), "ACCOMMODATION", // default category
+            listing.getBasePrice(), "USD", listing.getMaxGuests(),
+            listing.getAmenities(), listing.getImages(), listing.getAddress(),
+            listing.getLatitude(), listing.getLongitude()
         );
         
-        return ResponseEntity.status(HttpStatus.CREATED).body(listing);
+        ListingResponse response = listingMapper.toResponse(listing);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
     @GetMapping("/listings")
     @Operation(summary = "Search listings", description = "Search listings with filters")
-    public ResponseEntity<List<Listing>> searchListings(
+    public ResponseEntity<List<ListingResponse>> searchListings(
             @RequestParam(required = false) @Parameter(description = "Latitude for geo search") Double lat,
             @RequestParam(required = false) @Parameter(description = "Longitude for geo search") Double lng,
             @RequestParam(required = false) @Parameter(description = "Search radius in km") Double radius,
@@ -136,41 +161,56 @@ public class BookingController {
             lat, lng, radius, from, to, minPrice, maxPrice, category, maxGuests, amenities
         );
         
-        return ResponseEntity.ok(listings);
+        List<ListingResponse> responses = listings.stream()
+            .map(listingMapper::toResponse)
+            .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(responses);
     }
     
     @GetMapping("/listings/{listingId}")
     @Operation(summary = "Get listing details")
-    public ResponseEntity<Listing> getListingDetails(@PathVariable UUID listingId) {
+    public ResponseEntity<ListingResponse> getListingDetails(@PathVariable UUID listingId) {
         Optional<Listing> listing = listingService.findById(listingId);
-        return listing.map(l -> ResponseEntity.ok(l))
+        return listing.map(l -> ResponseEntity.ok(listingMapper.toResponse(l)))
                      .orElse(ResponseEntity.notFound().build());
     }
     
     @GetMapping("/listings/me")
     @Operation(summary = "Get my listings")
-    public ResponseEntity<List<Listing>> getMyListings(
+    public ResponseEntity<List<ListingResponse>> getMyListings(
             @RequestHeader("X-User-ID") String userId) {
         
         List<Listing> listings = listingService.findByVendorUserId(userId);
-        return ResponseEntity.ok(listings);
+        List<ListingResponse> responses = listings.stream()
+            .map(listingMapper::toResponse)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
     
     @PutMapping("/listings/{listingId}")
     @Operation(summary = "Update listing")
-    public ResponseEntity<Listing> updateListing(
+    public ResponseEntity<ListingResponse> updateListing(
             @PathVariable UUID listingId,
             @RequestHeader("X-User-ID") String userId,
-            @Valid @RequestBody UpdateListingRequest request) {
+            @Valid @RequestBody ListingCreateRequest request) {
         
-        Listing listing = listingService.updateListing(
-            listingId, userId, request.getTitle(), request.getDescription(),
-            request.getCategory(), request.getBasePrice(), request.getCurrency(),
-            request.getMaxGuests(), request.getAmenities(), request.getImages(),
-            request.getAddress(), request.getLatitude(), request.getLongitude()
+        Optional<Listing> existingListing = listingService.findById(listingId);
+        if (existingListing.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        Listing listing = existingListing.get();
+        listingMapper.updateEntity(request, listing);
+        listing = listingService.updateListing(
+            listingId, userId, listing.getTitle(), listing.getDescription(),
+            "ACCOMMODATION", listing.getBasePrice(), "USD",
+            listing.getMaxGuests(), listing.getAmenities(), listing.getImages(),
+            listing.getAddress(), listing.getLatitude(), listing.getLongitude()
         );
         
-        return ResponseEntity.ok(listing);
+        ListingResponse response = listingMapper.toResponse(listing);
+        return ResponseEntity.ok(response);
     }
     
     @PostMapping("/listings/{listingId}/inventory")
@@ -178,11 +218,11 @@ public class BookingController {
     public ResponseEntity<Void> createInventory(
             @PathVariable UUID listingId,
             @RequestHeader("X-User-ID") String userId,
-            @Valid @RequestBody CreateInventoryRequest request) {
+            @Valid @RequestBody InventoryCreateRequest request) {
         
         listingService.createInventoryForPeriod(
-            listingId, userId, request.getStartDate(), request.getEndDate(),
-            request.getAvailableQuantity(), request.getPriceOverride()
+            listingId, userId, request.date(), request.date(),
+            request.availableQuantity(), request.priceOverride()
         );
         
         return ResponseEntity.status(HttpStatus.CREATED).build();
@@ -203,39 +243,48 @@ public class BookingController {
     
     @PostMapping
     @Operation(summary = "Create booking", description = "Create a new PENDING booking")
-    public ResponseEntity<Booking> createBooking(
+    public ResponseEntity<BookingResponse> createBooking(
             @RequestHeader("X-User-ID") String userId,
-            @Valid @RequestBody CreateBookingRequest request) {
+            @RequestHeader("X-User-Role") String userRole,
+            @Valid @RequestBody BookingCreateRequest request) {
         
         Booking booking = bookingService.createBooking(
-            userId, request.getListingId(), request.getStartDate(),
-            request.getEndDate(), request.getGuests(), request.getSpecialRequests()
+            userId, request.listingId(), request.checkInDate(),
+            request.checkOutDate(), request.numberOfGuests(),
+            request.specialRequests()
         );
         
-        return ResponseEntity.status(HttpStatus.CREATED).body(booking);
+        BookingResponse response = bookingMapper.toResponse(booking);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
     @GetMapping
     @Operation(summary = "Get my bookings")
-    public ResponseEntity<List<Booking>> getMyBookings(
+    public ResponseEntity<List<BookingResponse>> getMyBookings(
             @RequestHeader("X-User-ID") String userId) {
         
         List<Booking> bookings = bookingService.findByUserId(userId);
-        return ResponseEntity.ok(bookings);
+        List<BookingResponse> responses = bookings.stream()
+            .map(bookingMapper::toResponse)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
     
     @GetMapping("/vendor")
     @Operation(summary = "Get bookings for my listings")
-    public ResponseEntity<List<Booking>> getVendorBookings(
+    public ResponseEntity<List<BookingResponse>> getVendorBookings(
             @RequestHeader("X-User-ID") String userId) {
         
         List<Booking> bookings = bookingService.findByVendorUserId(userId);
-        return ResponseEntity.ok(bookings);
+        List<BookingResponse> responses = bookings.stream()
+            .map(bookingMapper::toResponse)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
     
     @GetMapping("/{bookingId}")
     @Operation(summary = "Get booking details")
-    public ResponseEntity<Booking> getBookingDetails(
+    public ResponseEntity<BookingResponse> getBookingDetails(
             @PathVariable UUID bookingId,
             @RequestHeader("X-User-ID") String userId) {
         
@@ -250,22 +299,25 @@ public class BookingController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         
-        return ResponseEntity.ok(b);
+        BookingResponse response = bookingMapper.toResponse(b);
+        return ResponseEntity.ok(response);
     }
     
     @PatchMapping("/{bookingId}")
     @Operation(summary = "Update booking status", description = "Cancel booking if allowed")
-    public ResponseEntity<Booking> updateBookingStatus(
+    public ResponseEntity<BookingResponse> updateBookingStatus(
             @PathVariable UUID bookingId,
             @RequestHeader("X-User-ID") String userId,
-            @Valid @RequestBody UpdateBookingRequest request) {
+            @Valid @RequestBody BookingUpdateRequest request) {
         
-        if ("CANCELLED".equals(request.getStatus())) {
+        if ("CANCELLED".equals(request.status())) {
             Booking booking = bookingService.cancelBooking(bookingId, userId);
-            return ResponseEntity.ok(booking);
-        } else if ("CONFIRMED".equals(request.getStatus())) {
+            BookingResponse response = bookingMapper.toResponse(booking);
+            return ResponseEntity.ok(response);
+        } else if ("CONFIRMED".equals(request.status())) {
             Booking booking = bookingService.confirmBooking(bookingId, userId);
-            return ResponseEntity.ok(booking);
+            BookingResponse response = bookingMapper.toResponse(booking);
+            return ResponseEntity.ok(response);
         }
         
         return ResponseEntity.badRequest().build();
@@ -273,7 +325,7 @@ public class BookingController {
     
     @GetMapping("/reference/{bookingReference}")
     @Operation(summary = "Get booking by reference")
-    public ResponseEntity<Booking> getBookingByReference(
+    public ResponseEntity<BookingResponse> getBookingByReference(
             @PathVariable String bookingReference,
             @RequestHeader("X-User-ID") String userId) {
         
@@ -288,62 +340,73 @@ public class BookingController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         
-        return ResponseEntity.ok(b);
+        BookingResponse response = bookingMapper.toResponse(b);
+        return ResponseEntity.ok(response);
     }
     
     // Review Management
     
     @PostMapping("/{bookingId}/review")
     @Operation(summary = "Create review", description = "Create review for completed booking")
-    public ResponseEntity<Review> createReview(
+    public ResponseEntity<ReviewResponse> createReview(
             @PathVariable UUID bookingId,
             @RequestHeader("X-User-ID") String userId,
-            @Valid @RequestBody CreateReviewRequest request) {
+            @Valid @RequestBody ReviewCreateRequest request) {
         
         Review review = reviewService.createReview(
-            bookingId, userId, request.getRating(),
-            request.getTitle(), request.getComment()
+            bookingId, userId, request.rating(), null, request.comment()
         );
         
-        return ResponseEntity.status(HttpStatus.CREATED).body(review);
+        ReviewResponse response = reviewMapper.toResponse(review);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
     @GetMapping("/reviews/me")
     @Operation(summary = "Get my reviews")
-    public ResponseEntity<List<Review>> getMyReviews(
+    public ResponseEntity<List<ReviewResponse>> getMyReviews(
             @RequestHeader("X-User-ID") String userId) {
         
         List<Review> reviews = reviewService.findByUserId(userId);
-        return ResponseEntity.ok(reviews);
+        List<ReviewResponse> responses = reviews.stream()
+            .map(reviewMapper::toResponse)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
     
     @GetMapping("/listings/{listingId}/reviews")
     @Operation(summary = "Get reviews for listing")
-    public ResponseEntity<List<Review>> getListingReviews(@PathVariable UUID listingId) {
+    public ResponseEntity<List<ReviewResponse>> getListingReviews(@PathVariable UUID listingId) {
         List<Review> reviews = reviewService.findByListingId(listingId);
-        return ResponseEntity.ok(reviews);
+        List<ReviewResponse> responses = reviews.stream()
+            .map(reviewMapper::toResponse)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
     
     @GetMapping("/vendors/{vendorId}/reviews")
     @Operation(summary = "Get reviews for vendor")
-    public ResponseEntity<List<Review>> getVendorReviews(@PathVariable UUID vendorId) {
+    public ResponseEntity<List<ReviewResponse>> getVendorReviews(@PathVariable UUID vendorId) {
         List<Review> reviews = reviewService.findByVendorId(vendorId);
-        return ResponseEntity.ok(reviews);
+        List<ReviewResponse> responses = reviews.stream()
+            .map(reviewMapper::toResponse)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
     
     @PutMapping("/reviews/{reviewId}")
     @Operation(summary = "Update review")
-    public ResponseEntity<Review> updateReview(
+    public ResponseEntity<ReviewResponse> updateReview(
             @PathVariable UUID reviewId,
             @RequestHeader("X-User-ID") String userId,
-            @Valid @RequestBody UpdateReviewRequest request) {
+            @Valid @RequestBody ReviewUpdateRequest request) {
         
         Review review = reviewService.updateReview(
-            reviewId, userId, request.getRating(),
-            request.getTitle(), request.getComment()
+            reviewId, userId, request.rating(),
+            null, request.comment()
         );
         
-        return ResponseEntity.ok(review);
+        ReviewResponse response = reviewMapper.toResponse(review);
+        return ResponseEntity.ok(response);
     }
     
     @DeleteMapping("/reviews/{reviewId}")
@@ -398,6 +461,23 @@ public class BookingController {
     
     // Exception Handlers
     
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("error", "Validation Failed");
+        response.put("message", "Invalid input data");
+        response.put("errors", errors);
+        
+        return ResponseEntity.badRequest().body(response);
+    }
+    
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException e) {
         return ResponseEntity.badRequest()
@@ -415,237 +495,4 @@ public class BookingController {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(Map.of("error", "Internal Server Error", "message", "An unexpected error occurred"));
     }
-}
-
-// Request DTOs
-
-class CreateVendorRequest {
-    @NotBlank
-    private String businessName;
-    
-    @Email
-    @NotBlank
-    private String contactEmail;
-    
-    private String address;
-    private BigDecimal latitude;
-    private BigDecimal longitude;
-    
-    // Getters and setters
-    public String getBusinessName() { return businessName; }
-    public void setBusinessName(String businessName) { this.businessName = businessName; }
-    public String getContactEmail() { return contactEmail; }
-    public void setContactEmail(String contactEmail) { this.contactEmail = contactEmail; }
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
-    public BigDecimal getLatitude() { return latitude; }
-    public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }
-    public BigDecimal getLongitude() { return longitude; }
-    public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }
-}
-
-class UpdateVendorRequest {
-    private String businessName;
-    private String contactEmail;
-    private String address;
-    private BigDecimal latitude;
-    private BigDecimal longitude;
-    
-    // Getters and setters
-    public String getBusinessName() { return businessName; }
-    public void setBusinessName(String businessName) { this.businessName = businessName; }
-    public String getContactEmail() { return contactEmail; }
-    public void setContactEmail(String contactEmail) { this.contactEmail = contactEmail; }
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
-    public BigDecimal getLatitude() { return latitude; }
-    public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }
-    public BigDecimal getLongitude() { return longitude; }
-    public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }
-}
-
-class CreateListingRequest {
-    @NotBlank
-    private String title;
-    
-    private String description;
-    
-    @NotBlank
-    private String category;
-    
-    @NotNull
-    @DecimalMin("0.01")
-    private BigDecimal basePrice;
-    
-    private String currency = "USD";
-    
-    @Min(1)
-    private Integer maxGuests = 1;
-    
-    private String[] amenities;
-    private String[] images;
-    private String address;
-    private BigDecimal latitude;
-    private BigDecimal longitude;
-    
-    // Getters and setters
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
-    public BigDecimal getBasePrice() { return basePrice; }
-    public void setBasePrice(BigDecimal basePrice) { this.basePrice = basePrice; }
-    public String getCurrency() { return currency; }
-    public void setCurrency(String currency) { this.currency = currency; }
-    public Integer getMaxGuests() { return maxGuests; }
-    public void setMaxGuests(Integer maxGuests) { this.maxGuests = maxGuests; }
-    public String[] getAmenities() { return amenities; }
-    public void setAmenities(String[] amenities) { this.amenities = amenities; }
-    public String[] getImages() { return images; }
-    public void setImages(String[] images) { this.images = images; }
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
-    public BigDecimal getLatitude() { return latitude; }
-    public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }
-    public BigDecimal getLongitude() { return longitude; }
-    public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }
-}
-
-class UpdateListingRequest {
-    private String title;
-    private String description;
-    private String category;
-    private BigDecimal basePrice;
-    private String currency;
-    private Integer maxGuests;
-    private String[] amenities;
-    private String[] images;
-    private String address;
-    private BigDecimal latitude;
-    private BigDecimal longitude;
-    
-    // Getters and setters
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
-    public BigDecimal getBasePrice() { return basePrice; }
-    public void setBasePrice(BigDecimal basePrice) { this.basePrice = basePrice; }
-    public String getCurrency() { return currency; }
-    public void setCurrency(String currency) { this.currency = currency; }
-    public Integer getMaxGuests() { return maxGuests; }
-    public void setMaxGuests(Integer maxGuests) { this.maxGuests = maxGuests; }
-    public String[] getAmenities() { return amenities; }
-    public void setAmenities(String[] amenities) { this.amenities = amenities; }
-    public String[] getImages() { return images; }
-    public void setImages(String[] images) { this.images = images; }
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
-    public BigDecimal getLatitude() { return latitude; }
-    public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }
-    public BigDecimal getLongitude() { return longitude; }
-    public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }
-}
-
-class CreateInventoryRequest {
-    @NotNull
-    private LocalDate startDate;
-    
-    @NotNull
-    private LocalDate endDate;
-    
-    @NotNull
-    @Min(1)
-    private Integer availableQuantity;
-    
-    private BigDecimal priceOverride;
-    
-    // Getters and setters
-    public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
-    public LocalDate getEndDate() { return endDate; }
-    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
-    public Integer getAvailableQuantity() { return availableQuantity; }
-    public void setAvailableQuantity(Integer availableQuantity) { this.availableQuantity = availableQuantity; }
-    public BigDecimal getPriceOverride() { return priceOverride; }
-    public void setPriceOverride(BigDecimal priceOverride) { this.priceOverride = priceOverride; }
-}
-
-class CreateBookingRequest {
-    @NotNull
-    private UUID listingId;
-    
-    @NotNull
-    @FutureOrPresent
-    private LocalDate startDate;
-    
-    @NotNull
-    @Future
-    private LocalDate endDate;
-    
-    @NotNull
-    @Min(1)
-    private Integer guests;
-    
-    private String specialRequests;
-    
-    // Getters and setters
-    public UUID getListingId() { return listingId; }
-    public void setListingId(UUID listingId) { this.listingId = listingId; }
-    public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
-    public LocalDate getEndDate() { return endDate; }
-    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
-    public Integer getGuests() { return guests; }
-    public void setGuests(Integer guests) { this.guests = guests; }
-    public String getSpecialRequests() { return specialRequests; }
-    public void setSpecialRequests(String specialRequests) { this.specialRequests = specialRequests; }
-}
-
-class UpdateBookingRequest {
-    @NotBlank
-    private String status;
-    
-    // Getters and setters
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-}
-
-class CreateReviewRequest {
-    @NotNull
-    @Min(1)
-    @Max(5)
-    private Integer rating;
-    
-    private String title;
-    private String comment;
-    
-    // Getters and setters
-    public Integer getRating() { return rating; }
-    public void setRating(Integer rating) { this.rating = rating; }
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public String getComment() { return comment; }
-    public void setComment(String comment) { this.comment = comment; }
-}
-
-class UpdateReviewRequest {
-    @Min(1)
-    @Max(5)
-    private Integer rating;
-    
-    private String title;
-    private String comment;
-    
-    // Getters and setters
-    public Integer getRating() { return rating; }
-    public void setRating(Integer rating) { this.rating = rating; }
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public String getComment() { return comment; }
-    public void setComment(String comment) { this.comment = comment; }
 }

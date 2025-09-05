@@ -1,0 +1,23 @@
+package com.hopngo.notification.entity;
+
+/**
+ * Enumeration of notification types
+ */
+public enum NotificationType {
+    BOOKING_CONFIRMED,
+    BOOKING_CANCELLED,
+    BOOKING_REMINDER,
+    BOOKING_UPDATED,
+    PAYMENT_RECEIPT,
+    PAYMENT_FAILED,
+    PAYMENT_REFUNDED,
+    PAYMENT_CANCELLED,
+    PAYMENT_PENDING,
+    CHAT_MESSAGE,
+    CHAT_MENTION,
+    CHAT_URGENT,
+    CONVERSATION_CREATED,
+    CONVERSATION_JOINED,
+    SYSTEM_NOTIFICATION,
+    SYSTEM_TEST
+}

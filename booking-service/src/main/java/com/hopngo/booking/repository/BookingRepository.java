@@ -1,6 +1,7 @@
 package com.hopngo.booking.repository;
 
 import com.hopngo.booking.entity.Booking;
+import com.hopngo.booking.entity.BookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,13 +17,13 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     
     List<Booking> findByUserId(String userId);
     
-    List<Booking> findByUserIdAndStatus(String userId, Booking.BookingStatus status);
+    List<Booking> findByUserIdAndStatus(String userId, BookingStatus status);
     
     List<Booking> findByListingId(UUID listingId);
     
     List<Booking> findByVendorId(UUID vendorId);
     
-    List<Booking> findByVendorIdAndStatus(UUID vendorId, Booking.BookingStatus status);
+    List<Booking> findByVendorIdAndStatus(UUID vendorId, BookingStatus status);
     
     @Query("SELECT b FROM Booking b WHERE b.vendor.userId = :vendorUserId")
     List<Booking> findByVendorUserId(@Param("vendorUserId") String vendorUserId);
@@ -74,14 +75,14 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
            "b.status = :status")
     long countByUserIdAndStatus(
         @Param("userId") String userId,
-        @Param("status") Booking.BookingStatus status
+        @Param("status") BookingStatus status
     );
     
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.vendor.id = :vendorId AND " +
            "b.status = :status")
     long countByVendorIdAndStatus(
         @Param("vendorId") UUID vendorId,
-        @Param("status") Booking.BookingStatus status
+        @Param("status") BookingStatus status
     );
     
     @Query("SELECT b FROM Booking b WHERE b.userId = :userId " +
@@ -104,7 +105,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     @Query("SELECT b FROM Booking b WHERE b.status = :status AND " +
            "b.startDate = :date")
     List<Booking> findBookingsStartingOnDate(
-        @Param("status") Booking.BookingStatus status,
+        @Param("status") BookingStatus status,
         @Param("date") LocalDate date
     );
     
@@ -113,7 +114,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     
     long countByVendorId(UUID vendorId);
     
-    List<Booking> findByStatus(Booking.BookingStatus status);
+    List<Booking> findByStatus(BookingStatus status);
     
     long countByUserId(String userId);
 }

@@ -246,7 +246,10 @@ public class ListingService {
             Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new IllegalArgumentException("Listing not found: " + listingId));
             
-            long days = startDate.until(endDate).getDays();
+            long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
+            if (days <= 0) {
+                days = 1; // Minimum 1 day for same-day bookings
+            }
             return listing.getBasePrice().multiply(BigDecimal.valueOf(days));
         }
         

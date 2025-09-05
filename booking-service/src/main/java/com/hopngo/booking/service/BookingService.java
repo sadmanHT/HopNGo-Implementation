@@ -1,6 +1,7 @@
 package com.hopngo.booking.service;
 
 import com.hopngo.booking.entity.Booking;
+import com.hopngo.booking.entity.BookingStatus;
 import com.hopngo.booking.entity.Listing;
 import com.hopngo.booking.entity.Vendor;
 import com.hopngo.booking.entity.Inventory;
@@ -90,10 +91,10 @@ public class BookingService {
         booking.setTotalAmount(totalAmount);
         booking.setCurrency(listing.getCurrency());
         booking.setSpecialRequests(specialRequests);
-        booking.setStatus(Booking.BookingStatus.PENDING);
-        
+        booking.setStatus(BookingStatus.PENDING);
+
         Booking savedBooking = bookingRepository.save(booking);
-        
+
         // Publish booking created event
         outboxService.publishBookingCreatedEvent(savedBooking);
         
@@ -150,7 +151,7 @@ public class BookingService {
             throw new SecurityException("User cannot confirm this booking");
         }
         
-        if (booking.getStatus() != Booking.BookingStatus.PENDING) {
+        if (booking.getStatus() != BookingStatus.PENDING) {
             throw new IllegalArgumentException("Booking cannot be confirmed in current status: " + booking.getStatus());
         }
         
@@ -236,7 +237,7 @@ public class BookingService {
     }
     
     @Transactional(readOnly = true)
-    public List<Booking> findByStatus(Booking.BookingStatus status) {
+    public List<Booking> findByStatus(BookingStatus status) {
         return bookingRepository.findByStatus(status);
     }
     

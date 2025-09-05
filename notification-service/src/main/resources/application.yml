@@ -1,0 +1,165 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: notification-service
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/hopngo_notification
+    username: hopngo_user
+    password: hopngo_password
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  
+  # Mail Configuration for Mailhog
+  mail:
+    host: mailhog
+    port: 1025
+    username: 
+    password: 
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+          connectiontimeout: 5000
+          timeout: 3000
+          writetimeout: 5000
+    default-encoding: UTF-8
+  
+  # RabbitMQ Stream Configuration
+  cloud:
+    stream:
+      bindings:
+        # Booking Events Consumer
+        booking-events-in-0:
+          destination: booking.events
+          content-type: application/json
+          group: notification-service
+          consumer:
+            max-attempts: 3
+            back-off-initial-interval: 1000
+            back-off-max-interval: 10000
+            back-off-multiplier: 2.0
+        
+        # Payment Events Consumer
+        payment-events-in-0:
+          destination: payment.events
+          content-type: application/json
+          group: notification-service
+          consumer:
+            max-attempts: 3
+            back-off-initial-interval: 1000
+            back-off-max-interval: 10000
+            back-off-multiplier: 2.0
+        
+        # Chat Events Consumer
+        chat-events-in-0:
+          destination: chat.events
+          content-type: application/json
+          group: notification-service
+          consumer:
+            max-attempts: 3
+            back-off-initial-interval: 1000
+            back-off-max-interval: 10000
+            back-off-multiplier: 2.0
+      
+      rabbit:
+        bindings:
+          booking-events-in-0:
+            consumer:
+              binding-routing-key: 'booking.*'
+              exchange-type: topic
+              auto-bind-dlq: true
+              republish-to-dlq: true
+          
+          payment-events-in-0:
+            consumer:
+              binding-routing-key: 'payment.*'
+              exchange-type: topic
+              auto-bind-dlq: true
+              republish-to-dlq: true
+          
+          chat-events-in-0:
+            consumer:
+              binding-routing-key: 'chat.*'
+              exchange-type: topic
+              auto-bind-dlq: true
+              republish-to-dlq: true
+      
+      function:
+        definition: bookingEventsConsumer;paymentEventsConsumer;chatEventsConsumer
+  
+  # RabbitMQ Connection
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+
+# Management and Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+# Logging
+logging:
+  level:
+    com.hopngo.notification: DEBUG
+    org.springframework.cloud.stream: DEBUG
+    org.springframework.amqp: DEBUG
+    org.springframework.mail: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Application Configuration
+notification:
+  email:
+    from: noreply@hopngo.com
+    from-name: HopNGo Platform
+  sms:
+    enabled: false # Stub implementation
+    provider: stub
+  push:
+    enabled: false # Stub implementation
+    provider: stub
+  templates:
+    base-path: classpath:templates/
+  outbox:
+    enabled: true
+    retry-attempts: 3
+    retry-delay: 5000
