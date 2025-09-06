@@ -1,0 +1,234 @@
+# HopNGo Infrastructure Helm Values
+# This file contains configuration for all infrastructure components
+
+# PostgreSQL Configuration
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "hopngo123"
+    username: "hopngo"
+    password: "hopngo123"
+    database: "hopngo"
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: "standard"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+  service:
+    ports:
+      postgresql: 5432
+
+# MongoDB Configuration
+mongodb:
+  enabled: true
+  auth:
+    enabled: true
+    rootUser: "hopngo"
+    rootPassword: "hopngo123"
+    usernames:
+      - "hopngo"
+    passwords:
+      - "hopngo123"
+    databases:
+      - "hopngo"
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClass: "standard"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  service:
+    ports:
+      mongodb: 27017
+
+# Redis Configuration
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: "hopngoredis"
+  master:
+    persistence:
+      enabled: true
+      size: 4Gi
+      storageClass: "standard"
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+  replica:
+    replicaCount: 1
+    persistence:
+      enabled: true
+      size: 4Gi
+      storageClass: "standard"
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+
+# RabbitMQ Configuration
+rabbitmq:
+  enabled: true
+  auth:
+    username: "hopngo"
+    password: "hopngorabbit"
+    erlangCookie: "hopngoerlangcookie"
+  persistence:
+    enabled: true
+    size: 4Gi
+    storageClass: "standard"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  service:
+    ports:
+      amqp: 5672
+      manager: 15672
+  plugins: "rabbitmq_management rabbitmq_peer_discovery_k8s"
+
+# Prometheus Configuration
+prometheus:
+  enabled: true
+  server:
+    persistentVolume:
+      enabled: true
+      size: 8Gi
+      storageClass: "standard"
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+    retention: "15d"
+  alertmanager:
+    enabled: true
+    persistentVolume:
+      enabled: true
+      size: 2Gi
+      storageClass: "standard"
+  nodeExporter:
+    enabled: true
+  kubeStateMetrics:
+    enabled: true
+  pushgateway:
+    enabled: true
+
+# Grafana Configuration
+grafana:
+  enabled: true
+  adminUser: "admin"
+  adminPassword: "hopngografana"
+  persistence:
+    enabled: true
+    size: 4Gi
+    storageClass: "standard"
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-server:80
+        access: proxy
+        isDefault: true
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+# NGINX Ingress Controller Configuration
+nginx-ingress:
+  enabled: true
+  controller:
+    replicaCount: 2
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    service:
+      type: LoadBalancer
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    config:
+      use-forwarded-headers: "true"
+      compute-full-forwarded-for: "true"
+      use-proxy-protocol: "true"
+
+# Cert-Manager Configuration (for TLS certificates)
+cert-manager:
+  enabled: true
+  installCRDs: true
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# Global Configuration
+global:
+  storageClass: "standard"
+  imageRegistry: "docker.io"
+  imagePullSecrets: []
+  
+# Environment-specific overrides
+environment:
+  name: "development"
+  domain: "hopngo.local"
+  
+# Resource quotas and limits
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "4"
+    requests.memory: "8Gi"
+    limits.cpu: "8"
+    limits.memory: "16Gi"
+    persistentvolumeclaims: "20"
+    services: "20"
+    secrets: "20"
+    configmaps: "20"

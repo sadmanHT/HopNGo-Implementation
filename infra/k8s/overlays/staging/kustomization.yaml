@@ -1,0 +1,59 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: hopngo-staging
+
+resources:
+  - namespace.yaml
+  - ../../base
+
+patchesStrategicMerge:
+  - replica-patch.yaml
+  - resource-patch.yaml
+  - ingress-patch.yaml
+
+configMapGenerator:
+  - name: environment-config
+    literals:
+      - ENVIRONMENT=staging
+      - LOG_LEVEL=INFO
+      - ENABLE_DEBUG=false
+      - CORS_ORIGINS=https://staging.hopngo.com
+
+secretGenerator:
+  - name: staging-secrets
+    literals:
+      - DEBUG_MODE=false
+
+commonLabels:
+  environment: staging
+  app.kubernetes.io/part-of: hopngo
+  app.kubernetes.io/managed-by: kustomize
+
+commonAnnotations:
+  environment: staging
+  deployment.kubernetes.io/revision: "1"
+
+images:
+  - name: hopngo/gateway
+    newTag: staging-latest
+  - name: hopngo/auth-service
+    newTag: staging-latest
+  - name: hopngo/social-service
+    newTag: staging-latest
+  - name: hopngo/booking-service
+    newTag: staging-latest
+  - name: hopngo/market-service
+    newTag: staging-latest
+  - name: hopngo/chat-service
+    newTag: staging-latest
+  - name: hopngo/notification-service
+    newTag: staging-latest
+  - name: hopngo/trip-planning-service
+    newTag: staging-latest
+  - name: hopngo/ai-service
+    newTag: staging-latest
+  - name: hopngo/emergency-service
+    newTag: staging-latest
+  - name: hopngo/frontend
+    newTag: staging-latest

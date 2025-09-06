@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hopngo-prod
+  labels:
+    name: hopngo-prod
+    environment: production

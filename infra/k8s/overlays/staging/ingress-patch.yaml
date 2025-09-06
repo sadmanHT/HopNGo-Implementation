@@ -1,0 +1,96 @@
+# Staging environment ingress patch
+# Updates host to staging domain
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hopngo-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://staging.hopngo.com"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  rules:
+  - host: staging.hopngo.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 3000
+      - path: /api/auth
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 8081
+      - path: /api/social
+        pathType: Prefix
+        backend:
+          service:
+            name: social-service
+            port:
+              number: 8082
+      - path: /api/booking
+        pathType: Prefix
+        backend:
+          service:
+            name: booking-service
+            port:
+              number: 8083
+      - path: /api/market
+        pathType: Prefix
+        backend:
+          service:
+            name: market-service
+            port:
+              number: 8084
+      - path: /api/chat
+        pathType: Prefix
+        backend:
+          service:
+            name: chat-service
+            port:
+              number: 8085
+      - path: /api/notification
+        pathType: Prefix
+        backend:
+          service:
+            name: notification-service
+            port:
+              number: 8089
+      - path: /api/trip
+        pathType: Prefix
+        backend:
+          service:
+            name: trip-planning-service
+            port:
+              number: 8087
+      - path: /api/ai
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-service
+            port:
+              number: 8088
+      - path: /api/emergency
+        pathType: Prefix
+        backend:
+          service:
+            name: emergency-service
+            port:
+              number: 8086
+      - path: /api/gateway
+        pathType: Prefix
+        backend:
+          service:
+            name: gateway
+            port:
+              number: 8080
+  tls:
+  - hosts:
+    - staging.hopngo.com
+    secretName: staging-hopngo-tls

@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  labels:
+    app.kubernetes.io/name: gateway
+    app.kubernetes.io/component: api-gateway
+data:
+  database.url: "jdbc:postgresql://postgresql:5432/hopngo"
+  redis.host: "redis-master"
+  redis.port: "6379"
+  rabbitmq.host: "rabbitmq"
+  rabbitmq.port: "5672"
+  auth-service.url: "http://auth-service:8081"
+  social-service.url: "http://social-service:8082"
+  booking-service.url: "http://booking-service:8083"
+  market-service.url: "http://market-service:8084"
+  chat-service.url: "http://chat-service:8085"
+  notification-service.url: "http://notification-service:8089"
+  trip-planning-service.url: "http://trip-planning-service:8087"
+  ai-service.url: "http://ai-service:8088"
+  emergency-service.url: "http://emergency-service:8086"
+  application.yml: |
+    server:
+      port: 8080
+    spring:
+      application:
+        name: gateway
+      profiles:
+        active: k8s
+      cloud:
+        gateway:
+          routes:
+            - id: auth-service
+              uri: http://auth-service:8081
+              predicates:
+                - Path=/api/v1/auth/**
+            - id: social-service
+              uri: http://social-service:8082
+              predicates:
+                - Path=/api/v1/social/**
+            - id: booking-service
+              uri: http://booking-service:8083
+              predicates:
+                - Path=/api/v1/bookings/**
+            - id: market-service
+              uri: http://market-service:8084
+              predicates:
+                - Path=/api/v1/market/**
+            - id: chat-service
+              uri: http://chat-service:8085
+              predicates:
+                - Path=/api/v1/chat/**
+            - id: notification-service
+              uri: http://notification-service:8089
+              predicates:
+                - Path=/api/v1/notifications/**
+            - id: trip-planning-service
+              uri: http://trip-planning-service:8087
+              predicates:
+                - Path=/api/v1/trips/**
+            - id: ai-service
+              uri: http://ai-service:8088
+              predicates:
+                - Path=/api/v1/ai/**
+            - id: emergency-service
+              uri: http://emergency-service:8086
+              predicates:
+                - Path=/api/v1/emergency/**
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins:
+                  - "http://localhost:3000"
+                  - "http://hopngo.local"
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders:
+                  - "*"
+                allowCredentials: true
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus
+      endpoint:
+        health:
+          probes:
+            enabled: true
+          show-details: always

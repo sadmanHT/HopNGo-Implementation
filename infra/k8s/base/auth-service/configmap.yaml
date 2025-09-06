@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-service-config
+  labels:
+    app.kubernetes.io/name: auth-service
+    app.kubernetes.io/component: authentication
+data:
+  database.url: "jdbc:postgresql://postgresql:5432/hopngo"
+  redis.host: "redis-master"
+  redis.port: "6379"
+  application.yml: |
+    server:
+      port: 8081
+    spring:
+      application:
+        name: auth-service
+      profiles:
+        active: k8s
+      jpa:
+        hibernate:
+          ddl-auto: validate
+        show-sql: false
+        properties:
+          hibernate:
+            dialect: org.hibernate.dialect.PostgreSQLDialect
+            format_sql: true
+      redis:
+        timeout: 2000ms
+        lettuce:
+          pool:
+            max-active: 8
+            max-idle: 8
+            min-idle: 0
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus
+      endpoint:
+        health:
+          probes:
+            enabled: true
+          show-details: always
+    jwt:
+      expiration: 86400000
+      refresh-expiration: 604800000
+    logging:
+      level:
+        com.hopngo.auth: INFO
+        org.springframework.security: DEBUG

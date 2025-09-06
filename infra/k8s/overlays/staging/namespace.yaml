@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hopngo-stg
+  labels:
+    name: hopngo-stg
+    environment: staging

@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/component: web
+data:
+  api.url: "http://hopngo.local/api"
+  websocket.url: "ws://hopngo.local/ws"
+  nextauth.url: "http://hopngo.local"
+  next.config.js: |
+    /** @type {import('next').NextConfig} */
+    const nextConfig = {
+      output: 'standalone',
+      experimental: {
+        serverComponentsExternalPackages: ['@prisma/client']
+      },
+      env: {
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+        NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL,
+        NEXTAUTH_URL: process.env.NEXTAUTH_URL
+      },
+      async rewrites() {
+        return [
+          {
+            source: '/api/:path*',
+            destination: `${process.env.NEXT_PUBLIC_API_URL}/:path*`
+          },
+          {
+            source: '/ws/:path*',
+            destination: `${process.env.NEXT_PUBLIC_WS_URL}/:path*`
+          }
+        ]
+      }
+    }
+    
+    module.exports = nextConfig

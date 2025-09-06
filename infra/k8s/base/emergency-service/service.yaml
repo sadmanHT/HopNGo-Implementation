@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: emergency-service
+  labels:
+    app.kubernetes.io/name: emergency-service
+    app.kubernetes.io/component: emergency
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8086
+    targetPort: 8086
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: emergency-service

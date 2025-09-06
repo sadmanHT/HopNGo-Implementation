@@ -1,0 +1,61 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: hopngo-prod
+
+resources:
+  - namespace.yaml
+  - ../../base
+
+patchesStrategicMerge:
+  - replica-patch.yaml
+  - resource-patch.yaml
+  - ingress-patch.yaml
+  - security-patch.yaml
+
+configMapGenerator:
+  - name: environment-config
+    literals:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=WARN
+      - ENABLE_DEBUG=false
+      - CORS_ORIGINS=https://hopngo.com,https://www.hopngo.com
+
+secretGenerator:
+  - name: production-secrets
+    literals:
+      - DEBUG_MODE=false
+
+commonLabels:
+  environment: production
+  app.kubernetes.io/part-of: hopngo
+  app.kubernetes.io/managed-by: kustomize
+
+commonAnnotations:
+  environment: production
+  deployment.kubernetes.io/revision: "1"
+  security.kubernetes.io/policy: "strict"
+
+images:
+  - name: hopngo/gateway
+    newTag: v1.0.0
+  - name: hopngo/auth-service
+    newTag: v1.0.0
+  - name: hopngo/social-service
+    newTag: v1.0.0
+  - name: hopngo/booking-service
+    newTag: v1.0.0
+  - name: hopngo/market-service
+    newTag: v1.0.0
+  - name: hopngo/chat-service
+    newTag: v1.0.0
+  - name: hopngo/notification-service
+    newTag: v1.0.0
+  - name: hopngo/trip-planning-service
+    newTag: v1.0.0
+  - name: hopngo/ai-service
+    newTag: v1.0.0
+  - name: hopngo/emergency-service
+    newTag: v1.0.0
+  - name: hopngo/frontend
+    newTag: v1.0.0
