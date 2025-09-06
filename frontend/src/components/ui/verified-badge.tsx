@@ -38,7 +38,7 @@ export function VerifiedBadge({
           sizeClasses[size],
           className
         )}
-        title="Verified Provider"
+
       />
     );
   }

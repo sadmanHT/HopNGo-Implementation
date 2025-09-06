@@ -64,6 +64,13 @@ management:
 ai-service:
   url: http://localhost:8085
 
+# Cloudinary Configuration
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:hopngo-dev}
+  api-key: ${CLOUDINARY_API_KEY:your-api-key}
+  api-secret: ${CLOUDINARY_API_SECRET:your-api-secret}
+  upload-preset: ${CLOUDINARY_UPLOAD_PRESET:hopngo_media}
+
 # Moderation Configuration
 moderation:
   toxicity-threshold: 0.7

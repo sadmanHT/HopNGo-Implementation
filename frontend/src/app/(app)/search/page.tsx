@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSearchStore, SearchResult } from '@/lib/state/search';
 import { SearchBar } from '@/components/search/SearchBar';
@@ -206,7 +206,7 @@ function EmptyState({ type }: { type: string }) {
   );
 }
 
-export default function SearchPage() {
+function SearchParamsHandler() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   
@@ -367,5 +367,19 @@ export default function SearchPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-6 max-w-6xl">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    }>
+      <SearchParamsHandler />
+    </Suspense>
   );
 }

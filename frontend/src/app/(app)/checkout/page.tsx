@@ -221,9 +221,9 @@ export default function CheckoutPage() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={state.step === 'processing'}
+                disabled={state.step === ('processing' as CheckoutState['step'])}
               >
-                {state.step === 'processing' ? 'Creating Booking...' : 'Create Booking & Pay'}
+                {state.step === ('processing' as CheckoutState['step']) ? 'Creating Booking...' : 'Create Booking & Pay'}
               </Button>
             </form>
           </CardContent>

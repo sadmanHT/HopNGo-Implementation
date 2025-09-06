@@ -34,13 +34,13 @@ import {
   Loader2
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/state';
-import { adminApi, AuditEntry } from '@/lib/api/admin';
+import { adminApi, AdminAuditEntry } from '@/lib/api/admin';
 
 export default function AuditPage() {
   const { token } = useAuthStore();
-  const [entries, setEntries] = useState<AuditEntry[]>([]);
+  const [entries, setEntries] = useState<AdminAuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedEntry, setSelectedEntry] = useState<AuditEntry | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<AdminAuditEntry | null>(null);
   const [showEntryDialog, setShowEntryDialog] = useState(false);
   const [filters, setFilters] = useState({
     action: 'all',
@@ -59,19 +59,18 @@ export default function AuditPage() {
     
     try {
       setLoading(true);
-      const response = await adminApi.getAuditEntries(token, {
+      const response = await adminApi.getAuditLogs({
         page: currentPage,
-        limit: itemsPerPage,
+        size: itemsPerPage,
         action: filters.action !== 'all' ? filters.action : undefined,
         targetType: filters.targetType !== 'all' ? filters.targetType : undefined,
-        actor: filters.actor || undefined,
-        search: filters.search || undefined,
-        dateFrom: filters.dateFrom || undefined,
-        dateTo: filters.dateTo || undefined
+        actorUserId: filters.actor || undefined,
+        startDate: filters.dateFrom || undefined,
+        endDate: filters.dateTo || undefined
       });
       
-      setEntries(response.entries);
-      setTotalPages(Math.ceil(response.total / itemsPerPage));
+      setEntries(response.content);
+      setTotalPages(response.totalPages);
     } catch (error) {
       console.error('Failed to fetch audit entries:', error);
     } finally {

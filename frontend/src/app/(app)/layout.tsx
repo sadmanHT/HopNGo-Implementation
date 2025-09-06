@@ -48,7 +48,7 @@ const navigation: NavItem[] = [
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
-  const { user, token, logout } = useAuthStore();
+  const { user, token, clearAuth } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Check if user has admin role
@@ -69,7 +69,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     }
   };
 
-  const hasAdminRole = checkAdminRole(user, token);
+  const hasAdminRole = user && token ? checkAdminRole(user, token) : false;
 
   // Filter navigation items based on admin role
   const filteredNavigation = navigation.filter(item => {
@@ -80,7 +80,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   });
 
   const handleLogout = () => {
-    logout();
+    clearAuth();
   };
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (

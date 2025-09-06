@@ -173,7 +173,6 @@ export class SearchAPI {
    static async reindexListings(): Promise<void> {
      await apiClient.post('/bookings/search/reindex');
    }
-  }
 
   /**
    * Trigger full reindexing (admin only)

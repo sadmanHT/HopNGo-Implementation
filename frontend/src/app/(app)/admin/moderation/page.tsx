@@ -63,8 +63,8 @@ export default function ModerationPage() {
       
       try {
         setLoading(true);
-        const data = await adminApi.getModerationItems(token);
-        setItems(data);
+        const data = await adminApi.getModerationItems();
+        setItems(data.content);
       } catch (error) {
         console.error('Failed to fetch moderation items:', error);
       } finally {
@@ -76,19 +76,36 @@ export default function ModerationPage() {
   }, [token]);
 
   const handleAction = async (action: 'approve' | 'reject' | 'remove' | 'ban', item: ModerationItem) => {
-    setActionDialog({ open: true, action, item });
+    setActionDialog({ show: true, action, item });
   };
 
   const confirmAction = async () => {
-    if (!actionDialog.item || !actionDialog.action || !token) return;
+    if (!actionDialog.item || !actionDialog.action) return;
 
     try {
-      await adminApi.moderateItem(
-        token,
-        actionDialog.item.id,
-        actionDialog.action,
-        decisionNote
-      );
+      const request = decisionNote ? { decisionNote } : undefined;
+      
+      switch (actionDialog.action) {
+        case 'approve':
+          await adminApi.approveModerationItem(actionDialog.item.id, request);
+          break;
+        case 'reject':
+          await adminApi.rejectModerationItem(actionDialog.item.id, request);
+          break;
+        case 'remove':
+          await adminApi.removeModerationItem(actionDialog.item.id, request);
+          break;
+        case 'ban':
+          // For ban action, we need userId from the item details
+          if (actionDialog.item.details?.userId) {
+            await adminApi.banUser({
+              userId: actionDialog.item.details.userId,
+              reason: decisionNote || 'Banned via moderation',
+              duration: 'PERMANENT'
+            });
+          }
+          break;
+      }
       
       // Update local state
       setItems(prev => prev.map(item => 
@@ -97,7 +114,7 @@ export default function ModerationPage() {
           : item
       ));
       
-      setActionDialog({ open: false, action: null, item: null });
+      setActionDialog({ show: false, action: null, item: null });
       setDecisionNote('');
     } catch (error) {
       console.error('Action failed:', error);
@@ -133,11 +150,11 @@ export default function ModerationPage() {
   };
 
   const filteredItems = items.filter(item => {
-    if (filters.status !== 'all' && item.status !== filters.status) return false;
-    if (filters.type !== 'all' && item.type !== filters.type) return false;
-    if (filters.priority !== 'all' && item.priority !== filters.priority) return false;
-    if (filters.search && !item.reason.toLowerCase().includes(filters.search.toLowerCase()) &&
-        !item.content?.title?.toLowerCase().includes(filters.search.toLowerCase())) return false;
+    if (statusFilter !== 'all' && item.status !== statusFilter) return false;
+    if (typeFilter !== 'all' && item.type !== typeFilter) return false;
+    if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false;
+    if (searchTerm && !item.reason.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !item.details?.title?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
   });
 
@@ -176,13 +193,13 @@ export default function ModerationPage() {
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search items..."
-                value={filters.search}
-                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
             
-            <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -195,7 +212,7 @@ export default function ModerationPage() {
               </SelectContent>
             </Select>
             
-            <Select value={filters.type} onValueChange={(value) => setFilters(prev => ({ ...prev, type: value }))}>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
@@ -208,7 +225,7 @@ export default function ModerationPage() {
               </SelectContent>
             </Select>
             
-            <Select value={filters.priority} onValueChange={(value) => setFilters(prev => ({ ...prev, priority: value }))}>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
@@ -220,9 +237,14 @@ export default function ModerationPage() {
               </SelectContent>
             </Select>
             
-            <Button 
-              variant="outline" 
-              onClick={() => setFilters({ status: 'all', type: 'all', priority: 'all', search: '' })}
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStatusFilter('all');
+                setTypeFilter('all');
+                setPriorityFilter('all');
+                setSearchTerm('');
+              }}
             >
               Clear Filters
             </Button>
@@ -257,10 +279,10 @@ export default function ModerationPage() {
                   <TableCell>
                     <div className="max-w-xs">
                       <p className="font-medium truncate">
-                        {item.content?.title || 'No title'}
+                        {item.details?.title || item.reason || 'No title'}
                       </p>
                       <p className="text-sm text-gray-600 truncate">
-                        {item.content?.description || 'No description'}
+                        {item.details?.description || 'No description'}
                       </p>
                     </div>
                   </TableCell>
@@ -340,7 +362,7 @@ export default function ModerationPage() {
       </Card>
 
       {/* Action Confirmation Dialog */}
-      <Dialog open={actionDialog.open} onOpenChange={(open) => !open && setActionDialog({ open: false, action: null, item: null })}>
+      <Dialog open={actionDialog.show} onOpenChange={(open) => !open && setActionDialog({ show: false, action: null, item: null })}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -370,7 +392,7 @@ export default function ModerationPage() {
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setActionDialog({ open: false, action: null, item: null })}>
+            <Button variant="outline" onClick={() => setActionDialog({ show: false, action: null, item: null })}>
               Cancel
             </Button>
             <Button 
@@ -425,23 +447,12 @@ export default function ModerationPage() {
                 <p className="mt-1">{selectedItem.reason}</p>
               </div>
               
-              {selectedItem.content && (
+              {selectedItem.details && (
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Content</label>
+                  <label className="text-sm font-medium text-gray-600">Details</label>
                   <div className="mt-2 p-4 bg-gray-50 rounded-lg">
-                    {selectedItem.content.title && (
-                      <h4 className="font-medium mb-2">{selectedItem.content.title}</h4>
-                    )}
-                    {selectedItem.content.description && (
-                      <p className="text-gray-700">{selectedItem.content.description}</p>
-                    )}
-                    {selectedItem.content.imageUrl && (
-                      <img 
-                        src={selectedItem.content.imageUrl} 
-                        alt="Content" 
-                        className="mt-2 max-w-full h-auto rounded"
-                      />
-                    )}
+                    <h4 className="font-medium">{selectedItem.details.title || 'No title'}</h4>
+                    <p className="text-sm text-gray-600 mt-1">{selectedItem.details.description || 'No description'}</p>
                   </div>
                 </div>
               )}
