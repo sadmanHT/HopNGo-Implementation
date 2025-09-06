@@ -35,6 +35,14 @@ public class Post {
     
     private LocalDateTime updatedAt;
     
+    private Visibility visibility = Visibility.PUBLIC;
+    
+    public enum Visibility {
+        PUBLIC,
+        PENDING_REVIEW,
+        REMOVED
+    }
+    
     // Constructors
     public Post() {
         this.createdAt = LocalDateTime.now();
@@ -145,6 +153,15 @@ public class Post {
         this.updatedAt = updatedAt;
     }
     
+    public Visibility getVisibility() {
+        return visibility;
+    }
+    
+    public void setVisibility(Visibility visibility) {
+        this.visibility = visibility;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
     // Helper methods
     public boolean toggleLike(String userId) {
         if (likedBy.contains(userId)) {
@@ -177,6 +194,7 @@ public class Post {
         private double lat;
         private double lng;
         private String place;
+        private String geohash;
         
         public Location() {}
         
@@ -184,6 +202,22 @@ public class Post {
             this.lat = lat;
             this.lng = lng;
             this.place = place;
+            this.geohash = generateGeohash(lat, lng, 6); // Default precision 6
+        }
+        
+        public Location(double lat, double lng, String place, String geohash) {
+            this.lat = lat;
+            this.lng = lng;
+            this.place = place;
+            this.geohash = geohash;
+        }
+        
+        private String generateGeohash(double lat, double lng, int precision) {
+            try {
+                return ch.hsr.geohash.GeoHash.geoHashStringWithCharacterPrecision(lat, lng, precision);
+            } catch (Exception e) {
+                return null;
+            }
         }
         
         public double getLat() {
@@ -208,6 +242,18 @@ public class Post {
         
         public void setPlace(String place) {
             this.place = place;
+        }
+        
+        public String getGeohash() {
+            return geohash;
+        }
+        
+        public void setGeohash(String geohash) {
+            this.geohash = geohash;
+        }
+        
+        public void updateGeohash(int precision) {
+            this.geohash = generateGeohash(this.lat, this.lng, precision);
         }
     }
 }

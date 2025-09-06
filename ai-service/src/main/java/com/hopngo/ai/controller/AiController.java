@@ -1,12 +1,14 @@
 package com.hopngo.ai.controller;
 
 import com.hopngo.ai.dto.*;
+import com.hopngo.ai.service.ModerationService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,9 @@ import java.util.*;
 public class AiController {
     
     private final Random random = new Random(42); // Seedable random for deterministic responses
+    
+    @Autowired
+    private ModerationService moderationService;
     
     @PostMapping("/itinerary")
     @Operation(summary = "Generate travel itinerary", description = "Creates a structured travel itinerary based on destinations, budget, and interests")
@@ -209,6 +214,48 @@ public class AiController {
         return ResponseEntity.ok(response);
     }
     
+    @PostMapping("/moderateContent")
+    @Operation(summary = "Content moderation", description = "Analyze content for toxicity, NSFW, spam, and other policy violations")
+    @RateLimiter(name = "ai-endpoints")
+    public ResponseEntity<ModerationResponse> moderateContent(
+            @Valid @RequestBody ModerationRequest request,
+            @RequestHeader("X-User-Id") String userId) {
+        
+        // Set user ID from header if not provided in request
+        if (request.getUserId() == null) {
+            request.setUserId(userId);
+        }
+        
+        ModerationResponse response = moderationService.moderateContent(request);
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    @PostMapping("/embeddings")
+    @Operation(summary = "Generate embeddings", description = "Generate vector embeddings for text content using AI models")
+    @RateLimiter(name = "ai-endpoints")
+    @Cacheable(value = "embeddings", key = "#request.text.hashCode()")
+    public ResponseEntity<EmbeddingsResponse> generateEmbeddings(
+            @Valid @RequestBody EmbeddingsRequest request,
+            @RequestHeader("X-User-Id") String userId) {
+        
+        // Generate deterministic mock embeddings based on text content
+        List<Double> embedding = generateDeterministicEmbedding(request.getText());
+        
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("model", "mock-embedding-model-v1");
+        metadata.put("dimensions", embedding.size());
+        metadata.put("textLength", request.getText().length());
+        metadata.put("generatedAt", LocalDateTime.now().toString());
+        metadata.put("userId", userId);
+        
+        EmbeddingsResponse response = new EmbeddingsResponse(
+            embedding, metadata, "200ms"
+        );
+        
+        return ResponseEntity.ok(response);
+    }
+    
     // Helper methods
     private List<ItineraryResponse.Activity> generateMockActivities(String location, List<String> interests, int budget) {
         List<ItineraryResponse.Activity> activities = new ArrayList<>();
@@ -242,5 +289,31 @@ public class AiController {
         };
         
         return responses[Math.abs(message.hashCode()) % responses.length];
+    }
+    
+    /**
+     * Generate deterministic embeddings based on text content
+     * This creates a 1536-dimensional vector (OpenAI embedding size) with deterministic values
+     */
+    private List<Double> generateDeterministicEmbedding(String text) {
+        List<Double> embedding = new ArrayList<>();
+        
+        // Use text hash as seed for deterministic generation
+        Random textRandom = new Random(text.hashCode());
+        
+        // Generate 1536 dimensions (standard embedding size)
+        for (int i = 0; i < 1536; i++) {
+            // Generate values between -1 and 1 with normal distribution
+            double value = textRandom.nextGaussian() * 0.3; // Scale to reasonable range
+            embedding.add(Math.max(-1.0, Math.min(1.0, value))); // Clamp to [-1, 1]
+        }
+        
+        // Normalize the vector to unit length for cosine similarity
+        double magnitude = Math.sqrt(embedding.stream().mapToDouble(d -> d * d).sum());
+        if (magnitude > 0) {
+            embedding = embedding.stream().map(d -> d / magnitude).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+        }
+        
+        return embedding;
     }
 }

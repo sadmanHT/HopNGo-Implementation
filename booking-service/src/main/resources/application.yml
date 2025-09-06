@@ -87,3 +87,18 @@ logging:
   level:
     com.hopngo.booking: DEBUG
     org.springframework.cloud.stream: DEBUG
+
+event:
+  publisher:
+    enabled: true
+    batch-size: 100
+    flush-interval: 5000
+
+search:
+  opensearch:
+    host: localhost
+    port: 9200
+    scheme: http
+    connect-timeout: 5000
+    socket-timeout: 30000
+    enabled: true

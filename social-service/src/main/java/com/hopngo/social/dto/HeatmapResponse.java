@@ -1,6 +1,7 @@
 package com.hopngo.social.dto;
 
 import java.util.List;
+import java.util.ArrayList;
 
 public class HeatmapResponse {
     
@@ -24,17 +25,29 @@ public class HeatmapResponse {
     
     // Nested HeatmapPoint class
     public static class HeatmapPoint {
+        private String geohash;
         private double lat;
         private double lng;
-        private int count;
-        private String geohash;
+        private double weight;
+        private List<String> tagsTop;
         
-        public HeatmapPoint() {}
+        public HeatmapPoint() {
+            this.tagsTop = new ArrayList<>();
+        }
         
-        public HeatmapPoint(double lat, double lng, int count, String geohash) {
+        public HeatmapPoint(String geohash, double lat, double lng, double weight, List<String> tagsTop) {
+            this.geohash = geohash;
             this.lat = lat;
             this.lng = lng;
-            this.count = count;
+            this.weight = weight;
+            this.tagsTop = tagsTop != null ? tagsTop : new ArrayList<>();
+        }
+        
+        public String getGeohash() {
+            return geohash;
+        }
+        
+        public void setGeohash(String geohash) {
             this.geohash = geohash;
         }
         
@@ -54,20 +67,20 @@ public class HeatmapResponse {
             this.lng = lng;
         }
         
-        public int getCount() {
-            return count;
+        public double getWeight() {
+            return weight;
         }
         
-        public void setCount(int count) {
-            this.count = count;
+        public void setWeight(double weight) {
+            this.weight = weight;
         }
         
-        public String getGeohash() {
-            return geohash;
+        public List<String> getTagsTop() {
+            return tagsTop;
         }
         
-        public void setGeohash(String geohash) {
-            this.geohash = geohash;
+        public void setTagsTop(List<String> tagsTop) {
+            this.tagsTop = tagsTop != null ? tagsTop : new ArrayList<>();
         }
     }
 }

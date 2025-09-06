@@ -191,6 +191,24 @@ public class AuthService {
     }
     
     /**
+     * Get user by email
+     */
+    @Transactional(readOnly = true)
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmailIgnoreCaseAndIsActiveTrue(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+    }
+
+    /**
+     * Get user by ID
+     */
+    @Transactional(readOnly = true)
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+    }
+
+    /**
      * Clean up expired refresh tokens for user
      */
     private void cleanupExpiredTokens(User user) {

@@ -5,6 +5,9 @@ import com.hopngo.social.entity.Post;
 import com.hopngo.social.repository.PostRepository;
 import com.hopngo.social.repository.BookmarkRepository;
 import com.hopngo.social.repository.CommentRepository;
+import com.hopngo.social.service.EventPublisher;
+import com.hopngo.social.service.AiModerationService;
+import com.hopngo.social.service.AiModerationService.ModerationResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,6 +32,14 @@ public class PostService {
     @Autowired
     private CommentRepository commentRepository;
     
+    @Autowired
+    private EventPublisher eventPublisher;
+    
+    @Autowired
+    private AiModerationService aiModerationService;
+    
+    // SearchIndexingService removed due to missing dependencies
+    
     public PostResponse createPost(CreatePostRequest request, String userId) {
         Post.Location location = null;
         if (request.getLocation() != null) {
@@ -47,14 +58,46 @@ public class PostService {
             location
         );
         
+        // AI moderation check
+        ModerationResult moderationResult = aiModerationService.moderateContent(
+            request.getText(), request.getMediaUrls()
+        );
+        
+        if (aiModerationService.shouldFlag(moderationResult)) {
+            post.setVisibility(Post.Visibility.PENDING_REVIEW);
+            
+            // Save post first to get ID
+            Post savedPost = postRepository.save(post);
+            
+            // Emit content flagged event for AI moderation
+            eventPublisher.publishContentFlaggedEvent(
+                "POST", savedPost.getId(), "SYSTEM", 
+                "AI moderation: " + String.join(", ", moderationResult.getReasons())
+            );
+            
+            // Don't index flagged posts in search
+            
+            return convertToPostResponse(savedPost, userId);
+        } else {
+            // Content is clean, set as public
+            post.setVisibility(Post.Visibility.PUBLIC);
+        }
+        
         Post savedPost = postRepository.save(post);
+        
+        // Search indexing removed due to missing dependencies
+        
         return convertToPostResponse(savedPost, userId);
     }
     
     public Optional<PostResponse> getPostById(String postId, String currentUserId) {
         Optional<Post> postOpt = postRepository.findById(postId);
         if (postOpt.isPresent()) {
-            return Optional.of(convertToPostResponse(postOpt.get(), currentUserId));
+            Post post = postOpt.get();
+            // Check if user can view this post
+            if (canViewPost(post, currentUserId)) {
+                return Optional.of(convertToPostResponse(post, currentUserId));
+            }
         }
         return Optional.empty();
     }
@@ -94,7 +137,15 @@ public class PostService {
     
     public Page<PostResponse> getUserPosts(String userId, int page, int size, String currentUserId) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Post> posts = postRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        Page<Post> posts;
+        
+        // If viewing own posts or admin, show all posts; otherwise only public posts
+        if (userId.equals(currentUserId) || isAdmin(currentUserId)) {
+            posts = postRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        } else {
+            posts = postRepository.findByUserIdAndVisibilityPublicOrderByCreatedAtDesc(userId, pageable);
+        }
+        
         return posts.map(post -> convertToPostResponse(post, currentUserId));
     }
     
@@ -114,6 +165,60 @@ public class PostService {
         return new org.springframework.data.domain.PageImpl<>(
             postResponses, pageable, bookmarks.getTotalElements()
         );
+    }
+    
+    private boolean canViewPost(Post post, String currentUserId) {
+        // Public posts can be viewed by anyone
+        if (post.getVisibility() == Post.Visibility.PUBLIC) {
+            return true;
+        }
+        
+        // Owner can always view their own posts
+        if (post.getUserId().equals(currentUserId)) {
+            return true;
+        }
+        
+        // Admin can view all posts
+        if (isAdmin(currentUserId)) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    private boolean isAdmin(String userId) {
+        // TODO: Implement admin check - for now return false
+        // This should check user roles from auth service or JWT claims
+        return false;
+    }
+    
+    public void flagPost(String postId, String reporterId, String reason) {
+        Optional<Post> postOpt = postRepository.findById(postId);
+        if (postOpt.isPresent()) {
+            Post post = postOpt.get();
+            // Emit content.flagged event
+            eventPublisher.publishContentFlaggedEvent("POST", postId, reporterId, reason);
+        } else {
+            throw new RuntimeException("Post not found");
+        }
+    }
+    
+    /**
+     * Update post visibility (used by admin service)
+     */
+    public void updatePostVisibility(String postId, Post.Visibility visibility) {
+        Optional<Post> postOpt = postRepository.findById(postId);
+        if (postOpt.isPresent()) {
+            Post post = postOpt.get();
+            Post.Visibility oldVisibility = post.getVisibility();
+            post.setVisibility(visibility);
+            
+            Post savedPost = postRepository.save(post);
+            
+            // Search indexing removed due to missing dependencies
+        } else {
+            throw new RuntimeException("Post not found");
+        }
     }
     
     private PostResponse convertToPostResponse(Post post, String currentUserId) {

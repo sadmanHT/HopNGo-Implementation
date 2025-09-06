@@ -72,6 +72,23 @@ spring:
             - name: JwtAuthenticationFilter
             - StripPrefix=2
         
+        # Search Service
+        - id: search-service
+          uri: http://search-service:8091
+          predicates:
+            - Path=/search/**
+          filters:
+            - name: JwtAuthenticationFilter
+        
+        # Admin Service
+        - id: admin-service
+          uri: http://admin-service:8090
+          predicates:
+            - Path=/api/v1/admin/**
+          filters:
+            - name: JwtAuthenticationFilter
+            - StripPrefix=2
+        
         # Emergency Service
         - id: emergency-service
           uri: http://emergency-service:8089

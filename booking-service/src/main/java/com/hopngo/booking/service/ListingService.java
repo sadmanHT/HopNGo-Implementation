@@ -24,16 +24,19 @@ public class ListingService {
     private final InventoryRepository inventoryRepository;
     private final VendorService vendorService;
     private final OutboxService outboxService;
+    private final SearchIndexingService searchIndexingService;
     
     @Autowired
     public ListingService(ListingRepository listingRepository, 
                          InventoryRepository inventoryRepository,
                          VendorService vendorService,
-                         OutboxService outboxService) {
+                         OutboxService outboxService,
+                         @Autowired(required = false) SearchIndexingService searchIndexingService) {
         this.listingRepository = listingRepository;
         this.inventoryRepository = inventoryRepository;
         this.vendorService = vendorService;
         this.outboxService = outboxService;
+        this.searchIndexingService = searchIndexingService;
     }
     
     public Listing createListing(String userId, String title, String description, String category,
@@ -62,6 +65,11 @@ public class ListingService {
         
         // Publish listing created event
         outboxService.publishListingCreatedEvent(savedListing);
+        
+        // Index in search if enabled and listing is active
+        if (searchIndexingService != null && Listing.ListingStatus.ACTIVE.equals(savedListing.getStatus())) {
+            searchIndexingService.indexListing(savedListing);
+        }
         
         return savedListing;
     }
@@ -175,6 +183,16 @@ public class ListingService {
         // Publish listing updated event
         outboxService.publishListingUpdatedEvent(updatedListing);
         
+        // Update in search index if enabled
+        if (searchIndexingService != null) {
+            if (Listing.ListingStatus.ACTIVE.equals(updatedListing.getStatus())) {
+                searchIndexingService.updateListing(updatedListing);
+            } else {
+                // Remove from search if no longer active
+                searchIndexingService.deleteListing(updatedListing.getId().toString());
+            }
+        }
+        
         return updatedListing;
     }
     
@@ -189,6 +207,11 @@ public class ListingService {
         
         listing.setStatus(Listing.ListingStatus.INACTIVE);
         listingRepository.save(listing);
+        
+        // Remove from search index when deactivated
+        if (searchIndexingService != null) {
+            searchIndexingService.deleteListing(listing.getId().toString());
+        }
     }
     
     public void activateListing(UUID listingId, String userId) {
@@ -201,7 +224,12 @@ public class ListingService {
         }
         
         listing.setStatus(Listing.ListingStatus.ACTIVE);
-        listingRepository.save(listing);
+        Listing savedListing = listingRepository.save(listing);
+        
+        // Add back to search index when activated
+        if (searchIndexingService != null) {
+            searchIndexingService.indexListing(savedListing);
+        }
     }
     
     public void createInventoryForPeriod(UUID listingId, String userId, LocalDate startDate, 

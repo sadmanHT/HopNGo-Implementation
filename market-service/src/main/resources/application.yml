@@ -49,6 +49,12 @@ spring:
         order-events-out-0:
           destination: order.events
           content-type: application/json
+        contentFlagged-out-0:
+          destination: content.flagged
+          content-type: application/json
+        contentModeration-out-0:
+          destination: content.moderation
+          content-type: application/json
       rabbit:
         bindings:
           payment-events-out-0:
@@ -58,6 +64,14 @@ spring:
           order-events-out-0:
             producer:
               routing-key-expression: "'order.' + payload.eventType.replace('.', '_')"
+              exchange-type: topic
+          contentFlagged-out-0:
+            producer:
+              routing-key-expression: "'content.flagged.' + payload.contentType"
+              exchange-type: topic
+          contentModeration-out-0:
+            producer:
+              routing-key-expression: "'content.moderation.' + payload.action"
               exchange-type: topic
         binder:
           connection-name-prefix: market-service

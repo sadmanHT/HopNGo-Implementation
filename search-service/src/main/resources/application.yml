@@ -1,0 +1,45 @@
+server:
+  port: 8091
+
+spring:
+  application:
+    name: search-service
+  
+# Service URLs for Feign clients
+services:
+  social:
+    url: http://social-service:8082
+  booking:
+    url: http://booking-service:8083
+
+# Actuator configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
+
+# Logging configuration
+logging:
+  level:
+    com.hopngo.search: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

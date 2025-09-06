@@ -1,0 +1,101 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: admin-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:hopngo_admin}
+    username: ${DB_USERNAME:hopngo}
+    password: ${DB_PASSWORD:hopngo123}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: ${SHOW_SQL:false}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  # RabbitMQ Configuration
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:hopngo}
+    password: ${RABBITMQ_PASSWORD:hopngo123}
+    virtual-host: ${RABBITMQ_VHOST:/hopngo}
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+          max-interval: 10000
+          multiplier: 2
+        acknowledge-mode: auto
+        prefetch: 10
+
+# JWT Configuration for Resource Server
+jwt:
+  public-key-path: classpath:keys/public_key.pem
+  issuer: hopngo-auth-service
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# Integration service URLs
+integration:
+  auth-service:
+    url: ${AUTH_SERVICE_URL:http://localhost:8081}
+  social-service:
+    url: ${SOCIAL_SERVICE_URL:http://localhost:8082}
+  booking-service:
+    url: ${BOOKING_SERVICE_URL:http://localhost:8083}
+  market-service:
+    url: ${MARKET_SERVICE_URL:http://localhost:8084}
+
+
+
+# Application-specific RabbitMQ settings
+app:
+  rabbitmq:
+    exchanges:
+      content: content.exchange
+    queues:
+      content-flagged: admin.content.flagged
+    routing-keys:
+      content-flagged: content.flagged
+
+# Logging
+logging:
+  level:
+    com.hopngo.admin: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# Integration Service URLs
+integration:
+  services:
+    social-service:
+      url: http://social-service:8083
+    booking-service:
+      url: http://booking-service:8084
+    market-service:
+      url: http://market-service:8085
+    auth-service:
+      url: http://auth-service:8081

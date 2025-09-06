@@ -43,6 +43,16 @@ resilience4j:
         limit-refresh-period: 3600s  # 1 hour
         timeout-duration: 1s
 
+# Moderation Configuration
+moderation:
+  thresholds:
+    toxicity: 0.7
+    nsfw: 0.8
+    spam: 0.6
+    hate: 0.75
+    violence: 0.8
+    harassment: 0.7
+
 springdoc:
   api-docs:
     path: /api-docs

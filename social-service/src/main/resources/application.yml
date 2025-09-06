@@ -8,6 +8,37 @@ spring:
     mongodb:
       uri: mongodb://localhost:27017/hopngo_social
       auto-index-creation: false
+  cloud:
+    stream:
+      bindings:
+        contentFlagged-out-0:
+          destination: content.flagged
+          content-type: application/json
+        contentModeration-out-0:
+          destination: content.moderation
+          content-type: application/json
+      rabbit:
+        bindings:
+          contentFlagged-out-0:
+            producer:
+              routing-key-expression: "'content.flagged'"
+          contentModeration-out-0:
+            producer:
+              routing-key-expression: "'content.moderation'"
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
 
 
 
@@ -28,6 +59,33 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+
+# AI Service Configuration
+ai-service:
+  url: http://localhost:8085
+
+# Moderation Configuration
+moderation:
+  toxicity-threshold: 0.7
+  nsfw-threshold: 0.8
+  spam-threshold: 0.6
+
+# Event publishing configuration
+event:
+  publisher:
+    enabled: true
+
+# Search configuration
+search:
+  opensearch:
+    enabled: true
+    host: localhost
+    port: 9200
+    scheme: http
+    connection-timeout: 5000
+    socket-timeout: 30000
+    max-retry-timeout: 60000
+    max-retry-attempts: 3
 
 # Logging
 logging:

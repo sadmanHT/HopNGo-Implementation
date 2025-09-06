@@ -52,6 +52,23 @@ services:
       - ./backend:/app
       - /app/target
 
+  # Search Service
+  search-service:
+    build:
+      context: ./search-service
+      dockerfile: Dockerfile
+    container_name: hopngo-search-service
+    ports:
+      - "8091:8091"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SERVICES_SOCIAL_URL=http://social-service:8082
+      - SERVICES_BOOKING_URL=http://booking-service:8083
+    depends_on:
+      - backend
+    networks:
+      - hopngo-network
+
   # Frontend
   frontend:
     build:

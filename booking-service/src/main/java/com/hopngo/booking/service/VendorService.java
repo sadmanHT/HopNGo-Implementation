@@ -2,6 +2,8 @@ package com.hopngo.booking.service;
 
 import com.hopngo.booking.entity.Vendor;
 import com.hopngo.booking.repository.VendorRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,13 +17,19 @@ import java.util.UUID;
 @Transactional
 public class VendorService {
     
+    private static final Logger logger = LoggerFactory.getLogger(VendorService.class);
+    
     private final VendorRepository vendorRepository;
     private final OutboxService outboxService;
+    private final AuthIntegrationService authIntegrationService;
     
     @Autowired
-    public VendorService(VendorRepository vendorRepository, OutboxService outboxService) {
+    public VendorService(VendorRepository vendorRepository, 
+                        OutboxService outboxService,
+                        AuthIntegrationService authIntegrationService) {
         this.vendorRepository = vendorRepository;
         this.outboxService = outboxService;
+        this.authIntegrationService = authIntegrationService;
     }
     
     public Vendor createVendor(String userId, String businessName, String contactEmail, 
@@ -158,6 +166,14 @@ public class VendorService {
         if (!isActiveVendor(userId)) {
             throw new SecurityException("User must be an active vendor to perform this action");
         }
+        
+        // Check KYC verification status
+        if (!authIntegrationService.isVerifiedProvider(userId)) {
+            logger.warn("Unverified provider {} attempted to create listing", userId);
+            throw new SecurityException("Provider must complete KYC verification to create listings. Please complete your verification process.");
+        }
+        
+        logger.debug("Provider {} validation successful - active vendor and verified", userId);
     }
     
     @Transactional(readOnly = true)

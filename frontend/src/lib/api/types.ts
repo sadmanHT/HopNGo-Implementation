@@ -23,6 +23,7 @@ export interface User {
   firstName: string;
   lastName: string;
   avatar?: string;
+  isVerified?: boolean;
   createdAt: string;
   updatedAt: string;
 }

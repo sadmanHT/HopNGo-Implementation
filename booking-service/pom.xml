@@ -97,6 +97,15 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        
+        <!-- Search Client - temporarily commented out for build testing -->
+        <!--
+        <dependency>
+            <groupId>com.hopngo</groupId>
+            <artifactId>search-client</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        -->
     </dependencies>
     <dependencyManagement>
         <dependencies>
