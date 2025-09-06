@@ -8,6 +8,12 @@
 [![Java](https://img.shields.io/badge/Java-17+-orange.svg)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3+-green.svg)](https://spring.io/projects/spring-boot)
 
+## 🔄 CI/CD Status
+
+[![CI](https://github.com/HopNGo/HopNGo/actions/workflows/ci.yml/badge.svg)](https://github.com/HopNGo/HopNGo/actions/workflows/ci.yml)
+[![Docker Build](https://github.com/HopNGo/HopNGo/actions/workflows/docker.yml/badge.svg)](https://github.com/HopNGo/HopNGo/actions/workflows/docker.yml)
+[![Integration Tests](https://github.com/HopNGo/HopNGo/actions/workflows/it.yml/badge.svg)](https://github.com/HopNGo/HopNGo/actions/workflows/it.yml)
+
 ## 🏗️ Architecture
 
 ```

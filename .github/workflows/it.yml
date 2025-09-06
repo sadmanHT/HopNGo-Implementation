@@ -1,0 +1,270 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  COMPOSE_FILE: docker-compose.yml
+  POSTGRES_DB: hopngo_test
+  POSTGRES_USER: hopngo
+  POSTGRES_PASSWORD: hopngo123
+  MONGODB_URI: mongodb://hopngo:hopngo123@localhost:27017/hopngo_test
+  JWT_SECRET: test-jwt-secret-key-for-integration-tests
+  
+jobs:
+  integration-tests:
+    name: Integration & Smoke Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      mongodb:
+        image: mongo:7
+        env:
+          MONGO_INITDB_ROOT_USERNAME: ${{ env.POSTGRES_USER }}
+          MONGO_INITDB_ROOT_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          MONGO_INITDB_DATABASE: hopngo_test
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 27017:27017
+          
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Build core services
+      run: |
+        # Build gateway first
+        cd gateway && ./mvnw -B clean package -DskipTests && cd ..
+        # Build auth service
+        cd auth-service && ./mvnw -B clean package -DskipTests && cd ..
+        # Build social service
+        cd social-service && ./mvnw -B clean package -DskipTests && cd ..
+        
+    - name: Start Gateway Service
+      run: |
+        cd gateway
+        nohup java -jar target/*.jar --spring.profiles.active=test --server.port=8080 > gateway.log 2>&1 &
+        echo $! > gateway.pid
+        cd ..
+        
+    - name: Start Auth Service
+      run: |
+        cd auth-service
+        nohup java -jar target/*.jar --spring.profiles.active=test --server.port=8081 > auth.log 2>&1 &
+        echo $! > auth.pid
+        cd ..
+        
+    - name: Start Social Service
+      run: |
+        cd social-service
+        nohup java -jar target/*.jar --spring.profiles.active=test --server.port=8085 > social.log 2>&1 &
+        echo $! > social.pid
+        cd ..
+        
+    - name: Wait for services to be healthy
+      run: |
+        echo "Waiting for services to start..."
+        sleep 30
+        
+        # Wait for Gateway
+        for i in {1..30}; do
+          if curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
+            echo "✅ Gateway is healthy"
+            break
+          fi
+          echo "⏳ Waiting for Gateway... ($i/30)"
+          sleep 10
+        done
+        
+        # Wait for Auth Service
+        for i in {1..30}; do
+          if curl -f http://localhost:8081/actuator/health > /dev/null 2>&1; then
+            echo "✅ Auth Service is healthy"
+            break
+          fi
+          echo "⏳ Waiting for Auth Service... ($i/30)"
+          sleep 10
+        done
+        
+        # Wait for Social Service
+        for i in {1..30}; do
+          if curl -f http://localhost:8085/actuator/health > /dev/null 2>&1; then
+            echo "✅ Social Service is healthy"
+            break
+          fi
+          echo "⏳ Waiting for Social Service... ($i/30)"
+          sleep 10
+        done
+        
+    - name: Run API Smoke Tests
+      run: |
+        set -e
+        
+        echo "🧪 Running API Smoke Tests..."
+        
+        # Test 1: Gateway Health Check
+        echo "Testing Gateway health..."
+        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/actuator/health)
+        if [ "$response" = "200" ]; then
+          echo "✅ Gateway health check passed"
+        else
+          echo "❌ Gateway health check failed (HTTP $response)"
+          exit 1
+        fi
+        
+        # Test 2: Auth Service Health Check
+        echo "Testing Auth service health..."
+        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/actuator/health)
+        if [ "$response" = "200" ]; then
+          echo "✅ Auth service health check passed"
+        else
+          echo "❌ Auth service health check failed (HTTP $response)"
+          exit 1
+        fi
+        
+        # Test 3: User Registration
+        echo "Testing user registration..."
+        register_response=$(curl -s -X POST http://localhost:8081/api/v1/auth/register \
+          -H "Content-Type: application/json" \
+          -d '{
+            "email": "test@example.com",
+            "password": "TestPassword123!",
+            "firstName": "Test",
+            "lastName": "User"
+          }' \
+          -w "%{http_code}" -o register_output.json)
+        
+        if [ "$register_response" = "201" ] || [ "$register_response" = "200" ]; then
+          echo "✅ User registration test passed"
+        else
+          echo "❌ User registration test failed (HTTP $register_response)"
+          cat register_output.json
+          exit 1
+        fi
+        
+        # Test 4: User Login
+        echo "Testing user login..."
+        login_response=$(curl -s -X POST http://localhost:8081/api/v1/auth/login \
+          -H "Content-Type: application/json" \
+          -d '{
+            "email": "test@example.com",
+            "password": "TestPassword123!"
+          }' \
+          -w "%{http_code}" -o login_output.json)
+        
+        if [ "$login_response" = "200" ]; then
+          echo "✅ User login test passed"
+          # Extract JWT token for further tests
+          JWT_TOKEN=$(jq -r '.token // .accessToken // .jwt' login_output.json 2>/dev/null || echo "")
+        else
+          echo "❌ User login test failed (HTTP $login_response)"
+          cat login_output.json
+          exit 1
+        fi
+        
+        # Test 5: Social Service Health (if JWT available)
+        if [ -n "$JWT_TOKEN" ] && [ "$JWT_TOKEN" != "null" ]; then
+          echo "Testing authenticated endpoint..."
+          social_response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $JWT_TOKEN" \
+            http://localhost:8085/actuator/health)
+          
+          if [ "$social_response" = "200" ]; then
+            echo "✅ Authenticated social service test passed"
+          else
+            echo "⚠️ Authenticated social service test failed (HTTP $social_response) - may be expected"
+          fi
+        fi
+        
+        echo "🎉 All smoke tests completed successfully!"
+        
+    - name: Collect service logs
+      if: always()
+      run: |
+        echo "📋 Collecting service logs..."
+        
+        if [ -f gateway/gateway.log ]; then
+          echo "=== Gateway Logs ==="
+          tail -100 gateway/gateway.log
+        fi
+        
+        if [ -f auth-service/auth.log ]; then
+          echo "=== Auth Service Logs ==="
+          tail -100 auth-service/auth.log
+        fi
+        
+        if [ -f social-service/social.log ]; then
+          echo "=== Social Service Logs ==="
+          tail -100 social-service/social.log
+        fi
+        
+    - name: Cleanup
+      if: always()
+      run: |
+        echo "🧹 Cleaning up services..."
+        
+        # Kill services if PIDs exist
+        for service in gateway auth social; do
+          if [ -f "${service}.pid" ] || [ -f "${service}-service/${service}.pid" ]; then
+            pid_file="${service}.pid"
+            [ -f "${service}-service/${service}.pid" ] && pid_file="${service}-service/${service}.pid"
+            
+            if [ -f "$pid_file" ]; then
+              pid=$(cat "$pid_file")
+              if kill -0 "$pid" 2>/dev/null; then
+                echo "Stopping $service service (PID: $pid)"
+                kill "$pid" || true
+                sleep 2
+                kill -9 "$pid" 2>/dev/null || true
+              fi
+              rm -f "$pid_file"
+            fi
+          fi
+        done
+        
+        echo "✅ Cleanup completed"
