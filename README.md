@@ -7,6 +7,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5+-blue.svg)](https://www.typescriptlang.org/)
 [![Java](https://img.shields.io/badge/Java-17+-orange.svg)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3+-green.svg)](https://spring.io/projects/spring-boot)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-blue.svg)](https://kubernetes.io/)
+[![Helm](https://img.shields.io/badge/Helm-Charts-blue.svg)](https://helm.sh/)
 
 ## 🔄 CI/CD Status
 
@@ -30,7 +32,7 @@
 ┌─▼─┐     ┌─▼─┐     ┌─▼─┐     ┌─▼─┐     ┌─▼─┐     ┌─▼─┐     ┌─▼─┐     ┌─▼─┐
 │Auth│     │Soc│     │Book│    │Mkt│     │Chat│    │Trip│    │ AI │    │Emg│
 │Svc │     │Svc│     │Svc │    │Svc│     │Svc │    │Svc │    │Svc │    │Svc│
-│:81 │     │:82│     │:83 │    │:84│     │:85 │    │:86 │    │:87 │    │:88│
+│:81 │     │:82│     │:83 │    │:84│     │:85 │    │:87 │    │:88 │    │:86│
 └───┘     └───┘     └───┘     └───┘     └───┘     └───┘     └───┘     └───┘
   │         │         │         │         │         │         │         │
 ┌─▼─────────▼─────────▼─────────▼─────────▼─────────▼─────────▼─────────▼─────┐
@@ -55,323 +57,519 @@
 | Service | Port | Technology | Description | Status |
 |---------|------|------------|-------------|--------|
 | **Frontend** | 3000 | React + TypeScript + Vite | User interface and web application | ✅ Active |
-| **API Gateway** | 8080 | Spring Boot + Spring Cloud Gateway | Request routing and load balancing | 🚧 Planned |
-| **Auth Service** | 8081 | Spring Boot + Spring Security + JWT | Authentication and authorization | 🚧 Planned |
-| **Social Service** | 8082 | Spring Boot + JPA | User profiles and social features | 🚧 Planned |
-| **Booking Service** | 8083 | Spring Boot + JPA | Trip bookings and reservations | 🚧 Planned |
-| **Market Service** | 8084 | Spring Boot + JPA | Marketplace and listings | 🚧 Planned |
-| **Chat Service** | 8085 | Spring Boot + WebSocket | Real-time messaging | 🚧 Planned |
-| **Trip Planning** | 8086 | Spring Boot + JPA | Itinerary and route planning | 🚧 Planned |
-| **AI Service** | 8087 | Spring Boot + Python Integration | AI recommendations and insights | 🚧 Planned |
-| **Emergency Service** | 8088 | Spring Boot + JPA | Emergency assistance and alerts | 🚧 Planned |
-| **Notification Service** | 8089 | Spring Boot + RabbitMQ | Push notifications and alerts | 🚧 Planned |
+| **API Gateway** | 8080 | Spring Boot + Spring Cloud Gateway | Request routing and load balancing | ✅ Implemented |
+| **Auth Service** | 8081 | Spring Boot + Spring Security + JWT | Authentication and authorization | ✅ Implemented |
+| **Social Service** | 8082 | Spring Boot + JPA | User profiles and social features | ✅ Implemented |
+| **Booking Service** | 8083 | Spring Boot + JPA | Trip bookings and reservations | ✅ Implemented |
+| **Market Service** | 8084 | Spring Boot + JPA | Marketplace and listings | ✅ Implemented |
+| **Chat Service** | 8085 | Spring Boot + WebSocket | Real-time messaging | ✅ Implemented |
+| **Trip Planning** | 8087 | Spring Boot + JPA | Itinerary and route planning | ✅ Implemented |
+| **AI Service** | 8088 | Spring Boot + Python Integration | AI recommendations and insights | ✅ Implemented |
+| **Emergency Service** | 8086 | Spring Boot + JPA | Emergency assistance and alerts | ✅ Implemented |
+| **Notification Service** | 8089 | Spring Boot + RabbitMQ | Push notifications and alerts | ✅ Implemented |
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
-- **Backend**: Spring Boot 3, Java 17, Maven
-- **Database**: PostgreSQL, Redis, MongoDB
-- **Search**: Elasticsearch
-- **Message Queue**: RabbitMQ
-- **Infrastructure**: Docker, Kubernetes, Helm
-- **Observability**: Prometheus, Grafana, Tempo, OpenTelemetry, Logback
-- **CI/CD**: GitHub Actions
+### Frontend
+- **React 18** with TypeScript and Vite
+- **Tailwind CSS** for styling
+- **Shadcn/ui** component library
+- **Next.js** for production builds
 
-## 🗺️ Roadmap
+### Backend
+- **Spring Boot 3** with Java 17
+- **Spring Cloud Gateway** for API routing
+- **Spring Security** with JWT authentication
+- **Spring Data JPA** for database operations
+- **Maven** for dependency management
 
-### Phase 1: Foundation (Q1 2024)
-- [x] Project setup and mono-repo structure
-- [x] Frontend application with React + TypeScript
-- [ ] API Gateway with Spring Cloud Gateway
-- [ ] Authentication service with JWT
-- [ ] Basic user management
-- [ ] Docker containerization
+### Databases & Storage
+- **PostgreSQL 15** - Primary relational database
+- **MongoDB 7** - Document database for flexible data
+- **Redis 7** - Caching and session storage
+- **Elasticsearch** - Search and analytics
 
-### Phase 2: Core Services (Q2 2024)
-- [ ] Social service for user profiles
-- [ ] Booking service for trip reservations
-- [ ] Market service for listings
-- [ ] Real-time chat functionality
-- [ ] Basic trip planning features
-- [ ] PostgreSQL database integration
+### Infrastructure & DevOps
+- **Docker** - Containerization
+- **Kubernetes** - Container orchestration
+- **Helm** - Kubernetes package management
+- **Kustomize** - Kubernetes configuration management
+- **NGINX Ingress** - Load balancing and SSL termination
+- **Cert-Manager** - Automatic SSL certificate management
 
-### Phase 3: Advanced Features (Q3 2024)
-- [ ] AI-powered recommendations
-- [ ] Emergency assistance system
-- [ ] Push notification service
-- [ ] Advanced search with Elasticsearch
-- [ ] Mobile app development
-- [ ] Payment integration
+### Observability
+- **Prometheus** - Metrics collection
+- **Grafana** - Metrics visualization
+- **Tempo** - Distributed tracing
+- **OpenTelemetry** - Telemetry data collection
+- **Jaeger** - Tracing UI
 
-### Phase 4: Scale & Optimize (Q4 2024)
-- [ ] Kubernetes deployment
-- [ ] Monitoring and observability
-- [ ] Performance optimization
-- [ ] Security hardening
-- [ ] Load testing and scaling
-- [ ] Multi-region deployment
+### Message Queue
+- **RabbitMQ** - Asynchronous messaging
 
-# HopNGo Development Environment
-
-A comprehensive development environment setup for the HopNGo project.
-
-## 🚀 Installed Tools
-
-### Core Development Tools
-- **Git**: 2.51.0.windows.1
-- **Java**: OpenJDK 17.0.16 (Temurin)
-- **Maven**: Apache Maven 3.9.9
-- **Node.js**: v22.19.0 (LTS)
-- **pnpm**: 10.15.1
-
-### Container & Orchestration
-- **Docker**: 28.3.3
-- **kubectl**: v1.32.2
-- **Helm**: Installed (PATH configuration needed)
-- **Minikube**: Installed (PATH configuration needed)
-
-### Development Environment
-- **Visual Studio Code**: 1.103.2
-- **IntelliJ IDEA Community**: 2025.2.1
-
-### Utilities
-- **curl**: 8.14.1
-- **Make**: GnuWin32 3.81 (PATH configuration needed)
-- **jq**: 1.8.1 (PATH configuration needed)
-
-## 🔧 Configuration
-
-### Git Configuration
-- **User**: HopNGo Developer
-- **Email**: developer@hopngo.local
-- **Default Branch**: main
-- **SSH Key**: Generated (ed25519)
-
-### SSH Key for GitHub
-Your public SSH key is located at: `C:\Users\shtpr\.ssh\id_ed25519.pub`
-
-To add it to GitHub:
-1. Copy the contents of the public key file
-2. Go to GitHub Settings > SSH and GPG keys
-3. Click "New SSH key" and paste the content
-
-## 📁 Project Structure
-
-```
-HopNGo/
-├── README.md
-├── .gitignore
-├── .editorconfig
-├── docker-compose.yml
-├── frontend/
-├── backend/
-├── docs/
-└── scripts/
-```
-
-## ⚠️ Pending Setup
-
-- **WSL2**: Requires administrator privileges to enable
-- **PATH Configuration**: Some tools need manual PATH updates
-
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 18+
-- pnpm 8+
-- Docker & Docker Compose
-- Git
+- **Node.js 20+** and **pnpm 8+**
+- **Java 17+** and **Maven 3.9+**
+- **Docker** and **Docker Compose**
+- **Git**
 
-### Quick Start
+For Kubernetes deployment:
+- **kubectl**
+- **Helm 3+**
+- **Kubernetes cluster** (local or cloud)
+
+### Local Development
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/your-org/HopNGo.git
 cd HopNGo
 
-# Install dependencies
+# Install frontend dependencies
+cd frontend
 pnpm install
+cd ..
 
 # Start infrastructure services
 ./scripts/dev.sh
 
-# Start development server
-pnpm dev
+# Start all microservices (in separate terminals)
+# Auth Service
+cd auth-service && ./mvnw spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=dev"
+
+# Booking Service
+cd booking-service && ./mvnw spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=dev"
+
+# Market Service
+cd market-service && ./mvnw spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=dev"
+
+# Trip Planning Service
+cd trip-planning-service && ./mvnw spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=dev"
+
+# Start frontend
+cd frontend && pnpm dev
 ```
+
+### Using Development Scripts (Windows)
+
+```powershell
+# Setup development environment
+.\scripts\setup-dev.ps1
+
+# Start infrastructure
+.\scripts\dev.sh
+```
+
+## 🐳 Docker Deployment
+
+### Local Docker Compose
+
+```bash
+# Start all services with Docker Compose
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+## ☸️ Kubernetes Deployment
+
+### Infrastructure Setup
+
+HopNGo includes comprehensive Kubernetes manifests with Helm charts for infrastructure dependencies.
+
+#### Quick Deployment
+
+```bash
+# Deploy to development environment
+.\infra\scripts\install.ps1 install dev
+
+# Deploy to staging environment
+.\infra\scripts\install.ps1 install staging
+
+# Deploy to production environment
+.\infra\scripts\install.ps1 install production
+```
+
+#### Manual Deployment
+
+```bash
+# Create secrets
+.\infra\scripts\create-secrets.ps1 dev
+
+# Install infrastructure dependencies
+helm upgrade --install hopngo-infra infra/helm \
+  --namespace hopngo-dev \
+  --values infra/helm/values.yaml \
+  --create-namespace
+
+# Deploy application
+kubectl apply -k infra/k8s/overlays/dev
+```
+
+### Environment-Specific Configurations
+
+#### Development Environment
+- **Namespace**: `hopngo-dev`
+- **Replicas**: 1 per service
+- **Resources**: Low resource limits
+- **Host**: `hopngo.local`
+- **SSL**: Self-signed certificates
+
+#### Staging Environment
+- **Namespace**: `hopngo-staging`
+- **Replicas**: 2 per service
+- **Resources**: Moderate resource limits
+- **Host**: `staging.hopngo.com`
+- **SSL**: Let's Encrypt certificates
+
+#### Production Environment
+- **Namespace**: `hopngo-prod`
+- **Replicas**: 3-4 per service
+- **Resources**: Production resource limits
+- **Host**: `hopngo.com`, `www.hopngo.com`
+- **SSL**: Let's Encrypt certificates
+- **Security**: Enhanced security policies
+
+### Kubernetes Features
+
+- **Horizontal Pod Autoscaling (HPA)** - Automatic scaling based on CPU/memory
+- **Ingress with SSL termination** - NGINX Ingress Controller with Cert-Manager
+- **ConfigMaps and Secrets** - Environment-specific configuration
+- **Health checks** - Liveness and readiness probes
+- **Resource limits** - CPU and memory constraints
+- **Security policies** - Pod security standards
+- **Network policies** - Service-to-service communication control
 
 ## 📊 Observability & Monitoring
 
-HopNGo includes a comprehensive observability stack for monitoring, tracing, and logging across all microservices.
+### Metrics and Monitoring
 
-### Features
+- **Prometheus**: http://localhost:9090 - Metrics collection
+- **Grafana**: http://localhost:3001 (admin/admin) - Dashboards and visualization
+- **Alertmanager**: Integrated with Prometheus for alerting
 
-- **Metrics Collection**: Prometheus scrapes metrics from all Spring Boot services via Actuator endpoints
-- **Distributed Tracing**: OpenTelemetry and Tempo provide end-to-end request tracing
-- **Visualization**: Grafana dashboards for metrics and trace analysis
-- **Structured Logging**: JSON-formatted logs with correlation IDs for better debugging
-- **Health Monitoring**: Actuator health endpoints for service status monitoring
+### Distributed Tracing
 
-### Metrics Available
+- **Jaeger**: http://localhost:16686 - Trace visualization
+- **Tempo**: Backend for trace storage
+- **OpenTelemetry**: Automatic instrumentation
 
-Each microservice exposes the following metrics:
-- JVM metrics (memory, threads, garbage collection)
-- HTTP request metrics (duration, status codes, throughput)
-- Database connection pool metrics
-- Custom business metrics
-- Spring Boot Actuator metrics
+### Logging
 
-### Accessing Observability Tools
+- **Structured JSON logging** with correlation IDs
+- **Centralized log aggregation** (ELK stack ready)
+- **Log correlation** across microservices
 
-1. **Prometheus**: http://localhost:9090
-   - Query metrics and view targets
-   - Check service discovery and scraping status
-
-2. **Grafana**: http://localhost:3001 (admin/admin)
-   - Pre-configured dashboards for JVM and HTTP metrics
-   - Custom dashboards for business metrics
-   - Alerting and notification setup
-
-3. **Jaeger**: http://localhost:16686
-   - Distributed tracing visualization
-   - Service dependency mapping
-   - Performance bottleneck identification
-
-### Configuration
-
-Observability is configured through:
-- `application.yml` in each service for Actuator and OpenTelemetry
-- `prometheus.yml` for scraping configuration
-- `grafana/provisioning/` for dashboard and datasource setup
-- `tempo.yml` for distributed tracing configuration
-
-### Troubleshooting
-
-- **Missing Metrics**: Check if services are running and Actuator endpoints are enabled
-- **No Traces**: Verify OpenTelemetry collector is running on port 4318
-- **Grafana Issues**: Ensure Prometheus datasource is configured correctly
-
-## Infrastructure Setup
-
-### Local Development Dependencies
-
-The project uses Docker Compose to manage local infrastructure dependencies:
-
-#### Core Infrastructure
-- **PostgreSQL 15** - Primary database (port 5432)
-- **MongoDB 7** - Document database (port 27017)
-- **Redis 7** - Caching and sessions (port 6379)
-- **RabbitMQ 3** - Message queue (ports 5672, 15672)
-- **Mailhog** - Email testing (ports 1025, 8025)
-
-#### Observability Stack
-- **Prometheus** - Metrics collection and storage (port 9090)
-- **Grafana** - Metrics visualization and dashboards (port 3001)
-- **Tempo** - Distributed tracing backend (port 3200)
-- **OpenTelemetry Collector** - Telemetry data collection (port 4318)
-- **Jaeger** - Tracing UI and query service (port 16686)
-
-### Starting Infrastructure
+### Health Monitoring
 
 ```bash
-# Start all services
-./scripts/dev.sh
+# Check service health
+curl http://localhost:8081/actuator/health
 
-# Or manually with Docker Compose
-cd infra/compose
-docker compose up -d
+# View metrics
+curl http://localhost:8081/actuator/metrics
+
+# Kubernetes health checks
+kubectl get pods -n hopngo-dev
+kubectl describe pod <pod-name> -n hopngo-dev
 ```
 
-### Stopping Infrastructure
+## 🗂️ Project Structure
 
-```bash
-# Stop all services
-./scripts/down.sh
-
-# Stop and remove volumes (⚠️ deletes all data)
-./scripts/down.sh --volumes
-
-# Or manually with Docker Compose
-cd infra/compose
-docker compose down
+```
+HopNGo/
+├── README.md
+├── docker-compose.yml
+├── pom.xml                          # Parent POM
+├── package.json                     # Workspace configuration
+├── pnpm-workspace.yaml             # PNPM workspace
+│
+├── frontend/                        # React frontend application
+│   ├── src/
+│   ├── package.json
+│   └── Dockerfile
+│
+├── gateway/                         # API Gateway service
+├── auth-service/                    # Authentication service
+├── social-service/                  # Social features service
+├── booking-service/                 # Booking management service
+├── market-service/                  # Marketplace service
+├── chat-service/                    # Real-time chat service
+├── trip-planning-service/           # Trip planning service
+├── ai-service/                      # AI recommendations service
+├── emergency-service/               # Emergency assistance service
+├── notification-service/            # Push notifications service
+│
+├── infra/                          # Infrastructure as Code
+│   ├── compose/                    # Docker Compose for local dev
+│   │   ├── docker-compose.yml
+│   │   ├── grafana/
+│   │   ├── init-scripts/
+│   │   └── prometheus.yml
+│   │
+│   ├── helm/                       # Helm charts
+│   │   ├── Chart.yaml
+│   │   └── values.yaml
+│   │
+│   ├── k8s/                        # Kubernetes manifests
+│   │   ├── base/                   # Base Kustomize resources
+│   │   │   ├── kustomization.yaml
+│   │   │   ├── secrets.yaml
+│   │   │   ├── ingress.yaml
+│   │   │   └── */                  # Service-specific manifests
+│   │   │
+│   │   └── overlays/               # Environment-specific overlays
+│   │       ├── dev/
+│   │       ├── staging/
+│   │       └── production/
+│   │
+│   └── scripts/                    # Deployment scripts
+│       ├── install.ps1             # Windows deployment script
+│       ├── install.sh              # Linux deployment script
+│       ├── create-secrets.ps1      # Windows secrets script
+│       └── create-secrets.sh       # Linux secrets script
+│
+├── scripts/                        # Development scripts
+│   ├── dev.sh                      # Start local development
+│   ├── down.sh                     # Stop local services
+│   ├── setup-dev.ps1               # Windows dev setup
+│   └── test-*.sh                   # Testing scripts
+│
+├── docs/                           # Documentation
+│   ├── ARCHITECTURE.md
+│   └── github-secrets.md
+│
+└── .github/                        # GitHub workflows
+    └── workflows/
+        ├── ci.yml
+        ├── docker.yml
+        └── it.yml
 ```
 
-### Health Checks
+## 🌐 Service URLs
 
-```bash
-# Check service status
-cd infra/compose
-docker compose ps
-
-# View service logs
-docker compose logs [service-name]
-
-# Test database connections
-./scripts/test-postgres.sh
-./scripts/test-mongo.sh
-```
-
-### Service URLs
+### Local Development
 
 #### Application Services
-- **Frontend**: http://localhost:5173
+- **Frontend**: http://localhost:3000
 - **API Gateway**: http://localhost:8080
 - **Auth Service**: http://localhost:8081
 - **Social Service**: http://localhost:8082
 - **Booking Service**: http://localhost:8083
 - **Market Service**: http://localhost:8084
 - **Chat Service**: http://localhost:8085
-- **Trip Planning**: http://localhost:8086
-- **AI Service**: http://localhost:8087
-- **Emergency Service**: http://localhost:8088
+- **Emergency Service**: http://localhost:8086
+- **Trip Planning**: http://localhost:8087
+- **AI Service**: http://localhost:8088
 - **Notification Service**: http://localhost:8089
 
 #### Infrastructure Services
-- **RabbitMQ Management**: http://localhost:15672 (guest/guest)
-- **Mailhog Web UI**: http://localhost:8025
 - **PostgreSQL**: localhost:5432 (hopngo/hopngo_dev_2024!)
 - **MongoDB**: localhost:27017 (admin/mongo_dev_2024!)
 - **Redis**: localhost:6379 (redis_dev_2024!)
+- **RabbitMQ Management**: http://localhost:15672 (guest/guest)
+- **Mailhog**: http://localhost:8025
 
 #### Observability Services
 - **Prometheus**: http://localhost:9090
 - **Grafana**: http://localhost:3001 (admin/admin)
-- **Jaeger UI**: http://localhost:16686
+- **Jaeger**: http://localhost:16686
 - **Tempo**: http://localhost:3200
 
-### Environment Configuration
+### Kubernetes Deployment
 
-Database credentials and configuration are stored in `infra/compose/.env`:
+#### Development
+- **Application**: http://hopngo.local
+- **Services**: Available via Ingress routing
 
-```env
-# PostgreSQL
-POSTGRES_DB=hopngo
-POSTGRES_USER=hopngo
-POSTGRES_PASSWORD=hopngo_dev_2024!
+#### Staging
+- **Application**: https://staging.hopngo.com
+- **SSL**: Let's Encrypt certificates
 
-# MongoDB
-MONGO_INITDB_ROOT_USERNAME=admin
-MONGO_INITDB_ROOT_PASSWORD=mongo_dev_2024!
+#### Production
+- **Application**: https://hopngo.com, https://www.hopngo.com
+- **SSL**: Let's Encrypt certificates
+- **CDN**: CloudFlare integration ready
 
-# Redis
-REDIS_PASSWORD=redis_dev_2024!
+## 🔧 Configuration
 
-# RabbitMQ
-RABBITMQ_DEFAULT_USER=hopngo
-RABBITMQ_DEFAULT_PASS=rabbit_dev_2024!
+### Environment Variables
 
-# Observability
-GRAFANA_ADMIN_PASSWORD=admin
-PROMETHEUS_RETENTION_TIME=15d
+Each service supports environment-specific configuration:
+
+```bash
+# Database Configuration
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/hopngo
+SPRING_DATASOURCE_USERNAME=hopngo
+SPRING_DATASOURCE_PASSWORD=hopngo_dev_2024!
+
+# Redis Configuration
+SPRING_REDIS_HOST=localhost
+SPRING_REDIS_PORT=6379
+SPRING_REDIS_PASSWORD=redis_dev_2024!
+
+# MongoDB Configuration
+SPRING_DATA_MONGODB_URI=mongodb://admin:mongo_dev_2024!@localhost:27017/hopngo
+
+# RabbitMQ Configuration
+SPRING_RABBITMQ_HOST=localhost
+SPRING_RABBITMQ_PORT=5672
+SPRING_RABBITMQ_USERNAME=hopngo
+SPRING_RABBITMQ_PASSWORD=rabbit_dev_2024!
+
+# JWT Configuration
+JWT_SECRET=your-jwt-secret-key
+JWT_EXPIRATION=86400000
+
+# External APIs
+OPENAI_API_KEY=your-openai-api-key
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+STRIPE_SECRET_KEY=your-stripe-secret-key
 ```
 
-## 🎯 Next Steps
+### Kubernetes Secrets
 
-1. Enable WSL2 (requires admin privileges)
-2. Configure IDE extensions
-3. Set up project-specific configurations
-4. Initialize Git repository
+Secrets are managed through Kubernetes Secret objects:
+
+```bash
+# Create secrets for development
+.\infra\scripts\create-secrets.ps1 dev
+
+# Create secrets for production
+.\infra\scripts\create-secrets.ps1 production
+```
+
+## 🧪 Testing
+
+### Unit Tests
+
+```bash
+# Run tests for all services
+mvn test
+
+# Run tests for specific service
+cd auth-service && mvn test
+```
+
+### Integration Tests
+
+```bash
+# Run integration tests
+mvn verify -P integration-tests
+```
+
+### End-to-End Tests
+
+```bash
+# Start services and run E2E tests
+./scripts/dev.sh
+cd frontend && pnpm test:e2e
+```
+
+## 🚀 Deployment
+
+### CI/CD Pipeline
+
+GitHub Actions workflows handle:
+
+- **Continuous Integration**: Code quality, tests, security scans
+- **Docker Build**: Multi-architecture container images
+- **Integration Tests**: Cross-service testing
+- **Deployment**: Automated deployment to staging/production
+
+### Manual Deployment
+
+```bash
+# Build all services
+mvn clean package -DskipTests
+
+# Build Docker images
+docker-compose build
+
+# Deploy to Kubernetes
+kubectl apply -k infra/k8s/overlays/production
+```
+
+## 🔒 Security
+
+### Authentication & Authorization
+- **JWT-based authentication** with refresh tokens
+- **Role-based access control (RBAC)**
+- **OAuth2 integration** ready
+- **API rate limiting** via Spring Cloud Gateway
+
+### Infrastructure Security
+- **TLS/SSL encryption** for all external communication
+- **Network policies** for service-to-service communication
+- **Pod security standards** in Kubernetes
+- **Secret management** via Kubernetes Secrets
+- **Container image scanning** in CI/CD
+
+### Data Protection
+- **Database encryption** at rest and in transit
+- **PII data anonymization** capabilities
+- **GDPR compliance** features
+- **Audit logging** for sensitive operations
+
+## 📈 Performance & Scaling
+
+### Horizontal Scaling
+- **Kubernetes HPA** based on CPU/memory metrics
+- **Custom metrics scaling** via Prometheus
+- **Database connection pooling** with HikariCP
+- **Redis clustering** support
+
+### Performance Optimization
+- **Database indexing** strategies
+- **Caching layers** with Redis
+- **CDN integration** for static assets
+- **Async processing** with RabbitMQ
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Workflow
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and add tests
+4. Commit your changes: `git commit -m 'feat: add amazing feature'`
+5. Push to the branch: `git push origin feature/amazing-feature`
+6. Open a Pull Request
+
+### Code Standards
+
+- **Java**: Follow Google Java Style Guide
+- **TypeScript**: Use ESLint and Prettier configurations
+- **Commit Messages**: Follow Conventional Commits specification
+- **Testing**: Maintain >80% code coverage
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+- **Documentation**: Check the [docs/](docs/) directory
+- **Issues**: Report bugs via GitHub Issues
+- **Discussions**: Join GitHub Discussions for questions
+- **Security**: Report security issues via GitHub Security Advisories
+
+## 🙏 Acknowledgments
+
+- **Spring Boot** team for the excellent framework
+- **React** team for the frontend framework
+- **Kubernetes** community for container orchestration
+- **Open source contributors** who make this project possible
 
 ---
 
-*Environment setup completed on $(Get-Date)*
+**HopNGo** - Connecting travelers with seamless transportation experiences 🌍✈️🚗
