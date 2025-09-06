@@ -102,7 +102,49 @@ public class NotificationService {
         processNotification(notification);
     }
     
+    @Async
+    public void sendBookingUpdateNotification(BookingEvent event) {
+        Map<String, Object> variables = createBookingVariables(event);
+        
+        Notification notification = createNotification(
+            event.getUserId(),
+            event.getUserEmail(),
+            null,
+            NotificationType.BOOKING_UPDATED,
+            "EMAIL",
+            "booking-updated",
+            "Booking Updated - " + event.getPropertyName(),
+            "Your booking has been updated.",
+            variables,
+            event.getEventId(),
+            event.getEventType()
+        );
+        
+        processNotification(notification);
+    }
+    
     // Payment event handlers
+    @Async
+    public void sendPaymentReceiptNotification(PaymentEvent event) {
+        Map<String, Object> variables = createPaymentVariables(event);
+        
+        Notification notification = createNotification(
+            event.getUserId(),
+            event.getUserEmail(),
+            null,
+            NotificationType.PAYMENT_RECEIPT,
+            "EMAIL",
+            "payment-receipt",
+            "Payment Receipt - Order #" + event.getOrderId(),
+            "Your payment has been processed successfully.",
+            variables,
+            event.getEventId(),
+            event.getEventType()
+        );
+        
+        processNotification(notification);
+    }
+    
     @Async
     public void sendPaymentSucceededNotification(PaymentEvent event) {
         Map<String, Object> variables = createPaymentVariables(event);
@@ -137,6 +179,69 @@ public class NotificationService {
             "payment-failed",
             "Payment Failed - Order #" + event.getOrderId(),
             "Your payment could not be processed.",
+            variables,
+            event.getEventId(),
+            event.getEventType()
+        );
+        
+        processNotification(notification);
+    }
+    
+    @Async
+    public void sendPaymentPendingNotification(PaymentEvent event) {
+        Map<String, Object> variables = createPaymentVariables(event);
+        
+        Notification notification = createNotification(
+            event.getUserId(),
+            event.getUserEmail(),
+            null,
+            NotificationType.PAYMENT_PENDING,
+            "EMAIL",
+            "payment-pending",
+            "Payment Pending - Order #" + event.getOrderId(),
+            "Your payment is being processed.",
+            variables,
+            event.getEventId(),
+            event.getEventType()
+        );
+        
+        processNotification(notification);
+    }
+    
+    @Async
+    public void sendPaymentRefundNotification(PaymentEvent event) {
+        Map<String, Object> variables = createPaymentVariables(event);
+        
+        Notification notification = createNotification(
+            event.getUserId(),
+            event.getUserEmail(),
+            null,
+            NotificationType.PAYMENT_REFUNDED,
+            "EMAIL",
+            "payment-refunded",
+            "Payment Refunded - Order #" + event.getOrderId(),
+            "Your payment has been refunded.",
+            variables,
+            event.getEventId(),
+            event.getEventType()
+        );
+        
+        processNotification(notification);
+    }
+    
+    @Async
+    public void sendPaymentCancelledNotification(PaymentEvent event) {
+        Map<String, Object> variables = createPaymentVariables(event);
+        
+        Notification notification = createNotification(
+            event.getUserId(),
+            event.getUserEmail(),
+            null,
+            NotificationType.PAYMENT_CANCELLED,
+            "EMAIL",
+            "payment-cancelled",
+            "Payment Cancelled - Order #" + event.getOrderId(),
+            "Your payment has been cancelled.",
             variables,
             event.getEventId(),
             event.getEventType()
@@ -282,6 +387,27 @@ public class NotificationService {
         processNotification(notification);
     }
     
+    public void sendEmail(String recipientEmail, String subject, String content) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("content", content);
+        
+        Notification notification = createNotification(
+            "emergency-user",
+            recipientEmail,
+            null,
+            NotificationType.SYSTEM_NOTIFICATION,
+            "EMAIL",
+            "emergency-notification",
+            subject,
+            content,
+            variables,
+            "emergency-event-" + System.currentTimeMillis(),
+            "emergency"
+        );
+        
+        processNotification(notification);
+    }
+    
     private Notification createNotification(String recipientId, String recipientEmail, String recipientPhone,
                                           NotificationType type, String channel, String templateName,
                                           String subject, String content, Map<String, Object> variables,
@@ -296,7 +422,14 @@ public class NotificationService {
         notification.setTemplateName(templateName);
         notification.setSubject(subject);
         notification.setContent(content);
-        notification.setVariables(variables);
+        // Convert Map<String, Object> to Map<String, String>
+        Map<String, String> stringVariables = new HashMap<>();
+        if (variables != null) {
+            for (Map.Entry<String, Object> entry : variables.entrySet()) {
+                stringVariables.put(entry.getKey(), entry.getValue() != null ? entry.getValue().toString() : null);
+            }
+        }
+        notification.setVariables(stringVariables);
         notification.setStatus(NotificationStatus.PENDING);
         notification.setEventId(eventId);
         notification.setEventType(eventType);
@@ -340,7 +473,8 @@ public class NotificationService {
             // Check if we should retry
             NotificationChannel channel = findChannel(notification.getChannel());
             if (channel != null && notification.getRetryCount() < channel.getMaxRetries()) {
-                notification.scheduleRetry(channel.getRetryDelayMs());
+                notification.setNextRetryAt(LocalDateTime.now().plusSeconds(channel.getRetryDelayMs() / 1000));
+                notification.setRetryCount(notification.getRetryCount() + 1);
                 notification.setStatus(NotificationStatus.RETRY);
             }
             

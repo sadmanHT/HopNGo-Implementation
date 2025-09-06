@@ -52,7 +52,8 @@ public class Booking extends Auditable {
     @Column(name = "booking_reference", unique = true, length = 50)
     private String bookingReference;
     
-
+    @Column(name = "correlation_id", length = 255)
+    private String correlationId; // For tracking payment orders
     
     @Version
     @Column(nullable = false)
@@ -200,7 +201,13 @@ public class Booking extends Auditable {
         this.bookingReference = bookingReference;
     }
     
-
+    public String getCorrelationId() {
+        return correlationId;
+    }
+    
+    public void setCorrelationId(String correlationId) {
+        this.correlationId = correlationId;
+    }
     
     public Integer getVersion() {
         return version;

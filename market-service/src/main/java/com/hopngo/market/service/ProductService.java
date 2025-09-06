@@ -102,7 +102,7 @@ public class ProductService {
     @Transactional(readOnly = true)
     public Page<Product> getProductsAvailableForPurchase(Pageable pageable) {
         logger.debug("Fetching products available for purchase");
-        return productRepository.findByAvailableForPurchaseTrueAndIsActiveTrue(pageable);
+        return productRepository.findByIsAvailableForPurchaseTrue(pageable);
     }
     
     // Get products available for rental with caching
@@ -110,7 +110,7 @@ public class ProductService {
     @Transactional(readOnly = true)
     public Page<Product> getProductsAvailableForRental(Pageable pageable) {
         logger.debug("Fetching products available for rental");
-        return productRepository.findByAvailableForRentalTrueAndIsActiveTrue(pageable);
+        return productRepository.findByIsAvailableForRentalTrue(pageable);
     }
     
     // Get products by price range for purchase

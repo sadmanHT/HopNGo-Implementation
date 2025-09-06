@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -90,7 +91,7 @@ class WebhookIdempotencyIntegrationTest {
         testProduct.setCategory("Test");
         testProduct.setBrand("TestBrand");
         testProduct.setStockQuantity(10);
-        testProduct.setAvailableForPurchase(true);
+        testProduct.setIsAvailableForPurchase(true);
         testProduct.setActive(true);
         testProduct.setCreatedAt(LocalDateTime.now());
         testProduct.setUpdatedAt(LocalDateTime.now());
@@ -98,7 +99,7 @@ class WebhookIdempotencyIntegrationTest {
 
         // Create test order
         testOrder = new Order();
-        testOrder.setUserId("test-user-webhook");
+        testOrder.setUserId(UUID.randomUUID());
         testOrder.setStatus(OrderStatus.PENDING);
         testOrder.setType(OrderType.PURCHASE);
         testOrder.setTotalAmount(new BigDecimal("50.00"));

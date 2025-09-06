@@ -3,10 +3,11 @@ package com.hopngo.booking.dto;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 public record ListingCreateRequest(
     @NotNull(message = "Vendor ID is required")
-    Long vendorId,
+    UUID vendorId,
     
     @NotBlank(message = "Title is required")
     @Size(max = 200, message = "Title must not exceed 200 characters")

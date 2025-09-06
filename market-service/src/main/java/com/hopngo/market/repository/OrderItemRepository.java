@@ -16,19 +16,21 @@ import java.util.UUID;
 public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
     
     // Find items by order
-    List<OrderItem> findByOrderIdOrderByCreatedAtAsc(UUID orderId);
+    List<OrderItem> findByOrder_IdOrderByCreatedAtAsc(UUID orderId);
     
     // Find items by product
-    Page<OrderItem> findByProductIdOrderByCreatedAtDesc(UUID productId, Pageable pageable);
+    Page<OrderItem> findByProduct_IdOrderByCreatedAtDesc(UUID productId, Pageable pageable);
     
     // Find rental items
+    @Query("SELECT oi FROM OrderItem oi WHERE oi.rentalDays IS NOT NULL AND oi.rentalDays > 0 ORDER BY oi.createdAt DESC")
     Page<OrderItem> findByIsRentalTrueOrderByCreatedAtDesc(Pageable pageable);
     
     // Find purchase items
+    @Query("SELECT oi FROM OrderItem oi WHERE oi.rentalDays IS NULL OR oi.rentalDays = 0 ORDER BY oi.createdAt DESC")
     Page<OrderItem> findByIsRentalFalseOrderByCreatedAtDesc(Pageable pageable);
     
     // Find rental items by date range
-    @Query("SELECT oi FROM OrderItem oi WHERE oi.isRental = true AND " +
+    @Query("SELECT oi FROM OrderItem oi WHERE (oi.rentalDays IS NOT NULL AND oi.rentalDays > 0) AND " +
            "(:startDate IS NULL OR oi.rentalStartDate >= :startDate) AND " +
            "(:endDate IS NULL OR oi.rentalEndDate <= :endDate) " +
            "ORDER BY oi.rentalStartDate ASC")
@@ -40,7 +42,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
     
     // Find active rental items (currently rented)
     @Query("SELECT oi FROM OrderItem oi JOIN oi.order o WHERE " +
-           "oi.isRental = true AND " +
+           "(oi.rentalDays IS NOT NULL AND oi.rentalDays > 0) AND " +
            "o.status IN ('PAID', 'SHIPPED', 'DELIVERED') AND " +
            "oi.rentalStartDate <= CURRENT_DATE AND " +
            "oi.rentalEndDate >= CURRENT_DATE " +
@@ -49,14 +51,17 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
     
     // Find overdue rental items
     @Query("SELECT oi FROM OrderItem oi JOIN oi.order o WHERE " +
-           "oi.isRental = true AND " +
+           "(oi.rentalDays IS NOT NULL AND oi.rentalDays > 0) AND " +
            "o.status = 'DELIVERED' AND " +
            "oi.rentalEndDate < CURRENT_DATE " +
            "ORDER BY oi.rentalEndDate ASC")
     List<OrderItem> findOverdueRentalItems();
     
     // Find items by product and rental status
-    @Query("SELECT oi FROM OrderItem oi WHERE oi.productId = :productId AND oi.isRental = :isRental ORDER BY oi.createdAt DESC")
+    @Query("SELECT oi FROM OrderItem oi WHERE oi.product.id = :productId AND " +
+           "CASE WHEN :isRental = true THEN (oi.rentalDays IS NOT NULL AND oi.rentalDays > 0) " +
+           "ELSE (oi.rentalDays IS NULL OR oi.rentalDays = 0) END " +
+           "ORDER BY oi.createdAt DESC")
     Page<OrderItem> findByProductIdAndIsRental(
         @Param("productId") UUID productId,
         @Param("isRental") Boolean isRental,
@@ -65,40 +70,40 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
     
     // Calculate total quantity sold for a product
     @Query("SELECT SUM(oi.quantity) FROM OrderItem oi JOIN oi.order o WHERE " +
-           "oi.productId = :productId AND oi.isRental = false AND " +
+           "oi.product.id = :productId AND (oi.rentalDays IS NULL OR oi.rentalDays = 0) AND " +
            "o.status IN ('PAID', 'SHIPPED', 'DELIVERED')")
     Long calculateTotalQuantitySold(@Param("productId") UUID productId);
     
     // Calculate total quantity rented for a product
     @Query("SELECT SUM(oi.quantity) FROM OrderItem oi JOIN oi.order o WHERE " +
-           "oi.productId = :productId AND oi.isRental = true AND " +
+           "oi.product.id = :productId AND (oi.rentalDays IS NOT NULL AND oi.rentalDays > 0) AND " +
            "o.status IN ('PAID', 'SHIPPED', 'DELIVERED')")
     Long calculateTotalQuantityRented(@Param("productId") UUID productId);
     
     // Find top selling products
-    @Query("SELECT oi.productId, oi.productName, SUM(oi.quantity) as totalSold FROM OrderItem oi JOIN oi.order o WHERE " +
-           "oi.isRental = false AND o.status IN ('PAID', 'SHIPPED', 'DELIVERED') " +
-           "GROUP BY oi.productId, oi.productName ORDER BY totalSold DESC")
+    @Query("SELECT oi.product.id, oi.product.name, SUM(oi.quantity) as totalSold FROM OrderItem oi JOIN oi.order o WHERE " +
+           "(oi.rentalDays IS NULL OR oi.rentalDays = 0) AND o.status IN ('PAID', 'SHIPPED', 'DELIVERED') " +
+           "GROUP BY oi.product.id, oi.product.name ORDER BY totalSold DESC")
     List<Object[]> findTopSellingProducts(Pageable pageable);
     
     // Find top rented products
-    @Query("SELECT oi.productId, oi.productName, SUM(oi.quantity) as totalRented FROM OrderItem oi JOIN oi.order o WHERE " +
-           "oi.isRental = true AND o.status IN ('PAID', 'SHIPPED', 'DELIVERED') " +
-           "GROUP BY oi.productId, oi.productName ORDER BY totalRented DESC")
+    @Query("SELECT oi.product.id, oi.product.name, SUM(oi.quantity) as totalRented FROM OrderItem oi JOIN oi.order o WHERE " +
+           "(oi.rentalDays IS NOT NULL AND oi.rentalDays > 0) AND o.status IN ('PAID', 'SHIPPED', 'DELIVERED') " +
+           "GROUP BY oi.product.id, oi.product.name ORDER BY totalRented DESC")
     List<Object[]> findTopRentedProducts(Pageable pageable);
     
     // Calculate revenue by product
-    @Query("SELECT oi.productId, oi.productName, SUM(oi.totalPrice) as totalRevenue FROM OrderItem oi JOIN oi.order o WHERE " +
+    @Query("SELECT oi.product.id, oi.product.name, SUM(oi.totalPrice) as totalRevenue FROM OrderItem oi JOIN oi.order o WHERE " +
            "o.status IN ('PAID', 'SHIPPED', 'DELIVERED') " +
-           "GROUP BY oi.productId, oi.productName ORDER BY totalRevenue DESC")
+           "GROUP BY oi.product.id, oi.product.name ORDER BY totalRevenue DESC")
     List<Object[]> calculateRevenueByProduct(Pageable pageable);
     
-    // Find items with specific product SKU
-    @Query("SELECT oi FROM OrderItem oi WHERE oi.productSku = :sku ORDER BY oi.createdAt DESC")
-    Page<OrderItem> findByProductSku(@Param("sku") String sku, Pageable pageable);
+    // Find items with specific product name (since SKU is computed)
+    @Query("SELECT oi FROM OrderItem oi WHERE oi.product.name LIKE %:name% ORDER BY oi.createdAt DESC")
+    Page<OrderItem> findByProductName(@Param("name") String name, Pageable pageable);
     
     // Count items by rental status
-    @Query("SELECT oi.isRental, COUNT(oi) FROM OrderItem oi GROUP BY oi.isRental")
+    @Query("SELECT CASE WHEN (oi.rentalDays IS NOT NULL AND oi.rentalDays > 0) THEN true ELSE false END as isRental, COUNT(oi) FROM OrderItem oi GROUP BY CASE WHEN (oi.rentalDays IS NOT NULL AND oi.rentalDays > 0) THEN true ELSE false END")
     List<Object[]> countItemsByRentalStatus();
     
     // Find items by order status
@@ -106,7 +111,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
     Page<OrderItem> findByOrderStatus(@Param("status") com.hopngo.market.entity.OrderStatus status, Pageable pageable);
     
     // Calculate average rental duration
-    @Query("SELECT AVG(oi.rentalDays) FROM OrderItem oi WHERE oi.isRental = true AND oi.rentalDays IS NOT NULL")
+    @Query("SELECT AVG(oi.rentalDays) FROM OrderItem oi WHERE (oi.rentalDays IS NOT NULL AND oi.rentalDays > 0)")
     Double calculateAverageRentalDuration();
     
     // Find items by date range

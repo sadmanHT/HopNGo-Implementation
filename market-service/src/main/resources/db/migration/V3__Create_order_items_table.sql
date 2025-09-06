@@ -13,8 +13,8 @@ CREATE TABLE order_items (
     -- Rental-specific fields
     is_rental BOOLEAN NOT NULL DEFAULT false,
     rental_days INTEGER CHECK (rental_days > 0),
-    rental_start_date DATE,
-    rental_end_date DATE,
+    rental_start_date TIMESTAMP,
+    rental_end_date TIMESTAMP,
     
     -- Product snapshot (for historical reference)
     product_name VARCHAR(255) NOT NULL,

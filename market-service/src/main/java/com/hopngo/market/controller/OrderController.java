@@ -3,6 +3,8 @@ package com.hopngo.market.controller;
 import com.hopngo.market.entity.Order;
 import com.hopngo.market.entity.OrderStatus;
 import com.hopngo.market.service.OrderService;
+import static com.hopngo.market.entity.OrderStatus.*;
+import com.hopngo.market.entity.OrderType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,8 +18,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,13 +41,12 @@ public class OrderController {
         
         logger.info("Getting order: {}", orderId);
         
-        Optional<Order> order = orderService.getOrderById(orderId);
-        
-        if (order.isPresent()) {
-            OrderResponse response = new OrderResponse(order.get());
-            logger.info("Order found: {}, status: {}", orderId, order.get().getStatus());
+        try {
+            Order order = orderService.getOrderById(orderId);
+            OrderResponse response = new OrderResponse(order);
+            logger.info("Order found: {}, status: {}", orderId, order.getStatus());
             return ResponseEntity.ok(response);
-        } else {
+        } catch (IllegalArgumentException e) {
             logger.warn("Order not found: {}", orderId);
             return ResponseEntity.notFound().build();
         }
@@ -110,7 +111,7 @@ public class OrderController {
         logger.info("Shipping order: {}, tracking: {}", orderId, request.getTrackingNumber());
         
         try {
-            Order order = orderService.markOrderAsShipped(orderId, request.getTrackingNumber());
+            Order order = orderService.markOrderAsShipped(orderId, request.getTrackingNumber(), "Default Carrier");
             
             OrderResponse response = new OrderResponse(order);
             logger.info("Order shipped successfully: {}", orderId);
@@ -264,19 +265,19 @@ public class OrderController {
             this.id = order.getId();
             this.userId = order.getUserId();
             this.status = order.getStatus().toString();
-            this.type = order.getType().toString();
+            this.type = order.getOrderType().toString();
             this.totalAmount = order.getTotalAmount();
             this.currency = order.getCurrency();
             this.shippingAddress = order.getShippingAddress();
             this.billingAddress = order.getBillingAddress();
             this.trackingNumber = order.getTrackingNumber();
-            this.rentalStartDate = order.getRentalStartDate();
-            this.rentalEndDate = order.getRentalEndDate();
+            this.rentalStartDate = order.getRentalStartDate() != null ? order.getRentalStartDate().toLocalDate() : null;
+            this.rentalEndDate = order.getRentalEndDate() != null ? order.getRentalEndDate().toLocalDate() : null;
             this.createdAt = order.getCreatedAt();
-            this.paidAt = order.getPaidAt();
-            this.shippedAt = order.getShippedAt();
-            this.deliveredAt = order.getDeliveredAt();
-            this.cancelledAt = order.getCancelledAt();
+            this.paidAt = order.getPayment() != null ? order.getPayment().getProcessedAt() : null;
+            this.shippedAt = order.getStatus() == SHIPPED || order.getStatus() == DELIVERED ? order.getUpdatedAt() : null;
+            this.deliveredAt = order.getActualDeliveryDate();
+            this.cancelledAt = order.getStatus() == OrderStatus.CANCELLED ? order.getUpdatedAt() : null;
             this.itemCount = order.getOrderItems() != null ? order.getOrderItems().size() : 0;
         }
         

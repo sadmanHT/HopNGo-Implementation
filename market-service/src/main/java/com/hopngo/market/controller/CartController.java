@@ -15,9 +15,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Positive;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -47,10 +48,10 @@ public class CartController {
                    userId, request.getProductId(), request.getQuantity());
         
         try {
-            orderService.addToCart(userId, request.getProductId(), request.getQuantity(), 
-                                 request.getOrderType(), request.getRentalDays());
-            
-            OrderService.Cart cart = orderService.getCart(userId);
+            boolean isRental = request.getOrderType() == OrderType.RENTAL;
+            OrderService.Cart cart = orderService.addItemToCart(userId, request.getProductId(), 
+                                                               request.getQuantity(), isRental, 
+                                                               request.getRentalDays());
             CartResponse response = new CartResponse(cart);
             
             logger.info("Item added to cart successfully - userId: {}, cart items: {}", 
@@ -71,7 +72,7 @@ public class CartController {
         
         logger.info("Getting cart contents for user: {}", userId);
         
-        OrderService.Cart cart = orderService.getCart(userId);
+        OrderService.Cart cart = orderService.getOrCreateCart(userId);
         CartResponse response = new CartResponse(cart);
         
         logger.info("Retrieved cart for user: {}, items: {}, total: {}", 
@@ -92,9 +93,7 @@ public class CartController {
                    userId, productId, request.getQuantity());
         
         try {
-            orderService.updateCartItem(userId, productId, request.getQuantity());
-            
-            OrderService.Cart cart = orderService.getCart(userId);
+            OrderService.Cart cart = orderService.updateCartItemQuantity(userId, productId, request.getQuantity());
             CartResponse response = new CartResponse(cart);
             
             logger.info("Cart item updated successfully - userId: {}", userId);
@@ -115,9 +114,7 @@ public class CartController {
         logger.info("Removing item from cart - userId: {}, productId: {}", userId, productId);
         
         try {
-            orderService.removeFromCart(userId, productId);
-            
-            OrderService.Cart cart = orderService.getCart(userId);
+            OrderService.Cart cart = orderService.removeItemFromCart(userId, productId);
             CartResponse response = new CartResponse(cart);
             
             logger.info("Item removed from cart successfully - userId: {}", userId);
@@ -153,8 +150,10 @@ public class CartController {
         
         try {
             // Create order from cart
+            OrderType orderType = OrderType.PURCHASE; // Default to PURCHASE, could be determined from cart items
             Order order = orderService.createOrderFromCart(
                 userId, 
+                orderType,
                 request.getShippingAddress(), 
                 request.getBillingAddress(),
                 request.getRentalStartDate(),
@@ -162,10 +161,10 @@ public class CartController {
             );
             
             // Create payment intent
-            PaymentProvider provider = request.getPaymentProvider() != null ? 
-                request.getPaymentProvider() : PaymentProvider.MOCK;
+            PaymentProvider paymentProvider = request.getPaymentProvider() != null ? 
+                PaymentProvider.valueOf(request.getPaymentProvider()) : PaymentProvider.MOCK;
             
-            Payment payment = paymentService.createPaymentIntent(order, provider);
+            Payment payment = paymentService.createPaymentIntent(order, paymentProvider);
             
             CheckoutResponse response = new CheckoutResponse(
                 order.getId(),
@@ -245,14 +244,14 @@ public class CartController {
         private String shippingAddress;
         
         private String billingAddress;
-        private PaymentProvider paymentProvider = PaymentProvider.MOCK;
+        private String paymentProvider = "MOCK";
         private LocalDate rentalStartDate;
         private LocalDate rentalEndDate;
         
         // Constructors
         public CheckoutRequest() {}
         
-        public CheckoutRequest(String shippingAddress, String billingAddress, PaymentProvider paymentProvider) {
+        public CheckoutRequest(String shippingAddress, String billingAddress, String paymentProvider) {
             this.shippingAddress = shippingAddress;
             this.billingAddress = billingAddress;
             this.paymentProvider = paymentProvider;
@@ -265,8 +264,8 @@ public class CartController {
         public String getBillingAddress() { return billingAddress; }
         public void setBillingAddress(String billingAddress) { this.billingAddress = billingAddress; }
         
-        public PaymentProvider getPaymentProvider() { return paymentProvider; }
-        public void setPaymentProvider(PaymentProvider paymentProvider) { this.paymentProvider = paymentProvider; }
+        public String getPaymentProvider() { return paymentProvider; }
+        public void setPaymentProvider(String paymentProvider) { this.paymentProvider = paymentProvider; }
         
         public LocalDate getRentalStartDate() { return rentalStartDate; }
         public void setRentalStartDate(LocalDate rentalStartDate) { this.rentalStartDate = rentalStartDate; }
@@ -309,13 +308,13 @@ public class CartController {
         private Integer rentalDays;
         
         public CartItemResponse(OrderService.CartItem item) {
-            this.productId = item.getProduct().getId();
-            this.productName = item.getProduct().getName();
-            this.productSku = item.getProduct().getSku();
+            this.productId = item.getProductId();
+            this.productName = item.getProductName();
+            this.productSku = item.getProductSku();
             this.quantity = item.getQuantity();
             this.unitPrice = item.getUnitPrice();
             this.totalPrice = item.getTotalPrice();
-            this.orderType = item.getOrderType();
+            this.orderType = item.isRental() ? OrderType.RENTAL : OrderType.PURCHASE;
             this.rentalDays = item.getRentalDays();
         }
         

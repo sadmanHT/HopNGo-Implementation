@@ -1,0 +1,55 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: ai-service
+  
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000  # 5 minutes
+      cache-null-values: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+
+resilience4j:
+  ratelimiter:
+    instances:
+      ai-endpoints:
+        limit-for-period: 100
+        limit-refresh-period: 60s
+        timeout-duration: 1s
+      user-quota:
+        limit-for-period: 50
+        limit-refresh-period: 3600s  # 1 hour
+        timeout-duration: 1s
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.hopngo.ai: DEBUG
+    org.springframework.cache: DEBUG

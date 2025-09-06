@@ -1,0 +1,45 @@
+package com.hopngo.chatservice.repository;
+
+import com.hopngo.chatservice.model.Conversation;
+import com.hopngo.chatservice.model.ConversationType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface ConversationRepository extends MongoRepository<Conversation, String> {
+    
+    /**
+     * Find all conversations where the user is a member
+     */
+    @Query("{ 'memberIds': ?0 }")
+    Page<Conversation> findByMemberIdsContaining(String userId, Pageable pageable);
+    
+    /**
+     * Find all conversations where the user is a member (list version)
+     */
+    List<Conversation> findByMemberIdsContaining(String userId);
+    
+    /**
+     * Find a direct message conversation between two specific users
+     */
+    @Query("{ 'type': 'DM', 'memberIds': { $all: [?0, ?1], $size: 2 } }")
+    Optional<Conversation> findDirectMessageBetween(String userId1, String userId2);
+    
+    /**
+     * Find conversations by type where user is a member
+     */
+    @Query("{ 'type': ?0, 'memberIds': ?1 }")
+    List<Conversation> findByTypeAndMemberIdsContaining(ConversationType type, String userId);
+    
+    /**
+     * Count conversations where user is a member
+     */
+    @Query(value = "{ 'memberIds': ?0 }", count = true)
+    long countByMemberIdsContaining(String userId);
+}

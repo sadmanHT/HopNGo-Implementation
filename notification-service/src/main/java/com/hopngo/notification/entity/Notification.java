@@ -28,9 +28,8 @@ public class Notification {
     @Column(name = "type", nullable = false)
     private NotificationType type;
     
-    @Enumerated(EnumType.STRING)
     @Column(name = "channel", nullable = false)
-    private NotificationChannel channel;
+    private String channel;
     
     @Column(name = "template_name", nullable = false)
     private String templateName;
@@ -88,7 +87,7 @@ public class Notification {
     public Notification() {}
     
     public Notification(String recipientId, NotificationType type, 
-                       NotificationChannel channel, String templateName) {
+                       String channel, String templateName) {
         this.recipientId = recipientId;
         this.type = type;
         this.channel = channel;
@@ -136,11 +135,11 @@ public class Notification {
         this.type = type;
     }
     
-    public NotificationChannel getChannel() {
+    public String getChannel() {
         return channel;
     }
     
-    public void setChannel(NotificationChannel channel) {
+    public void setChannel(String channel) {
         this.channel = channel;
     }
     

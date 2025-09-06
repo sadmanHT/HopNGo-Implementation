@@ -19,7 +19,7 @@ import java.util.UUID;
 public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     
     // Find payment by order
-    Optional<Payment> findByOrderId(UUID orderId);
+    Optional<Payment> findByOrder_Id(UUID orderId);
     
     // Find payment by transaction reference
     Optional<Payment> findByTransactionReference(String transactionReference);
@@ -113,7 +113,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     List<Object[]> calculateSuccessRateByProvider();
     
     // Calculate average processing time for successful payments
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (p.processedAt - p.createdAt))) FROM Payment p WHERE p.status = 'SUCCEEDED' AND p.processedAt IS NOT NULL")
+    @Query("SELECT AVG(TIMESTAMPDIFF(SECOND, p.createdAt, p.processedAt)) FROM Payment p WHERE p.status = 'SUCCEEDED' AND p.processedAt IS NOT NULL")
     Double calculateAverageProcessingTimeInSeconds();
     
     // Find payments with specific failure reasons

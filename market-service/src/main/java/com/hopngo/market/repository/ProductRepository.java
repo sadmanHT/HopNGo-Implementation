@@ -15,29 +15,33 @@ import java.util.UUID;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, UUID> {
     
-    // Find by SKU
-    Optional<Product> findBySku(String sku);
+    // Find by SKU (custom query since SKU is dynamically generated)
+    @Query("SELECT p FROM Product p WHERE CONCAT(REPLACE(LOWER(p.name), ' ', '-'), '-', CAST(p.id AS string)) = :sku")
+    Optional<Product> findBySku(@Param("sku") String sku);
     
     // Find active products
+    @Query("SELECT p FROM Product p WHERE (p.isAvailableForPurchase = true OR p.isAvailableForRental = true)")
     Page<Product> findByIsActiveTrue(Pageable pageable);
     
     // Find products by category
-    Page<Product> findByCategoryAndIsActiveTrue(String category, Pageable pageable);
+    @Query("SELECT p FROM Product p WHERE p.category = :category AND (p.isAvailableForPurchase = true OR p.isAvailableForRental = true)")
+    Page<Product> findByCategoryAndIsActiveTrue(@Param("category") String category, Pageable pageable);
     
     // Find products by brand
-    Page<Product> findByBrandAndIsActiveTrue(String brand, Pageable pageable);
+    @Query("SELECT p FROM Product p WHERE p.brand = :brand AND (p.isAvailableForPurchase = true OR p.isAvailableForRental = true)")
+    Page<Product> findByBrandAndIsActiveTrue(@Param("brand") String brand, Pageable pageable);
     
     // Find products available for purchase
-    Page<Product> findByAvailableForPurchaseTrueAndIsActiveTrue(Pageable pageable);
+    Page<Product> findByIsAvailableForPurchaseTrue(Pageable pageable);
     
     // Find products available for rental
-    Page<Product> findByAvailableForRentalTrueAndIsActiveTrue(Pageable pageable);
+    Page<Product> findByIsAvailableForRentalTrue(Pageable pageable);
     
     // Full-text search on name and description
     @Query("SELECT p FROM Product p WHERE " +
            "(LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(p.description) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
-           "p.isActive = true")
+           "(p.isAvailableForPurchase = true OR p.isAvailableForRental = true)")
     Page<Product> findBySearchTerm(@Param("search") String search, Pageable pageable);
     
     // Advanced search with filters
@@ -47,9 +51,9 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
            "LOWER(p.description) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
            "(:category IS NULL OR p.category = :category) AND " +
            "(:brand IS NULL OR p.brand = :brand) AND " +
-           "(:availableForPurchase IS NULL OR p.availableForPurchase = :availableForPurchase) AND " +
-           "(:availableForRental IS NULL OR p.availableForRental = :availableForRental) AND " +
-           "p.isActive = true")
+           "(:availableForPurchase IS NULL OR p.isAvailableForPurchase = :availableForPurchase) AND " +
+           "(:availableForRental IS NULL OR p.isAvailableForRental = :availableForRental) AND " +
+           "(p.isAvailableForPurchase = true OR p.isAvailableForRental = true)")
     Page<Product> findWithFilters(
         @Param("search") String search,
         @Param("category") String category,
@@ -61,19 +65,19 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     
     // Find products with low stock
     @Query("SELECT p FROM Product p WHERE " +
-           "(p.availableForPurchase = true AND p.purchaseStock <= :threshold) OR " +
-           "(p.availableForRental = true AND p.rentalStock <= :threshold) AND " +
-           "p.isActive = true")
+           "(p.isAvailableForPurchase = true AND p.stockQuantity <= :threshold) OR " +
+           "(p.isAvailableForRental = true AND p.stockQuantity <= :threshold) AND " +
+           "(p.isAvailableForPurchase = true OR p.isAvailableForRental = true)")
     List<Product> findLowStockProducts(@Param("threshold") Integer threshold);
     
     // Find products by multiple categories
-    @Query("SELECT p FROM Product p WHERE p.category IN :categories AND p.isActive = true")
+    @Query("SELECT p FROM Product p WHERE p.category IN :categories AND (p.isAvailableForPurchase = true OR p.isAvailableForRental = true)")
     Page<Product> findByCategoriesAndIsActiveTrue(@Param("categories") List<String> categories, Pageable pageable);
     
     // Find products by price range for purchase
     @Query("SELECT p FROM Product p WHERE " +
-           "p.purchasePrice BETWEEN :minPrice AND :maxPrice AND " +
-           "p.availableForPurchase = true AND p.isActive = true")
+           "p.price BETWEEN :minPrice AND :maxPrice AND " +
+           "p.isAvailableForPurchase = true AND (p.isAvailableForPurchase = true OR p.isAvailableForRental = true)")
     Page<Product> findByPurchasePriceRange(
         @Param("minPrice") java.math.BigDecimal minPrice,
         @Param("maxPrice") java.math.BigDecimal maxPrice,
@@ -83,7 +87,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     // Find products by rental price range
     @Query("SELECT p FROM Product p WHERE " +
            "p.rentalPricePerDay BETWEEN :minPrice AND :maxPrice AND " +
-           "p.availableForRental = true AND p.isActive = true")
+           "p.isAvailableForRental = true AND (p.isAvailableForPurchase = true OR p.isAvailableForRental = true)")
     Page<Product> findByRentalPriceRange(
         @Param("minPrice") java.math.BigDecimal minPrice,
         @Param("maxPrice") java.math.BigDecimal maxPrice,
@@ -91,18 +95,18 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     );
     
     // Get distinct categories
-    @Query("SELECT DISTINCT p.category FROM Product p WHERE p.isActive = true ORDER BY p.category")
+    @Query("SELECT DISTINCT p.category FROM Product p WHERE (p.isAvailableForPurchase = true OR p.isAvailableForRental = true) ORDER BY p.category")
     List<String> findDistinctCategories();
     
     // Get distinct brands
-    @Query("SELECT DISTINCT p.brand FROM Product p WHERE p.brand IS NOT NULL AND p.isActive = true ORDER BY p.brand")
+    @Query("SELECT DISTINCT p.brand FROM Product p WHERE p.brand IS NOT NULL AND (p.isAvailableForPurchase = true OR p.isAvailableForRental = true) ORDER BY p.brand")
     List<String> findDistinctBrands();
     
     // Count products by category
-    @Query("SELECT p.category, COUNT(p) FROM Product p WHERE p.isActive = true GROUP BY p.category")
+    @Query("SELECT p.category, COUNT(p) FROM Product p WHERE (p.isAvailableForPurchase = true OR p.isAvailableForRental = true) GROUP BY p.category")
     List<Object[]> countProductsByCategory();
     
     // Find featured/popular products (can be based on some criteria)
-    @Query("SELECT p FROM Product p WHERE p.isActive = true ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Product p WHERE (p.isAvailableForPurchase = true OR p.isAvailableForRental = true) ORDER BY p.createdAt DESC")
     Page<Product> findFeaturedProducts(Pageable pageable);
 }

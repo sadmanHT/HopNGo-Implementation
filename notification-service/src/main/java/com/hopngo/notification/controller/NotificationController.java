@@ -18,9 +18,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.Email;
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -165,7 +165,9 @@ public class NotificationController {
         LocalDateTime cutoffDate = LocalDateTime.now().minusDays(daysToKeep);
         
         try {
-            long deletedCount = notificationRepository.deleteByStatusAndCreatedAtBefore(
+            long deletedCount = notificationRepository.countByStatusAndCreatedAtBefore(
+                NotificationStatus.SENT, cutoffDate);
+            notificationRepository.deleteByStatusAndCreatedAtBefore(
                 NotificationStatus.SENT, cutoffDate);
             
             Map<String, Object> response = new HashMap<>();

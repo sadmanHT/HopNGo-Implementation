@@ -67,17 +67,18 @@ spring:
         - id: ai-service
           uri: http://ai-service:8088
           predicates:
-            - Path=/ai/**
+            - Path=/api/v1/ai/**
           filters:
             - name: JwtAuthenticationFilter
+            - StripPrefix=2
         
         # Emergency Service
         - id: emergency-service
           uri: http://emergency-service:8089
           predicates:
-            - Path=/emergency/**
+            - Path=/api/v1/emergency/**
           filters:
-            - name: JwtAuthenticationFilter
+            - StripPrefix=2
       
       globalcors:
         cors-configurations:
@@ -98,14 +99,24 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,prometheus,info
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
   metrics:
     export:
       prometheus:
         enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
 
 # Logging configuration
 logging:

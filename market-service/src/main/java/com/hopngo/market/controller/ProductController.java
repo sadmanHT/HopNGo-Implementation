@@ -15,7 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -85,12 +85,12 @@ public class ProductController {
             products = productService.searchProducts(search.trim(), pageable);
         } else if (hasFilters(category, brand, minPrice, maxPrice, availableForPurchase, availableForRental)) {
             // Use advanced filtering
-            products = productService.findProductsWithFilters(
-                category, brand, minPrice, maxPrice, 
-                availableForPurchase, availableForRental, active, pageable);
+            products = productService.getProductsWithFilters(
+                search, category, brand, 
+                availableForPurchase, availableForRental, pageable);
         } else {
             // Get all active products
-            products = productService.findActiveProducts(pageable);
+            products = productService.getAllActiveProducts(pageable);
         }
         
         logger.info("Retrieved {} products", products.getTotalElements());
@@ -150,7 +150,7 @@ public class ProductController {
         Sort sort = Sort.by(sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC, sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
         
-        Page<Product> products = productService.findProductsByCategory(category, pageable);
+        Page<Product> products = productService.getProductsByCategory(category, pageable);
         
         logger.info("Retrieved {} products in category: {}", products.getTotalElements(), category);
         return ResponseEntity.ok(products);
@@ -164,7 +164,8 @@ public class ProductController {
         
         logger.info("Getting featured products, limit: {}", limit);
         
-        List<Product> products = productService.findFeaturedProducts(PageRequest.of(0, limit));
+        Page<Product> productsPage = productService.getFeaturedProducts(PageRequest.of(0, limit));
+        List<Product> products = productsPage.getContent();
         
         logger.info("Retrieved {} featured products", products.size());
         return ResponseEntity.ok(products);
@@ -176,7 +177,7 @@ public class ProductController {
     public ResponseEntity<List<String>> getProductCategories() {
         logger.info("Getting all product categories");
         
-        List<String> categories = productService.findDistinctCategories();
+        List<String> categories = productService.getDistinctCategories();
         
         logger.info("Retrieved {} categories", categories.size());
         return ResponseEntity.ok(categories);
@@ -188,7 +189,7 @@ public class ProductController {
     public ResponseEntity<List<String>> getProductBrands() {
         logger.info("Getting all product brands");
         
-        List<String> brands = productService.findDistinctBrands();
+        List<String> brands = productService.getDistinctBrands();
         
         logger.info("Retrieved {} brands", brands.size());
         return ResponseEntity.ok(brands);
@@ -200,7 +201,7 @@ public class ProductController {
     public ResponseEntity<Product> createProduct(@Valid @RequestBody Product product) {
         logger.info("Creating new product: {}", product.getName());
         
-        Product createdProduct = productService.createProduct(product);
+        Product createdProduct = productService.saveProduct(product);
         
         logger.info("Product created successfully: {}", createdProduct.getId());
         return ResponseEntity.ok(createdProduct);
@@ -216,7 +217,8 @@ public class ProductController {
         logger.info("Updating product: {}", id);
         
         try {
-            Product updatedProduct = productService.updateProduct(id, product);
+            product.setId(id); // Ensure the product has the correct ID for update
+            Product updatedProduct = productService.saveProduct(product);
             logger.info("Product updated successfully: {}", id);
             return ResponseEntity.ok(updatedProduct);
         } catch (IllegalArgumentException e) {
@@ -260,10 +262,10 @@ public class ProductController {
         
         Product product = productOpt.get();
         ProductAvailability availability = new ProductAvailability(
-            product.isAvailableForPurchase() && product.getPurchaseStock() > 0,
-            product.isAvailableForRental() && product.getRentalStock() > 0,
-            product.getPurchaseStock(),
-            product.getRentalStock()
+            product.getIsAvailableForPurchase() && product.getStockQuantity() > 0,
+            product.getIsAvailableForRental() && product.getRentalStockQuantity() > 0,
+            product.getStockQuantity(),
+            product.getRentalStockQuantity()
         );
         
         return ResponseEntity.ok(availability);

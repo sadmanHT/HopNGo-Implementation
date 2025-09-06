@@ -1,0 +1,124 @@
+package com.hopngo.chatservice;
+
+import com.hopngo.chatservice.controller.ChatRestController;
+import com.hopngo.chatservice.model.Conversation;
+import com.hopngo.chatservice.model.ConversationType;
+import com.hopngo.chatservice.model.Message;
+import com.hopngo.chatservice.repository.ConversationRepository;
+import com.hopngo.chatservice.repository.MessageRepository;
+import com.hopngo.chatservice.service.ChatService;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.cloud.stream.function.StreamBridge;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(ChatRestController.class)
+class ChatServiceIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private ChatService chatService;
+
+    @MockBean
+    private ConversationRepository conversationRepository;
+
+    @MockBean
+    private MessageRepository messageRepository;
+
+    @MockBean
+    private StreamBridge streamBridge;
+
+    @Test
+    void testGetUserConversations() throws Exception {
+        // Create test data
+        Conversation conversation = new Conversation(ConversationType.DM, Arrays.asList("user1", "user2"), null);
+        conversation.setId("conv1");
+        conversation.setCreatedAt(LocalDateTime.now());
+        
+        List<Conversation> conversations = Arrays.asList(conversation);
+        
+        when(chatService.getUserConversations("user1")).thenReturn(conversations);
+        
+        // Test the endpoint
+        mockMvc.perform(get("/chat/conversations")
+                .header("X-User-Id", "user1")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("conv1"))
+                .andExpect(jsonPath("$[0].type").value("DM"));
+    }
+
+    @Test
+    void testGetUserConversationsPaginated() throws Exception {
+        // Create test data
+        Conversation conversation = new Conversation(ConversationType.GROUP, Arrays.asList("user1", "user2", "user3"), "Test Group");
+        conversation.setId("conv2");
+        conversation.setCreatedAt(LocalDateTime.now());
+        
+        Page<Conversation> conversationPage = new PageImpl<>(Arrays.asList(conversation), PageRequest.of(0, 10), 1);
+        
+        when(chatService.getUserConversations(eq("user1"), any(Pageable.class))).thenReturn(conversationPage);
+        
+        // Test the endpoint
+        mockMvc.perform(get("/chat/conversations/paginated")
+                .param("page", "0")
+                .param("size", "10")
+                .header("X-User-Id", "user1")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value("conv2"))
+                .andExpect(jsonPath("$.content[0].name").value("Test Group"));
+    }
+
+    @Test
+    void testGetConversationMessages() throws Exception {
+        // Create test data
+        Message message = new Message("conv1", "user1", "Hello, World!", null);
+        message.setId("msg1");
+        message.setSentAt(LocalDateTime.now());
+        
+        Page<Message> messagePage = new PageImpl<>(Arrays.asList(message), PageRequest.of(0, 20), 1);
+        
+        when(chatService.getConversationMessages(eq("conv1"), eq("user1"), any(Pageable.class))).thenReturn(messagePage);
+        
+        // Test the endpoint
+        mockMvc.perform(get("/chat/messages")
+                .param("convoId", "conv1")
+                .param("page", "0")
+                .param("size", "20")
+                .header("X-User-Id", "user1")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value("msg1"))
+                .andExpect(jsonPath("$.content[0].body").value("Hello, World!"));
+    }
+
+    @Test
+    void testMarkMessageAsRead() throws Exception {
+        // Test the endpoint
+        mockMvc.perform(post("/chat/messages/msg1/read")
+                .header("X-User-Id", "user1")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+    }
+}

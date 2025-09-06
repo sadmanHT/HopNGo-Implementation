@@ -18,6 +18,9 @@ import java.util.UUID;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, UUID> {
     
+    // Find all orders
+    Page<Order> findAllByOrderByCreatedAtDesc(Pageable pageable);
+    
     // Find orders by user
     Page<Order> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
     
@@ -25,13 +28,13 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     Page<Order> findByUserIdAndStatusOrderByCreatedAtDesc(UUID userId, OrderStatus status, Pageable pageable);
     
     // Find orders by user and type
-    Page<Order> findByUserIdAndTypeOrderByCreatedAtDesc(UUID userId, OrderType type, Pageable pageable);
+    Page<Order> findByUserIdAndOrderTypeOrderByCreatedAtDesc(UUID userId, OrderType orderType, Pageable pageable);
     
     // Find orders by status
     Page<Order> findByStatusOrderByCreatedAtDesc(OrderStatus status, Pageable pageable);
     
     // Find orders by type
-    Page<Order> findByTypeOrderByCreatedAtDesc(OrderType type, Pageable pageable);
+    Page<Order> findByOrderTypeOrderByCreatedAtDesc(OrderType orderType, Pageable pageable);
     
     // Find orders by tracking number
     Optional<Order> findByTrackingNumber(String trackingNumber);
@@ -62,11 +65,11 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     Page<Order> findOrdersReadyForShipping(Pageable pageable);
     
     // Find shipped orders (for delivery tracking)
-    @Query("SELECT o FROM Order o WHERE o.status = 'SHIPPED' ORDER BY o.shippedAt ASC")
+    @Query("SELECT o FROM Order o WHERE o.status = 'SHIPPED' ORDER BY o.updatedAt ASC")
     Page<Order> findShippedOrders(Pageable pageable);
     
     // Find rental orders by date range
-    @Query("SELECT o FROM Order o WHERE o.type = 'RENTAL' AND " +
+    @Query("SELECT o FROM Order o WHERE o.orderType = 'RENTAL' AND " +
            "(:startDate IS NULL OR o.rentalStartDate >= :startDate) AND " +
            "(:endDate IS NULL OR o.rentalEndDate <= :endDate) " +
            "ORDER BY o.rentalStartDate ASC")
@@ -77,7 +80,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     );
     
     // Find active rental orders (currently rented)
-    @Query("SELECT o FROM Order o WHERE o.type = 'RENTAL' AND " +
+    @Query("SELECT o FROM Order o WHERE o.orderType = 'RENTAL' AND " +
            "o.status IN ('PAID', 'SHIPPED', 'DELIVERED') AND " +
            "o.rentalStartDate <= CURRENT_DATE AND " +
            "o.rentalEndDate >= CURRENT_DATE " +
@@ -85,7 +88,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     List<Order> findActiveRentalOrders();
     
     // Find overdue rental orders
-    @Query("SELECT o FROM Order o WHERE o.type = 'RENTAL' AND " +
+    @Query("SELECT o FROM Order o WHERE o.orderType = 'RENTAL' AND " +
            "o.status = 'DELIVERED' AND " +
            "o.rentalEndDate < CURRENT_DATE " +
            "ORDER BY o.rentalEndDate ASC")
@@ -95,8 +98,11 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     @Query("SELECT o.status, COUNT(o) FROM Order o GROUP BY o.status")
     List<Object[]> countOrdersByStatus();
     
+    // Count orders by specific status
+    long countByStatus(OrderStatus status);
+    
     // Count orders by type
-    @Query("SELECT o.type, COUNT(o) FROM Order o GROUP BY o.type")
+    @Query("SELECT o.orderType, COUNT(o) FROM Order o GROUP BY o.orderType")
     List<Object[]> countOrdersByType();
     
     // Calculate total revenue

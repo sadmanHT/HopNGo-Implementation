@@ -52,7 +52,10 @@ public class Payment {
     
     @Column(name = "payment_intent_id")
     private String paymentIntentId;
-    
+
+    @Column(name = "client_secret")
+    private String clientSecret;
+
     @Column(name = "payment_method")
     private String paymentMethod;
     
@@ -102,6 +105,13 @@ public class Payment {
     
     public void setOrder(Order order) {
         this.order = order;
+    }
+    
+    public void setOrderId(UUID orderId) {
+        if (this.order == null) {
+            this.order = new Order();
+        }
+        this.order.setId(orderId);
     }
     
     public PaymentStatus getStatus() {
@@ -233,6 +243,20 @@ public class Payment {
     
     public void markAsProcessing() {
         this.status = PaymentStatus.PROCESSING;
+    }
+    
+    public void markAsCancelled(String reason) {
+        this.status = PaymentStatus.FAILED;
+        this.failureReason = reason;
+        this.processedAt = LocalDateTime.now();
+    }
+
+    public String getClientSecret() {
+        return clientSecret;
+    }
+
+    public void setClientSecret(String clientSecret) {
+        this.clientSecret = clientSecret;
     }
     
     public boolean isSucceeded() {

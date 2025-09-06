@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -95,8 +96,8 @@ class CheckoutFlowIntegrationTest {
         testProduct.setCategory("Electronics");
         testProduct.setBrand("TestBrand");
         testProduct.setStockQuantity(10);
-        testProduct.setAvailableForPurchase(true);
-        testProduct.setAvailableForRental(true);
+        testProduct.setIsAvailableForPurchase(true);
+        testProduct.setIsAvailableForRental(true);
         testProduct.setActive(true);
         testProduct.setCreatedAt(LocalDateTime.now());
         testProduct.setUpdatedAt(LocalDateTime.now());
@@ -155,8 +156,8 @@ class CheckoutFlowIntegrationTest {
                 .getContentAsString();
 
         CheckoutResponse response = objectMapper.readValue(checkoutResponse, CheckoutResponse.class);
-        Long orderId = response.getOrderId();
-        Long paymentId = response.getPaymentId();
+        UUID orderId = response.getOrderId();
+        UUID paymentId = response.getPaymentId();
 
         // Verify order was created
         Optional<Order> orderOpt = orderRepository.findById(orderId);
@@ -168,7 +169,7 @@ class CheckoutFlowIntegrationTest {
         assertThat(order.getTotalAmount()).isEqualTo(new BigDecimal("199.98")); // 2 * 99.99
 
         // Verify order items were created
-        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
+        List<OrderItem> orderItems = orderItemRepository.findByOrder_IdOrderByCreatedAtAsc(orderId);
         assertThat(orderItems).hasSize(1);
         OrderItem orderItem = orderItems.get(0);
         assertThat(orderItem.getProductId()).isEqualTo(testProduct.getId());
@@ -179,7 +180,7 @@ class CheckoutFlowIntegrationTest {
         Optional<Payment> paymentOpt = paymentRepository.findById(paymentId);
         assertThat(paymentOpt).isPresent();
         Payment payment = paymentOpt.get();
-        assertThat(payment.getOrderId()).isEqualTo(orderId);
+        assertThat(payment.getOrder().getId()).isEqualTo(orderId);
         assertThat(payment.getAmount()).isEqualTo(new BigDecimal("199.98"));
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
         assertThat(payment.getProvider()).isEqualTo(PaymentProvider.MOCK);
@@ -246,7 +247,7 @@ class CheckoutFlowIntegrationTest {
                 .getContentAsString();
 
         CheckoutResponse response = objectMapper.readValue(checkoutResponse, CheckoutResponse.class);
-        Long orderId = response.getOrderId();
+        UUID orderId = response.getOrderId();
 
         // Verify rental order was created correctly
         Order order = orderRepository.findById(orderId).orElseThrow();
@@ -256,7 +257,7 @@ class CheckoutFlowIntegrationTest {
         assertThat(order.getTotalAmount()).isEqualTo(new BigDecimal("19.98")); // 2 days * 9.99
 
         // Verify rental order item
-        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
+        List<OrderItem> orderItems = orderItemRepository.findByOrder_IdOrderByCreatedAtAsc(orderId);
         assertThat(orderItems).hasSize(1);
         OrderItem orderItem = orderItems.get(0);
         assertThat(orderItem.getRentalStartDate()).isEqualTo(startDate);
@@ -304,13 +305,13 @@ class CheckoutFlowIntegrationTest {
 
     // Inner classes for request/response DTOs
     private static class AddToCartRequest {
-        public Long productId;
+        public UUID productId;
         public Integer quantity;
         public String type;
         public LocalDateTime rentalStartDate;
         public LocalDateTime rentalEndDate;
 
-        public AddToCartRequest(Long productId, Integer quantity, String type, 
+        public AddToCartRequest(UUID productId, Integer quantity, String type, 
                                LocalDateTime rentalStartDate, LocalDateTime rentalEndDate) {
             this.productId = productId;
             this.quantity = quantity;
@@ -338,18 +339,18 @@ class CheckoutFlowIntegrationTest {
     }
 
     private static class CheckoutResponse {
-        public Long orderId;
-        public Long paymentId;
+        public UUID orderId;
+        public UUID paymentId;
         public String message;
 
-        public Long getOrderId() { return orderId; }
-        public Long getPaymentId() { return paymentId; }
+        public UUID getOrderId() { return orderId; }
+        public UUID getPaymentId() { return paymentId; }
     }
 
     private static class ProcessMockPaymentRequest {
-        public Long paymentId;
+        public UUID paymentId;
 
-        public ProcessMockPaymentRequest(Long paymentId) {
+        public ProcessMockPaymentRequest(UUID paymentId) {
             this.paymentId = paymentId;
         }
     }

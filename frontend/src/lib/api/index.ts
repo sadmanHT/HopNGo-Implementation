@@ -6,9 +6,9 @@ export * from './types';
 
 // Export API services
 export { authApi } from './auth';
+export { bookingsApi } from './bookings';
 
 // Placeholder exports for future API services
-// export { bookingsApi } from './bookings';
 // export { socialApi } from './social';
 // export { marketApi } from './market';
 // export { chatApi } from './chat';

@@ -63,7 +63,7 @@ public class BookingEventConsumer {
         logger.info("Processing booking confirmed event for booking: {}", event.getBookingId());
         
         try {
-            notificationService.sendBookingConfirmationNotification(event);
+            notificationService.sendBookingConfirmedNotification(event);
             logger.info("Successfully processed booking confirmed notification for booking: {}", event.getBookingId());
         } catch (Exception e) {
             logger.error("Failed to send booking confirmation notification for booking: {}", event.getBookingId(), e);
@@ -75,7 +75,7 @@ public class BookingEventConsumer {
         logger.info("Processing booking cancelled event for booking: {}", event.getBookingId());
         
         try {
-            notificationService.sendBookingCancellationNotification(event);
+            notificationService.sendBookingCancelledNotification(event);
             logger.info("Successfully processed booking cancelled notification for booking: {}", event.getBookingId());
         } catch (Exception e) {
             logger.error("Failed to send booking cancellation notification for booking: {}", event.getBookingId(), e);

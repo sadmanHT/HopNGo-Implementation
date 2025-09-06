@@ -5,45 +5,31 @@ CREATE TABLE orders (
     
     -- Order details
     status VARCHAR(20) NOT NULL DEFAULT 'CREATED' CHECK (status IN ('CREATED', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED')),
-    type VARCHAR(20) NOT NULL CHECK (type IN ('PURCHASE', 'RENTAL')),
+    order_type VARCHAR(20) NOT NULL CHECK (order_type IN ('PURCHASE', 'RENTAL')),
     
     -- Financial information
     total_amount DECIMAL(12,2) NOT NULL CHECK (total_amount >= 0),
     currency VARCHAR(10) NOT NULL DEFAULT 'USD',
     
-    -- Shipping addresses
-    shipping_address_line1 VARCHAR(255),
-    shipping_address_line2 VARCHAR(255),
-    shipping_city VARCHAR(100),
-    shipping_state VARCHAR(100),
-    shipping_postal_code VARCHAR(20),
-    shipping_country VARCHAR(100),
+    -- Addresses (as TEXT to match entity)
+    shipping_address TEXT,
+    billing_address TEXT,
     
-    billing_address_line1 VARCHAR(255),
-    billing_address_line2 VARCHAR(255),
-    billing_city VARCHAR(100),
-    billing_state VARCHAR(100),
-    billing_postal_code VARCHAR(20),
-    billing_country VARCHAR(100),
+    -- Additional information
+    special_instructions TEXT,
     
     -- Tracking and fulfillment
     tracking_number VARCHAR(100),
-    carrier VARCHAR(100),
+    estimated_delivery_date TIMESTAMP,
+    actual_delivery_date TIMESTAMP,
     
     -- Rental-specific fields
-    rental_start_date DATE,
-    rental_end_date DATE,
-    rental_days INTEGER CHECK (rental_days > 0),
+    rental_start_date TIMESTAMP,
+    rental_end_date TIMESTAMP,
+    rental_return_date TIMESTAMP,
     
     -- Order lifecycle timestamps
     paid_at TIMESTAMP,
-    shipped_at TIMESTAMP,
-    delivered_at TIMESTAMP,
-    cancelled_at TIMESTAMP,
-    
-    -- Additional information
-    notes TEXT,
-    metadata JSONB,
     
     -- Auditing
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -53,7 +39,7 @@ CREATE TABLE orders (
 -- Create indexes for better query performance
 CREATE INDEX idx_orders_user_id ON orders(user_id);
 CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_orders_type ON orders(type);
+CREATE INDEX idx_orders_order_type ON orders(order_type);
 CREATE INDEX idx_orders_created_at ON orders(created_at);
 CREATE INDEX idx_orders_paid_at ON orders(paid_at);
 CREATE INDEX idx_orders_tracking_number ON orders(tracking_number);
@@ -71,9 +57,9 @@ CREATE TRIGGER update_orders_updated_at
 -- Add constraints for rental orders
 ALTER TABLE orders ADD CONSTRAINT check_rental_dates 
     CHECK (
-        (type = 'RENTAL' AND rental_start_date IS NOT NULL AND rental_end_date IS NOT NULL AND rental_days IS NOT NULL) 
+        (order_type = 'RENTAL' AND rental_start_date IS NOT NULL AND rental_end_date IS NOT NULL) 
         OR 
-        (type = 'PURCHASE' AND rental_start_date IS NULL AND rental_end_date IS NULL AND rental_days IS NULL)
+        (order_type = 'PURCHASE' AND rental_start_date IS NULL AND rental_end_date IS NULL)
     );
 
 ALTER TABLE orders ADD CONSTRAINT check_rental_date_order 

@@ -14,6 +14,9 @@ public interface VendorMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(source = "name", target = "businessName")
+    @Mapping(source = "email", target = "contactEmail")
+    @Mapping(source = "phone", target = "contactPhone")
     Vendor toEntity(VendorCreateRequest request);
     
     VendorResponse toResponse(Vendor vendor);
@@ -21,5 +24,8 @@ public interface VendorMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(source = "name", target = "businessName")
+    @Mapping(source = "email", target = "contactEmail")
+    @Mapping(source = "phone", target = "contactPhone")
     void updateEntity(VendorCreateRequest request, @MappingTarget Vendor vendor);
 }

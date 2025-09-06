@@ -13,9 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -102,63 +102,7 @@ public class PaymentController {
         }
     }
     
-    // Payment webhook endpoint
-    @PostMapping("/webhook")
-    @Operation(summary = "Payment webhook", description = "Handle payment status updates from payment providers")
-    public ResponseEntity<WebhookResponse> handlePaymentWebhook(
-            @Valid @RequestBody PaymentWebhookRequest request,
-            @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey) {
-        
-        logger.info("Received payment webhook - txnRef: {}, status: {}, idempotencyKey: {}", 
-                   request.getTransactionReference(), request.getStatus(), idempotencyKey);
-        
-        try {
-            Payment payment;
-            
-            if (idempotencyKey != null && !idempotencyKey.trim().isEmpty()) {
-                // Handle with idempotency
-                payment = paymentService.handlePaymentWebhookIdempotent(
-                    request.getTransactionReference(),
-                    request.getStatus(),
-                    request.getProviderTransactionId(),
-                    request.getFailureReason(),
-                    idempotencyKey
-                );
-            } else {
-                // Handle without idempotency
-                payment = paymentService.handlePaymentWebhook(
-                    request.getTransactionReference(),
-                    request.getStatus(),
-                    request.getProviderTransactionId(),
-                    request.getFailureReason()
-                );
-            }
-            
-            // Update order status based on payment status
-            if (payment.getStatus() == PaymentStatus.SUCCEEDED) {
-                orderService.markOrderAsPaid(payment.getOrder().getId());
-            }
-            
-            WebhookResponse response = new WebhookResponse(
-                "success", 
-                "Payment webhook processed successfully", 
-                payment.getId().toString()
-            );
-            
-            logger.info("Payment webhook processed successfully - paymentId: {}, status: {}", 
-                       payment.getId(), payment.getStatus());
-            
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            logger.warn("Invalid payment webhook request: {}", e.getMessage());
-            WebhookResponse response = new WebhookResponse("error", e.getMessage(), null);
-            return ResponseEntity.badRequest().body(response);
-        } catch (Exception e) {
-            logger.error("Error processing payment webhook", e);
-            WebhookResponse response = new WebhookResponse("error", "Internal server error", null);
-            return ResponseEntity.internalServerError().body(response);
-        }
-    }
+    // Note: Webhook handling is now managed by WebhookController for unified processing
     
     // Cancel payment
     @PostMapping("/{paymentId}/cancel")

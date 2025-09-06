@@ -1,0 +1,63 @@
+package com.hopngo.chatservice.repository;
+
+import com.hopngo.chatservice.model.Message;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface MessageRepository extends MongoRepository<Message, String> {
+    
+    /**
+     * Find messages by conversation ID with pagination
+     */
+    Page<Message> findByConvoIdOrderBySentAtDesc(String convoId, Pageable pageable);
+    
+    /**
+     * Find messages by conversation ID (list version)
+     */
+    List<Message> findByConvoIdOrderBySentAtDesc(String convoId);
+    
+    /**
+     * Find the latest message in a conversation
+     */
+    Optional<Message> findFirstByConvoIdOrderBySentAtDesc(String convoId);
+    
+    /**
+     * Find messages sent by a specific user in a conversation
+     */
+    List<Message> findByConvoIdAndSenderIdOrderBySentAtDesc(String convoId, String senderId);
+    
+    /**
+     * Find unread messages for a user in a conversation
+     */
+    @Query("{ 'convoId': ?0, 'readBy': { $ne: ?1 } }")
+    List<Message> findUnreadMessagesInConversation(String convoId, String userId);
+    
+    /**
+     * Count messages in a conversation
+     */
+    long countByConvoId(String convoId);
+    
+    /**
+     * Count unread messages for a user in a conversation
+     */
+    @Query(value = "{ 'convoId': ?0, 'readBy': { $ne: ?1 } }", count = true)
+    long countUnreadMessagesInConversation(String convoId, String userId);
+    
+    /**
+     * Find messages sent after a specific time
+     */
+    List<Message> findByConvoIdAndSentAtAfterOrderBySentAtDesc(String convoId, LocalDateTime after);
+    
+    /**
+     * Delete all messages in a conversation
+     */
+    void deleteByConvoId(String convoId);
+}

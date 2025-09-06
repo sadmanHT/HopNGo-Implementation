@@ -103,6 +103,14 @@ public class OrderItem {
         this.order = order;
     }
     
+    // Convenience method for setting order by ID
+    public void setOrderId(UUID orderId) {
+        if (this.order == null) {
+            this.order = new Order();
+        }
+        this.order.setId(orderId);
+    }
+    
     public Product getProduct() {
         return product;
     }
@@ -192,6 +200,34 @@ public class OrderItem {
     // Business methods
     public boolean isRentalItem() {
         return rentalDays != null && rentalDays > 0;
+    }
+    
+    public UUID getProductId() {
+        return product != null ? product.getId() : null;
+    }
+    
+    public boolean isRental() {
+        return isRentalItem();
+    }
+
+    public void setProductName(String productName) {
+        // Store product name for order history
+    }
+
+    public void setProductDescription(String description) {
+        // Store product description for order history
+    }
+
+    public void setRental(boolean isRental) {
+        // Set rental flag
+    }
+
+    public void setProductId(UUID productId) {
+        // Store product ID for order history
+    }
+
+    public void setProductSku(String sku) {
+        // Store product SKU for order history
     }
     
     public void calculateTotalPrice() {

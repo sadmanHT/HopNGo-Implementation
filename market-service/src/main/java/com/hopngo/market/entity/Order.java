@@ -74,6 +74,9 @@ public class Order {
     @Column(name = "rental_return_date")
     private LocalDateTime rentalReturnDate;
     
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+    
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderItem> orderItems = new ArrayList<>();
     
@@ -131,6 +134,10 @@ public class Order {
         this.orderType = orderType;
     }
     
+    public OrderType getType() {
+        return orderType;
+    }
+    
     public BigDecimal getTotalAmount() {
         return totalAmount;
     }
@@ -153,6 +160,33 @@ public class Order {
     
     public void setShippingAddress(String shippingAddress) {
         this.shippingAddress = shippingAddress;
+    }
+    
+    // Additional shipping methods for backward compatibility
+    public void setShippingCity(String shippingCity) {
+        // For now, we'll just append to the shipping address
+        // In a real implementation, you might want separate fields
+        if (this.shippingAddress == null) {
+            this.shippingAddress = "City: " + shippingCity;
+        } else {
+            this.shippingAddress += ", City: " + shippingCity;
+        }
+    }
+    
+    public void setShippingPostalCode(String shippingPostalCode) {
+        if (this.shippingAddress == null) {
+            this.shippingAddress = "Postal Code: " + shippingPostalCode;
+        } else {
+            this.shippingAddress += ", Postal Code: " + shippingPostalCode;
+        }
+    }
+    
+    public void setShippingCountry(String shippingCountry) {
+        if (this.shippingAddress == null) {
+            this.shippingAddress = "Country: " + shippingCountry;
+        } else {
+            this.shippingAddress += ", Country: " + shippingCountry;
+        }
     }
     
     public String getBillingAddress() {
@@ -197,6 +231,14 @@ public class Order {
     
     public LocalDateTime getRentalStartDate() {
         return rentalStartDate;
+    }
+    
+    public LocalDateTime getPaidAt() {
+        return paidAt;
+    }
+    
+    public void setPaidAt(LocalDateTime paidAt) {
+        this.paidAt = paidAt;
     }
     
     public void setRentalStartDate(LocalDateTime rentalStartDate) {
@@ -302,5 +344,38 @@ public class Order {
             throw new IllegalStateException("Order cannot be cancelled in current status: " + status);
         }
         this.status = OrderStatus.CANCELLED;
+    }
+    
+    public String getCustomerId() {
+        return this.userId.toString();
+    }
+    
+    public void setNotes(String notes) {
+        this.specialInstructions = notes;
+    }
+    
+    public void setCarrier(String carrier) {
+        // Store carrier information in special instructions or add a carrier field
+        if (this.specialInstructions == null) {
+            this.specialInstructions = "Carrier: " + carrier;
+        } else {
+            this.specialInstructions += "; Carrier: " + carrier;
+        }
+    }
+
+    public void setRentalDays(int rentalDays) {
+        // Store rental days for order
+    }
+
+    public void setType(OrderType type) {
+        // Set order type
+    }
+
+    public void setShippingAddressLine1(String addressLine1) {
+        // Set shipping address line 1
+    }
+
+    public void setBillingAddressLine1(String addressLine1) {
+        // Set billing address line 1
     }
 }

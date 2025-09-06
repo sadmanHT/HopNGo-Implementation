@@ -1,0 +1,79 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: chat-service
+  
+  data:
+    mongodb:
+      # Use embedded MongoDB for testing
+      uri: mongodb://localhost:27017/hopngo_chat
+      database: hopngo_chat
+      auto-index-creation: true
+  
+  # Configure MongoDB to be optional for startup
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+  
+  cloud:
+    stream:
+      bindings:
+        chatMessageCreated-out-0:
+          destination: chat.message.created
+          content-type: application/json
+      rabbit:
+        bindings:
+          chatMessageCreated-out-0:
+            producer:
+              routing-key-expression: "'chat.message.created'"
+              exchange-type: topic
+      function:
+        definition: chatMessageCreated
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.hopngo.chatservice: DEBUG
+    org.springframework.messaging: DEBUG
+    org.springframework.web.socket: DEBUG
+
+# JWT Configuration
+app:
+  jwt:
+    public-key: |
+      -----BEGIN PUBLIC KEY-----
+      MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4f5wg5l2hKsTeNem/V41
+      fGnJm6gOdrj8ym3rFkEjWT2btf+FxKlaAWYt9/WJdYWn/g+xGUOvvD6xQjKwO9Qz
+      -----END PUBLIC KEY-----
+
+# CORS Configuration
+cors:
+  allowed-origins:
+    - http://localhost:3000
+    - http://localhost:8080
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowed-headers:
+    - "*"
+  allow-credentials: true

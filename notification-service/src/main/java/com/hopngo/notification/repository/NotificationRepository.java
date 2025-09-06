@@ -22,8 +22,15 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     
     Page<Notification> findByRecipientIdOrderByCreatedAtDesc(String recipientId, Pageable pageable);
     
+    Page<Notification> findByRecipientId(String recipientId, Pageable pageable);
+    
     // Find notifications by status
     List<Notification> findByStatus(NotificationStatus status);
+    
+    Page<Notification> findByStatus(NotificationStatus status, Pageable pageable);
+    
+    // Find notifications by recipient email
+    Page<Notification> findByRecipientEmail(String recipientEmail, Pageable pageable);
     
     // Find notifications that can be retried
     @Query("SELECT n FROM Notification n WHERE n.status = 'RETRY' AND n.retryCount < n.maxRetries AND (n.nextRetryAt IS NULL OR n.nextRetryAt <= :now)")
@@ -57,4 +64,20 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     // Delete old processed notifications
     @Query("DELETE FROM Notification n WHERE n.status = 'SENT' AND n.sentAt < :cutoffTime")
     void deleteOldProcessedNotifications(@Param("cutoffTime") LocalDateTime cutoffTime);
+    
+    // Delete notifications by status and created date
+    @Query("DELETE FROM Notification n WHERE n.status = :status AND n.createdAt < :cutoffDate")
+    void deleteByStatusAndCreatedAtBefore(@Param("status") NotificationStatus status, @Param("cutoffDate") LocalDateTime cutoffDate);
+
+    long countByCreatedAtAfter(LocalDateTime dateTime);
+
+    // Find notifications by type
+    Page<Notification> findByType(NotificationType type, Pageable pageable);
+
+    // Count notifications by type
+    long countByType(NotificationType type);
+
+    // Delete and return count
+    @Query("SELECT COUNT(n) FROM Notification n WHERE n.status = :status AND n.createdAt < :cutoffDate")
+    long countByStatusAndCreatedAtBefore(@Param("status") NotificationStatus status, @Param("cutoffDate") LocalDateTime cutoffDate);
 }

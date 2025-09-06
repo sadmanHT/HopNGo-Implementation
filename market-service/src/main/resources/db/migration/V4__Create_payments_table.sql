@@ -15,6 +15,7 @@ CREATE TABLE payments (
     transaction_reference VARCHAR(255) UNIQUE NOT NULL,
     provider_transaction_id VARCHAR(255),
     payment_intent_id VARCHAR(255),
+    client_secret VARCHAR(255),
     payment_method VARCHAR(100),
     
     -- Error handling

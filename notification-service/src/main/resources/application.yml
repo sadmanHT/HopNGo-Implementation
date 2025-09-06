@@ -7,8 +7,8 @@ spring:
   
   datasource:
     url: jdbc:postgresql://localhost:5432/hopngo_notification
-    username: hopngo_user
-    password: hopngo_password
+    username: hopngo
+    password: hopngo_dev_2024!
     driver-class-name: org.postgresql.Driver
   
   jpa:
@@ -78,6 +78,17 @@ spring:
             back-off-initial-interval: 1000
             back-off-max-interval: 10000
             back-off-multiplier: 2.0
+        
+        # Emergency Events Consumer
+        emergency-events-in-0:
+          destination: emergency.triggered
+          content-type: application/json
+          group: notification-service
+          consumer:
+            max-attempts: 3
+            back-off-initial-interval: 1000
+            back-off-max-interval: 10000
+            back-off-multiplier: 2.0
       
       rabbit:
         bindings:
@@ -101,17 +112,24 @@ spring:
               exchange-type: topic
               auto-bind-dlq: true
               republish-to-dlq: true
+          
+          emergency-events-in-0:
+            consumer:
+              binding-routing-key: 'emergency.*'
+              exchange-type: topic
+              auto-bind-dlq: true
+              republish-to-dlq: true
       
       function:
-        definition: bookingEventsConsumer;paymentEventsConsumer;chatEventsConsumer
+        definition: bookingEventsConsumer;paymentEventsConsumer;chatEventsConsumer;emergencyEventsConsumer
   
   # RabbitMQ Connection
   rabbitmq:
     host: localhost
     port: 5672
-    username: guest
-    password: guest
-    virtual-host: /
+    username: hopngo
+    password: rabbit_dev_2024!
+    virtual-host: hopngo
 
 # Management and Actuator
 management:

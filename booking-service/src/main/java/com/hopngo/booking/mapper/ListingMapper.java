@@ -12,7 +12,7 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 public interface ListingMapper {
     
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "vendor", ignore = true)
+    @Mapping(source = "vendorId", target = "vendor.id")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Listing toEntity(ListingCreateRequest request);
@@ -22,7 +22,7 @@ public interface ListingMapper {
     ListingResponse toResponse(Listing listing);
     
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "vendor", ignore = true)
+    @Mapping(source = "vendorId", target = "vendor.id")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntity(ListingCreateRequest request, @MappingTarget Listing listing);

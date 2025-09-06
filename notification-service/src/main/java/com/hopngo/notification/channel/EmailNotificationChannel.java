@@ -12,8 +12,9 @@ import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import java.util.HashMap;
 import java.util.Map;
 
 @Component
@@ -74,7 +75,14 @@ public class EmailNotificationChannel implements NotificationChannel {
         helper.setFrom("noreply@hopngo.com");
         
         // Process template with variables
-        String htmlContent = processTemplate(notification.getTemplateName(), notification.getVariables());
+        // Convert Map<String, String> to Map<String, Object> for template processing
+        Map<String, Object> templateVariables = new HashMap<>();
+        if (notification.getVariables() != null) {
+            notification.getVariables().forEach((key, value) -> 
+                templateVariables.put(key, value)
+            );
+        }
+        String htmlContent = processTemplate(notification.getTemplateName(), templateVariables);
         helper.setText(htmlContent, true);
         
         mailSender.send(mimeMessage);

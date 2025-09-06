@@ -144,8 +144,8 @@ public class OrderService {
             if (rentalStartDate == null || rentalEndDate == null) {
                 throw new IllegalArgumentException("Rental dates are required for rental orders");
             }
-            order.setRentalStartDate(rentalStartDate);
-            order.setRentalEndDate(rentalEndDate);
+            order.setRentalStartDate(rentalStartDate.atStartOfDay());
+            order.setRentalEndDate(rentalEndDate.atStartOfDay());
             order.setRentalDays((int) java.time.temporal.ChronoUnit.DAYS.between(rentalStartDate, rentalEndDate) + 1);
         }
         
@@ -177,8 +177,8 @@ public class OrderService {
             
             if (cartItem.isRental()) {
                 orderItem.setRentalDays(cartItem.getRentalDays());
-                orderItem.setRentalStartDate(rentalStartDate);
-                orderItem.setRentalEndDate(rentalEndDate);
+                orderItem.setRentalStartDate(rentalStartDate.atStartOfDay());
+                orderItem.setRentalEndDate(rentalEndDate.atStartOfDay());
             }
             
             orderItem.calculateTotalPrice();
@@ -217,14 +217,34 @@ public class OrderService {
         return orderRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
     }
     
+    public Page<Order> getOrdersByUserId(UUID userId, Pageable pageable) {
+        logger.debug("Fetching orders for user: {}", userId);
+        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+    }
+    
+    public Page<Order> getOrdersByUserIdAndStatus(UUID userId, OrderStatus status, Pageable pageable) {
+        logger.debug("Fetching orders for user: {} with status: {}", userId, status);
+        return orderRepository.findByUserIdAndStatusOrderByCreatedAtDesc(userId, status, pageable);
+    }
+    
+    public Optional<Order> getOrderByTrackingNumber(String trackingNumber) {
+        logger.debug("Fetching order by tracking number: {}", trackingNumber);
+        return orderRepository.findByTrackingNumber(trackingNumber);
+    }
+    
     public Page<Order> getOrdersByStatus(OrderStatus status, Pageable pageable) {
         logger.debug("Fetching orders by status: {}", status);
         return orderRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
     }
     
+    public Page<Order> getAllOrders(Pageable pageable) {
+        logger.debug("Fetching all orders");
+        return orderRepository.findAllByOrderByCreatedAtDesc(pageable);
+    }
+    
     public List<OrderItem> getOrderItems(UUID orderId) {
         logger.debug("Fetching order items for order: {}", orderId);
-        return orderItemRepository.findByOrderIdOrderByCreatedAtAsc(orderId);
+        return orderItemRepository.findByOrder_IdOrderByCreatedAtAsc(orderId);
     }
     
     // Order status management
@@ -260,7 +280,7 @@ public class OrderService {
             throw new IllegalStateException("Order cannot be marked as shipped. Current status: " + order.getStatus());
         }
         
-        order.markAsShipped();
+        order.markAsShipped(trackingNumber);
         order.setTrackingNumber(trackingNumber);
         order.setCarrier(carrier);
         

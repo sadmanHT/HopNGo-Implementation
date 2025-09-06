@@ -68,7 +68,7 @@
 - **Search**: Elasticsearch
 - **Message Queue**: RabbitMQ
 - **Infrastructure**: Docker, Kubernetes, Helm
-- **Monitoring**: Prometheus, Grafana
+- **Observability**: Prometheus, Grafana, Tempo, OpenTelemetry, Logback
 - **CI/CD**: GitHub Actions
 
 ## 🗺️ Roadmap
@@ -194,17 +194,76 @@ pnpm install
 pnpm dev
 ```
 
+## 📊 Observability & Monitoring
+
+HopNGo includes a comprehensive observability stack for monitoring, tracing, and logging across all microservices.
+
+### Features
+
+- **Metrics Collection**: Prometheus scrapes metrics from all Spring Boot services via Actuator endpoints
+- **Distributed Tracing**: OpenTelemetry and Tempo provide end-to-end request tracing
+- **Visualization**: Grafana dashboards for metrics and trace analysis
+- **Structured Logging**: JSON-formatted logs with correlation IDs for better debugging
+- **Health Monitoring**: Actuator health endpoints for service status monitoring
+
+### Metrics Available
+
+Each microservice exposes the following metrics:
+- JVM metrics (memory, threads, garbage collection)
+- HTTP request metrics (duration, status codes, throughput)
+- Database connection pool metrics
+- Custom business metrics
+- Spring Boot Actuator metrics
+
+### Accessing Observability Tools
+
+1. **Prometheus**: http://localhost:9090
+   - Query metrics and view targets
+   - Check service discovery and scraping status
+
+2. **Grafana**: http://localhost:3001 (admin/admin)
+   - Pre-configured dashboards for JVM and HTTP metrics
+   - Custom dashboards for business metrics
+   - Alerting and notification setup
+
+3. **Jaeger**: http://localhost:16686
+   - Distributed tracing visualization
+   - Service dependency mapping
+   - Performance bottleneck identification
+
+### Configuration
+
+Observability is configured through:
+- `application.yml` in each service for Actuator and OpenTelemetry
+- `prometheus.yml` for scraping configuration
+- `grafana/provisioning/` for dashboard and datasource setup
+- `tempo.yml` for distributed tracing configuration
+
+### Troubleshooting
+
+- **Missing Metrics**: Check if services are running and Actuator endpoints are enabled
+- **No Traces**: Verify OpenTelemetry collector is running on port 4318
+- **Grafana Issues**: Ensure Prometheus datasource is configured correctly
+
 ## Infrastructure Setup
 
 ### Local Development Dependencies
 
 The project uses Docker Compose to manage local infrastructure dependencies:
 
+#### Core Infrastructure
 - **PostgreSQL 15** - Primary database (port 5432)
 - **MongoDB 7** - Document database (port 27017)
 - **Redis 7** - Caching and sessions (port 6379)
 - **RabbitMQ 3** - Message queue (ports 5672, 15672)
 - **Mailhog** - Email testing (ports 1025, 8025)
+
+#### Observability Stack
+- **Prometheus** - Metrics collection and storage (port 9090)
+- **Grafana** - Metrics visualization and dashboards (port 3001)
+- **Tempo** - Distributed tracing backend (port 3200)
+- **OpenTelemetry Collector** - Telemetry data collection (port 4318)
+- **Jaeger** - Tracing UI and query service (port 16686)
 
 ### Starting Infrastructure
 
@@ -248,12 +307,31 @@ docker compose logs [service-name]
 
 ### Service URLs
 
+#### Application Services
 - **Frontend**: http://localhost:5173
+- **API Gateway**: http://localhost:8080
+- **Auth Service**: http://localhost:8081
+- **Social Service**: http://localhost:8082
+- **Booking Service**: http://localhost:8083
+- **Market Service**: http://localhost:8084
+- **Chat Service**: http://localhost:8085
+- **Trip Planning**: http://localhost:8086
+- **AI Service**: http://localhost:8087
+- **Emergency Service**: http://localhost:8088
+- **Notification Service**: http://localhost:8089
+
+#### Infrastructure Services
 - **RabbitMQ Management**: http://localhost:15672 (guest/guest)
 - **Mailhog Web UI**: http://localhost:8025
 - **PostgreSQL**: localhost:5432 (hopngo/hopngo_dev_2024!)
 - **MongoDB**: localhost:27017 (admin/mongo_dev_2024!)
 - **Redis**: localhost:6379 (redis_dev_2024!)
+
+#### Observability Services
+- **Prometheus**: http://localhost:9090
+- **Grafana**: http://localhost:3001 (admin/admin)
+- **Jaeger UI**: http://localhost:16686
+- **Tempo**: http://localhost:3200
 
 ### Environment Configuration
 
@@ -275,6 +353,10 @@ REDIS_PASSWORD=redis_dev_2024!
 # RabbitMQ
 RABBITMQ_DEFAULT_USER=hopngo
 RABBITMQ_DEFAULT_PASS=rabbit_dev_2024!
+
+# Observability
+GRAFANA_ADMIN_PASSWORD=admin
+PROMETHEUS_RETENTION_TIME=15d
 ```
 
 ## 🎯 Next Steps

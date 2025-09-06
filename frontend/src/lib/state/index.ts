@@ -5,6 +5,6 @@ export { useAuthStore } from './auth';
 // export { useBookingsStore } from './bookings';
 // export { useSocialStore } from './social';
 // export { useMarketStore } from './market';
-// export { useChatStore } from './chat';
+export { useChatStore } from './chat';
 // export { useTripsStore } from './trips';
 // export { useUIStore } from './ui';

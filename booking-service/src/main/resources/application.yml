@@ -6,9 +6,9 @@ spring:
     name: booking-service
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/hopngo
-    username: hopngo_user
-    password: hopngo_password
+    url: jdbc:postgresql://localhost:5432/hopngo_booking
+    username: hopngo
+    password: hopngo_dev_2024!
     driver-class-name: org.postgresql.Driver
   
   jpa:
@@ -21,9 +21,7 @@ spring:
         format_sql: true
   
   flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
+    enabled: false
   
   cloud:
     stream:
@@ -31,28 +29,53 @@ spring:
         bookingEvents-out-0:
           destination: booking.events
           content-type: application/json
+        paymentEvents-in-0:
+          destination: payment.events
+          content-type: application/json
+          group: booking-service
       rabbit:
         bindings:
           bookingEvents-out-0:
             producer:
               routing-key-expression: headers['eventType']
+          paymentEvents-in-0:
+            consumer:
+              binding-routing-key: 'payment.succeeded,payment.failed'
+              auto-bind-dlq: true
+              republish-to-dlq: true
+              max-attempts: 3
       function:
-        definition: bookingEvents
+        definition: bookingEvents;paymentEventHandler
   
   rabbitmq:
     host: localhost
     port: 5672
-    username: guest
-    password: guest
+    username: hopngo
+    password: rabbit_dev_2024!
+    virtual-host: hopngo
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
 
 springdoc:
   api-docs:
