@@ -3,6 +3,8 @@ package com.hopngo.market.config;
 import com.hopngo.market.service.payment.PaymentProvider;
 import com.hopngo.market.service.payment.MockPaymentProvider;
 import com.hopngo.market.service.payment.StripePaymentProvider;
+import com.hopngo.market.service.payment.BkashPaymentProvider;
+import com.hopngo.market.service.payment.NagadPaymentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -322,6 +324,34 @@ public class PaymentProviderConfiguration {
     }
     
     /**
+     * Creates bKash payment provider bean.
+     */
+    @Bean
+    public BkashPaymentProvider bkashPaymentProvider(PaymentProperties properties) {
+        if (!properties.getProviders().getBkash().isEnabled()) {
+            logger.info("bKash payment provider is disabled");
+            return null;
+        }
+        
+        logger.info("Creating bKash payment provider");
+        return new BkashPaymentProvider();
+    }
+    
+    /**
+     * Creates Nagad payment provider bean.
+     */
+    @Bean
+    public NagadPaymentProvider nagadPaymentProvider(PaymentProperties properties) {
+        if (!properties.getProviders().getNagad().isEnabled()) {
+            logger.info("Nagad payment provider is disabled");
+            return null;
+        }
+        
+        logger.info("Creating Nagad payment provider");
+        return new NagadPaymentProvider();
+    }
+    
+    /**
      * Creates list of enabled payment providers.
      */
     @Bean
@@ -329,7 +359,9 @@ public class PaymentProviderConfiguration {
     public List<PaymentProvider> paymentProviders(
             PaymentProperties properties,
             MockPaymentProvider mockProvider,
-            StripePaymentProvider stripeProvider) {
+            StripePaymentProvider stripeProvider,
+            BkashPaymentProvider bkashProvider,
+            NagadPaymentProvider nagadProvider) {
         
         List<PaymentProvider> providers = new ArrayList<>();
         
@@ -343,9 +375,15 @@ public class PaymentProviderConfiguration {
             logger.info("Added Stripe payment provider to active providers");
         }
         
-        // Future: Add bKash and Nagad providers when implemented
-        // if (bkashProvider != null) providers.add(bkashProvider);
-        // if (nagadProvider != null) providers.add(nagadProvider);
+        if (bkashProvider != null) {
+            providers.add(bkashProvider);
+            logger.info("Added bKash payment provider to active providers");
+        }
+        
+        if (nagadProvider != null) {
+            providers.add(nagadProvider);
+            logger.info("Added Nagad payment provider to active providers");
+        }
         
         logger.info("Total active payment providers: {}", providers.size());
         return providers;

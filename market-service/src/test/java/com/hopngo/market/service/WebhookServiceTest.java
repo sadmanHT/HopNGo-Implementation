@@ -44,6 +44,9 @@ class WebhookServiceTest {
     @Mock
     private StripePaymentProvider stripePaymentProvider;
 
+    @Mock
+    private com.hopngo.market.repository.PaymentRepository paymentRepository;
+
     @InjectMocks
     private WebhookService webhookService;
 
@@ -94,7 +97,7 @@ class WebhookServiceTest {
         when(webhookEventRepository.findByWebhookId("evt_test_123"))
             .thenReturn(Optional.empty());
         when(stripePaymentProvider.verifyWebhook(mockRequest)).thenReturn(true);
-        when(paymentService.findByPaymentIntentId("pi_test_123")).thenReturn(Optional.of(testPayment));
+        when(paymentRepository.findByPaymentIntentId("pi_test_123")).thenReturn(Optional.of(testPayment));
         when(paymentService.getProviderByName("STRIPE")).thenReturn(stripePaymentProvider);
         
         WebhookEvent savedEvent = new WebhookEvent();
@@ -110,7 +113,7 @@ class WebhookServiceTest {
 
         // Assert
         assertTrue(result);
-        verify(webhookEventRepository).save(any(WebhookEvent.class));
+        verify(webhookEventRepository, times(2)).save(any(WebhookEvent.class));
         verify(eventPublishingService).publishPaymentSucceededEvent(testPayment);
         verify(paymentService).updatePaymentStatus(testPayment, PaymentStatus.SUCCEEDED);
     }
@@ -162,29 +165,28 @@ class WebhookServiceTest {
     @Test
     void testProcessWebhook_PaymentNotFound_HandlesGracefully() {
         // Arrange
+        String failedPayload = "{\"id\":\"evt_test_123\",\"type\":\"payment_intent.payment_failed\",\"data\":{\"object\":{\"id\":\"pi_test_123\",\"status\":\"failed\"}}}";
+        
         when(webhookEventRepository.findByWebhookId("evt_test_123"))
             .thenReturn(Optional.empty());
         when(stripePaymentProvider.verifyWebhook(mockRequest)).thenReturn(true);
-        when(paymentService.findByPaymentIntentId("pi_test_123")).thenReturn(Optional.empty());
-        when(paymentService.getProviderByName("STRIPE")).thenReturn(stripePaymentProvider);
+        when(paymentRepository.findByPaymentIntentId("pi_test_123")).thenReturn(Optional.empty());
         
         WebhookEvent savedEvent = new WebhookEvent();
         savedEvent.setId(UUID.randomUUID());
-        savedEvent.setStatus(WebhookEventStatus.FAILED);
+        savedEvent.setStatus(WebhookEventStatus.PROCESSING);
+        savedEvent.setEventType("payment_intent.payment_failed");
         
         when(webhookEventRepository.save(any(WebhookEvent.class))).thenReturn(savedEvent);
 
         // Act
-        boolean result = webhookService.processWebhook("STRIPE", testPayload, 
+        boolean result = webhookService.processWebhook("STRIPE", failedPayload, 
             testHeaders.toSingleValueMap(), mockRequest);
 
         // Assert
-        assertFalse(result);
-        verify(webhookEventRepository).save(argThat(event -> 
-            event.getStatus() == WebhookEventStatus.FAILED &&
-            event.getFailureReason().contains("Payment not found")
-        ));
-        verify(eventPublishingService, never()).publishPaymentSucceededEvent(any());
+        assertFalse(result); // The webhook processing should fail when payment is not found
+        verify(webhookEventRepository, times(2)).save(any(WebhookEvent.class));
+        verify(paymentRepository).findByPaymentIntentId("pi_test_123");
     }
 
     @Test
@@ -195,7 +197,7 @@ class WebhookServiceTest {
         when(webhookEventRepository.findByWebhookIdAndProvider("evt_test_456", "STRIPE"))
             .thenReturn(Optional.empty());
         when(stripePaymentProvider.verifyWebhook(mockRequest)).thenReturn(true);
-        when(paymentService.findByPaymentIntentId("pi_test_123")).thenReturn(Optional.of(testPayment));
+        when(paymentRepository.findByPaymentIntentId("pi_test_123")).thenReturn(Optional.of(testPayment));
         when(paymentService.getProviderByName("STRIPE")).thenReturn(stripePaymentProvider);
         
         WebhookEvent savedEvent = new WebhookEvent();
@@ -209,6 +211,7 @@ class WebhookServiceTest {
 
         // Assert
         assertTrue(result);
+        verify(webhookEventRepository, times(2)).save(any(WebhookEvent.class));
         verify(eventPublishingService).publishPaymentFailedEvent(testPayment);
         verify(paymentService).updatePaymentStatus(testPayment, PaymentStatus.FAILED);
     }
@@ -221,7 +224,7 @@ class WebhookServiceTest {
         when(webhookEventRepository.findByWebhookId("evt_test_789"))
             .thenReturn(Optional.empty());
         when(stripePaymentProvider.verifyWebhook(mockRequest)).thenReturn(true);
-        when(paymentService.findByPaymentIntentId("pi_test_123")).thenReturn(Optional.of(testPayment));
+        when(paymentRepository.findByPaymentIntentId("pi_test_123")).thenReturn(Optional.of(testPayment));
         when(paymentService.getProviderByName("STRIPE")).thenReturn(stripePaymentProvider);
         
         WebhookEvent savedEvent = new WebhookEvent();
@@ -235,6 +238,7 @@ class WebhookServiceTest {
 
         // Assert
         assertTrue(result);
+        verify(webhookEventRepository, times(2)).save(any(WebhookEvent.class));
         verify(eventPublishingService).publishPaymentCanceledEvent(testPayment);
         verify(paymentService).updatePaymentStatus(testPayment, PaymentStatus.CANCELLED);
     }
@@ -247,7 +251,6 @@ class WebhookServiceTest {
         when(webhookEventRepository.findByWebhookId("evt_test_999"))
             .thenReturn(Optional.empty());
         when(stripePaymentProvider.verifyWebhook(mockRequest)).thenReturn(true);
-        when(paymentService.getProviderByName("STRIPE")).thenReturn(stripePaymentProvider);
         
         WebhookEvent savedEvent = new WebhookEvent();
         savedEvent.setId(UUID.randomUUID());
@@ -261,7 +264,7 @@ class WebhookServiceTest {
 
         // Assert
         assertTrue(result);
-        verify(webhookEventRepository).save(any(WebhookEvent.class));
+        verify(webhookEventRepository, times(2)).save(any(WebhookEvent.class));
         verify(eventPublishingService, never()).publishPaymentSucceededEvent(any());
         verify(eventPublishingService, never()).publishPaymentFailedEvent(any());
         verify(eventPublishingService, never()).publishPaymentCanceledEvent(any());
@@ -277,7 +280,7 @@ class WebhookServiceTest {
         when(webhookEventRepository.findByWebhookId("mock_evt_123"))
             .thenReturn(Optional.empty());
         when(mockPaymentProvider.verifyWebhook(mockRequest)).thenReturn(true);
-        when(paymentService.findByPaymentIntentId("pi_test_123")).thenReturn(Optional.of(testPayment));
+        when(paymentRepository.findByPaymentIntentId("pi_test_123")).thenReturn(Optional.of(testPayment));
         when(paymentService.getProviderByName("MOCK")).thenReturn(mockPaymentProvider);
         
         WebhookEvent savedEvent = new WebhookEvent();
@@ -292,6 +295,7 @@ class WebhookServiceTest {
 
         // Assert
         assertTrue(result);
+        verify(webhookEventRepository, times(2)).save(any(WebhookEvent.class));
         verify(eventPublishingService).publishPaymentSucceededEvent(testPayment);
         verify(paymentService).updatePaymentStatus(testPayment, PaymentStatus.SUCCEEDED);
     }

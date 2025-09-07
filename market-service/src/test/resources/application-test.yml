@@ -1,0 +1,97 @@
+# Test configuration for market-service
+spring:
+  profiles:
+    active: test
+  
+  # Test database configuration
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: false
+  
+  h2:
+    console:
+      enabled: false
+
+# Payment configuration for tests
+payment:
+  default:
+    provider: MOCK
+  
+  providers:
+    stripe:
+      enabled: true
+      secret-key: sk_test_mock_key_for_testing
+      webhook-secret: whsec_test_mock_webhook_secret
+      api-url: https://api.stripe.com
+    
+    bkash:
+      enabled: true
+      app-key: test_bkash_app_key
+      app-secret: test_bkash_app_secret
+      username: test_bkash_username
+      password: test_bkash_password
+      base-url: https://tokenized.sandbox.bka.sh/v1.2.0-beta
+      grant-token-url: /tokenized/checkout/token/grant
+      create-payment-url: /tokenized/checkout/create
+      execute-payment-url: /tokenized/checkout/execute
+      query-payment-url: /tokenized/checkout/payment/status
+    
+    nagad:
+      enabled: true
+      merchant-id: test_nagad_merchant_id
+      merchant-private-key: test_nagad_private_key
+      nagad-public-key: test_nagad_public_key
+      base-url: http://sandbox.mynagad.com:10080/remote-payment-gateway-1.0/api/dfs
+      initialize-url: /check-out/initialize
+      complete-url: /check-out/complete
+      verify-url: /verify/payment
+
+# Logging configuration for tests
+logging:
+  level:
+    com.hopngo.market: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Test-specific configurations
+test:
+  webhook:
+    mock-signatures:
+      bkash: "valid_bkash_signature"
+      nagad: "valid_nagad_signature"
+      stripe: "valid_stripe_signature"
+      mock: "valid_signature"
+  
+  payment:
+    mock-amounts:
+      default: 100.00
+      large: 1000.00
+      small: 10.00
+    
+    mock-currencies:
+      default: "BDT"
+      usd: "USD"
+
+# Management endpoints for testing
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

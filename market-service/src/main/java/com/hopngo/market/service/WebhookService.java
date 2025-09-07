@@ -52,7 +52,7 @@ public class WebhookService {
             PaymentProvider provider = findPaymentProvider(providerName);
             if (provider == null) {
                 logger.error("Payment provider not found: {}", providerName);
-                return false;
+                throw new IllegalArgumentException("Payment provider not supported: " + providerName);
             }
             
             // Verify webhook signature
@@ -105,6 +105,9 @@ public class WebhookService {
             webhookEventRepository.save(webhookEvent);
             return processed;
             
+        } catch (IllegalArgumentException e) {
+            // Re-throw validation exceptions (like unsupported provider)
+            throw e;
         } catch (Exception e) {
             logger.error("Error processing webhook for provider: {}", providerName, e);
             return false;
@@ -117,6 +120,12 @@ public class WebhookService {
     private boolean processWebhookEvent(WebhookEvent webhookEvent, JsonNode webhookData, String providerName) {
         String eventType = webhookEvent.getEventType();
         logger.info("Processing webhook event type: {} for provider: {}", eventType, providerName);
+        
+        // Handle null eventType gracefully
+        if (eventType == null) {
+            logger.warn("Event type is null for webhook event, skipping processing");
+            return true; // Consider as successfully processed to avoid retries
+        }
         
         try {
             switch (eventType.toLowerCase()) {
@@ -282,63 +291,94 @@ public class WebhookService {
     }
     
     private String extractWebhookId(JsonNode webhookData, String providerName) {
-        switch (providerName) {
+        switch (providerName.toUpperCase()) {
             case "STRIPE_TEST":
+            case "STRIPE":
                 return webhookData.path("id").asText(null);
             case "MOCK":
                 return webhookData.path("webhook_id").asText(null);
+            case "BKASH":
+                return webhookData.path("trxID").asText(null);
+            case "NAGAD":
+                return webhookData.path("paymentRefId").asText(null);
             default:
-                return webhookData.path("id").asText(null);
+                logger.warn("Unknown provider for webhook ID extraction: {}", providerName);
+                return null;
         }
     }
     
     private String extractEventType(JsonNode webhookData, String providerName) {
-        switch (providerName) {
+        switch (providerName.toUpperCase()) {
             case "STRIPE_TEST":
+            case "STRIPE":
                 return webhookData.path("type").asText(null);
             case "MOCK":
                 return webhookData.path("event_type").asText(null);
+            case "BKASH":
+                return webhookData.path("transactionStatus").asText(null);
+            case "NAGAD":
+                return webhookData.path("status").asText(null);
             default:
-                return webhookData.path("type").asText(null);
+                logger.warn("Unknown provider for event type extraction: {}", providerName);
+                return null;
         }
     }
     
     private String extractPaymentIntentId(JsonNode webhookData, String providerName) {
-        switch (providerName) {
+        switch (providerName.toUpperCase()) {
             case "STRIPE_TEST":
+            case "STRIPE":
                 return webhookData.path("data").path("object").path("id").asText(null);
             case "MOCK":
                 return webhookData.path("payment_intent_id").asText(null);
+            case "BKASH":
+                return webhookData.path("paymentID").asText(null);
+            case "NAGAD":
+                return webhookData.path("paymentReferenceId").asText(null);
             default:
-                return webhookData.path("payment_intent_id").asText(null);
+                logger.warn("Unknown provider for payment intent ID extraction: {}", providerName);
+                return null;
         }
     }
     
     private String extractTransactionId(JsonNode webhookData, String providerName) {
-        switch (providerName) {
+        switch (providerName.toUpperCase()) {
             case "STRIPE_TEST":
+            case "STRIPE":
                 return webhookData.path("data").path("object").path("charges").path("data").get(0).path("id").asText(null);
             case "MOCK":
                 return webhookData.path("transaction_id").asText(null);
+            case "BKASH":
+                return webhookData.path("trxID").asText(null);
+            case "NAGAD":
+                return webhookData.path("paymentRefId").asText(null);
             default:
-                return webhookData.path("transaction_id").asText(null);
+                logger.warn("Unknown provider for transaction ID extraction: {}", providerName);
+                return null;
         }
     }
     
     private String extractFailureReason(JsonNode webhookData, String providerName) {
-        switch (providerName) {
+        switch (providerName.toUpperCase()) {
             case "STRIPE_TEST":
+            case "STRIPE":
                 return webhookData.path("data").path("object").path("last_payment_error").path("message").asText("Payment failed");
             case "MOCK":
                 return webhookData.path("failure_reason").asText("Payment failed");
+            case "BKASH":
+                return webhookData.path("errorMessage").asText("Payment failed");
+            case "NAGAD":
+                return webhookData.path("reason").asText("Payment failed");
             default:
-                return webhookData.path("failure_reason").asText("Payment failed");
+                logger.warn("Unknown provider for failure reason extraction: {}", providerName);
+                return "Payment failed";
         }
     }
     
     private String getSignatureHeaderName(String providerName) {
-        switch (providerName) {
+        switch (providerName.toUpperCase()) {
             case "STRIPE_TEST":
+            case "STRIPE":
                 return "Stripe-Signature";
             case "MOCK":
                 return "Mock-Signature";
@@ -347,7 +387,8 @@ public class WebhookService {
             case "NAGAD":
                 return "X-Nagad-Signature";
             default:
-                return "Signature";
+                logger.warn("Unknown provider for signature header: {}", providerName);
+                return null;
         }
     }
 }

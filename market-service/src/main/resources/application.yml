@@ -135,25 +135,31 @@ payment:
     
     bkash:
       enabled: ${BKASH_ENABLED:false}
-      sandbox-mode: true
-      app-key: ${BKASH_APP_KEY:your_bkash_app_key_here}
-      app-secret: ${BKASH_APP_SECRET:your_bkash_app_secret_here}
-      username: ${BKASH_USERNAME:your_bkash_username_here}
-      password: ${BKASH_PASSWORD:your_bkash_password_here}
+      sandbox-mode: ${BKASH_SANDBOX_MODE:true}
+      app-key: ${BKASH_APP_KEY:4f6o0cjiki2rfm34kfdadl1eqq}
+      app-secret: ${BKASH_APP_SECRET:2is7hdktrekvrbljjh44ll3d9l1dtjo4pasmjvs5vl5qr3fug4b}
+      username: ${BKASH_USERNAME:sandboxTokenizedUser02}
+      password: ${BKASH_PASSWORD:sandboxTokenizedUser02@12345}
       base-url: ${BKASH_BASE_URL:https://tokenized.sandbox.bka.sh/v1.2.0-beta}
-      webhook-secret: ${BKASH_WEBHOOK_SECRET:your_bkash_webhook_secret_here}
+      webhook-secret: ${BKASH_WEBHOOK_SECRET:bkash_sandbox_webhook_secret_2024}
       currency: BDT
       name: "bKash Payment Provider"
       description: "bKash mobile financial service provider"
     
     nagad:
       enabled: ${NAGAD_ENABLED:false}
-      sandbox-mode: true
-      merchant-id: ${NAGAD_MERCHANT_ID:your_nagad_merchant_id_here}
-      merchant-private-key: ${NAGAD_MERCHANT_PRIVATE_KEY:your_nagad_private_key_here}
-      nagad-public-key: ${NAGAD_PUBLIC_KEY:your_nagad_public_key_here}
-      base-url: ${NAGAD_BASE_URL:http://sandbox.mynagad.com:10080/remote-payment-gateway-1.0/api/dfs}
-      webhook-secret: ${NAGAD_WEBHOOK_SECRET:your_nagad_webhook_secret_here}
+      sandbox-mode: ${NAGAD_SANDBOX_MODE:true}
+      merchant-id: ${NAGAD_MERCHANT_ID:683002007104225}
+      merchant-private-key: |
+        ${NAGAD_MERCHANT_PRIVATE_KEY:-----BEGIN PRIVATE KEY-----
+        MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC6dH149Zb7c
+        -----END PRIVATE KEY-----}
+      nagad-public-key: |
+        ${NAGAD_PUBLIC_KEY:-----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiub
+        -----END PUBLIC KEY-----}
+      base-url: ${NAGAD_BASE_URL:http://sandbox.mynagad.com:10080/remote-payment-gateway-1.0}
+      webhook-secret: ${NAGAD_WEBHOOK_SECRET:nagad_sandbox_webhook_secret_2024}
       currency: BDT
       name: "Nagad Payment Provider"
       description: "Nagad digital financial service provider"
@@ -166,9 +172,10 @@ payment:
     signature-verification:
       enabled: true
       algorithms:
-        stripe: HMAC_SHA256
-        bkash: HMAC_SHA256
-        nagad: RSA_SHA256
+        STRIPE_TEST: sha256
+        BKASH: sha256
+        NAGAD: rsa-sha256
+        MOCK: sha256
   
   security:
     allowed-origins:

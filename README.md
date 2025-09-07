@@ -446,6 +446,175 @@ Secrets are managed through Kubernetes Secret objects:
 .\infra\scripts\create-secrets.ps1 production
 ```
 
+## 💳 Payment Setup
+
+### Payment Providers
+
+HopNGo supports multiple payment providers for different markets:
+
+- **STRIPE_TEST** - Stripe test environment (default for development)
+- **BKASH** - bKash mobile financial service (Bangladesh)
+- **NAGAD** - Nagad digital financial service (Bangladesh)
+- **MOCK** - Mock provider for testing
+
+### Configuration
+
+Payment provider is configured via the `payment.default.provider` property:
+
+```yaml
+# application.yml
+payment:
+  default:
+    provider: BKASH  # Options: MOCK, STRIPE_TEST, BKASH, NAGAD
+```
+
+### Environment Variables
+
+#### BKash Configuration
+
+```bash
+# BKash Sandbox Credentials
+BKASH_APP_KEY=your-bkash-app-key
+BKASH_APP_SECRET=your-bkash-app-secret
+BKASH_USERNAME=your-bkash-username
+BKASH_PASSWORD=your-bkash-password
+BKASH_BASE_URL=https://tokenized.sandbox.bka.sh/v1.2.0-beta
+```
+
+#### Nagad Configuration
+
+```bash
+# Nagad Sandbox Credentials
+NAGAD_MERCHANT_ID=your-nagad-merchant-id
+NAGAD_MERCHANT_PRIVATE_KEY=your-nagad-private-key
+NAGAD_PGP_PUBLIC_KEY=nagad-pgp-public-key
+NAGAD_BASE_URL=http://sandbox.mynagad.com:10080/remote-payment-gateway-1.0/api/dfs
+```
+
+#### Stripe Configuration
+
+```bash
+# Stripe Test Environment
+STRIPE_SECRET_KEY=sk_test_your-stripe-secret-key
+STRIPE_PUBLISHABLE_KEY=pk_test_your-stripe-publishable-key
+STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
+```
+
+### Test Setup
+
+#### BKash Sandbox Setup
+
+1. **Register for BKash Merchant Account**:
+   - Visit [BKash Developer Portal](https://developer.bka.sh/)
+   - Create a merchant account for sandbox testing
+   - Obtain your App Key, App Secret, Username, and Password
+
+2. **Test Credentials**:
+   ```bash
+   # Example sandbox credentials (replace with your actual credentials)
+   BKASH_APP_KEY=4f6o0cjiki2rfm34kfdadl1eqq
+   BKASH_APP_SECRET=2is7hdktrekvrbljjh44ll3d9l1dtjo4pasmjvs5vl5qr3fug4b
+   BKASH_USERNAME=sandboxTokenizedUser02
+   BKASH_PASSWORD=sandboxTokenizedUser02@12345
+   ```
+
+3. **Test Phone Numbers**:
+   - Use `01619777282` or `01619777283` for successful transactions
+   - Use `01619777284` for insufficient balance scenarios
+
+#### Nagad Sandbox Setup
+
+1. **Register for Nagad Merchant Account**:
+   - Contact Nagad for sandbox access
+   - Obtain Merchant ID and generate RSA key pairs
+   - Get Nagad's PGP public key for encryption
+
+2. **Generate RSA Keys**:
+   ```bash
+   # Generate private key
+   openssl genrsa -out nagad_private.pem 2048
+   
+   # Generate public key
+   openssl rsa -in nagad_private.pem -pubout -out nagad_public.pem
+   ```
+
+3. **Test Phone Numbers**:
+   - Use `01711111111` for successful transactions
+   - Use `01722222222` for failed transactions
+
+### Webhook Configuration
+
+Webhook endpoints are available at:
+
+```
+POST /market/payments/webhook/stripe
+POST /market/payments/webhook/bkash
+POST /market/payments/webhook/nagad
+```
+
+#### Webhook Security
+
+- **Stripe**: Uses webhook signatures with `STRIPE_WEBHOOK_SECRET`
+- **BKash**: Validates requests using HMAC with App Secret
+- **Nagad**: Validates requests using merchant credentials
+
+### Testing Payment Flow
+
+1. **Create Payment Intent**:
+   ```bash
+   curl -X POST http://localhost:8084/market/payments/intent \
+     -H "Content-Type: application/json" \
+     -d '{
+       "amount": 1000,
+       "currency": "BDT",
+       "orderId": "order-123"
+     }'
+   ```
+
+2. **Execute Payment** (for BKash/Nagad):
+   ```bash
+   curl -X POST http://localhost:8084/market/payments/{paymentId}/execute \
+     -H "Content-Type: application/json" \
+     -d '{
+       "payerReference": "01711111111"
+     }'
+   ```
+
+3. **Query Payment Status**:
+   ```bash
+   curl -X GET http://localhost:8084/market/payments/{paymentId}/status
+   ```
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **BKash Token Expiration**:
+   - Tokens expire after 1 hour
+   - Service automatically refreshes tokens
+   - Check logs for token refresh errors
+
+2. **Nagad Encryption Issues**:
+   - Ensure RSA keys are properly formatted
+   - Verify PGP public key is correct
+   - Check timestamp synchronization
+
+3. **Webhook Validation Failures**:
+   - Verify webhook secrets are correctly configured
+   - Check request signatures in logs
+   - Ensure webhook URLs are accessible
+
+#### Debug Logging
+
+Enable debug logging for payment providers:
+
+```yaml
+logging:
+  level:
+    com.hopngo.market.service.payment: DEBUG
+    com.hopngo.market.provider: DEBUG
+```
+
 ## 🧪 Testing
 
 ### Unit Tests
