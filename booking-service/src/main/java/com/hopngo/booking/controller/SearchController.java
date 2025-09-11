@@ -4,8 +4,8 @@ import com.hopngo.booking.dto.ListingResponse;
 import com.hopngo.booking.entity.Listing;
 import com.hopngo.booking.mapper.ListingMapper;
 import com.hopngo.booking.service.ListingService;
-import com.hopngo.search.client.helper.ListingsIndexHelper;
-import com.hopngo.search.client.model.ListingDocument;
+import com.hopngo.search.helper.ListingsIndexHelper;
+import com.hopngo.search.helper.ListingsIndexHelper.ListingDocument;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -64,8 +64,19 @@ public class SearchController {
         // Try OpenSearch first if available
         if (listingsIndexHelper != null) {
             try {
+                // Convert parameters to match ListingsIndexHelper signature
+                String vendorId = null; // Not available in this context
+                Double minPriceDouble = minPrice != null ? minPrice.doubleValue() : null;
+                Double maxPriceDouble = maxPrice != null ? maxPrice.doubleValue() : null;
+                String currency = "USD"; // Default currency
+                Double latDouble = lat;
+                Double lngDouble = lng;
+                String radiusStr = radius != null ? radius.toString() + "km" : null;
+                int fromOffset = page * size;
+                
                 List<ListingDocument> searchResults = listingsIndexHelper.searchListings(
-                    q, lat, lng, radius, minPrice, maxPrice, category, maxGuests, amenities, page, size
+                    q, vendorId, amenities, minPriceDouble, maxPriceDouble, currency,
+                    latDouble, lngDouble, radiusStr, size, fromOffset
                 );
                 
                 // Convert search results to listings
@@ -114,7 +125,14 @@ public class SearchController {
         
         if (listingsIndexHelper != null) {
             try {
-                List<String> suggestions = listingsIndexHelper.getSuggestions(prefix, 10);
+                // Use searchListings with the prefix as query to get suggestions
+                List<ListingDocument> results = listingsIndexHelper.searchListings(
+                    prefix, null, null, null, null, null, null, null, null, 10, 0
+                );
+                List<String> suggestions = results.stream()
+                    .map(ListingDocument::getTitle)
+                    .distinct()
+                    .collect(Collectors.toList());
                 return ResponseEntity.ok(suggestions);
             } catch (Exception e) {
                 logger.warn("Failed to get suggestions from OpenSearch", e);
@@ -146,7 +164,7 @@ public class SearchController {
                 .map(this::convertToDocument)
                 .collect(Collectors.toList());
             
-            listingsIndexHelper.bulkIndex(documents);
+            listingsIndexHelper.bulkIndexListings(documents);
             
             return ResponseEntity.ok(Map.of(
                 "message", "Reindexing completed",
@@ -173,20 +191,16 @@ public class SearchController {
         doc.setId(listing.getId().toString());
         doc.setTitle(listing.getTitle());
         doc.setDescription(listing.getDescription());
-        doc.setCategory(listing.getCategory());
-        doc.setBasePrice(listing.getBasePrice());
-        doc.setCurrency(listing.getCurrency());
-        doc.setMaxGuests(listing.getMaxGuests());
-        doc.setAmenities(listing.getAmenities() != null ? List.of(listing.getAmenities()) : List.of());
-        doc.setImages(listing.getImages() != null ? List.of(listing.getImages()) : List.of());
-        doc.setAddress(listing.getAddress());
-        doc.setLatitude(listing.getLatitude());
-        doc.setLongitude(listing.getLongitude());
-        doc.setStatus(listing.getStatus().name());
+        doc.setPrice(listing.getBasePrice() != null ? listing.getBasePrice().doubleValue() : 0.0);
+        doc.setAmenities(listing.getAmenities() != null ? List.of(listing.getAmenities().split(",")) : List.of());
+        if (listing.getLatitude() != null && listing.getLongitude() != null) {
+            ListingsIndexHelper.GeoLocation geo = new ListingsIndexHelper.GeoLocation(
+                listing.getLatitude(), listing.getLongitude()
+            );
+            doc.setGeo(geo);
+        }
         doc.setVendorId(listing.getVendor().getId().toString());
-        doc.setVendorName(listing.getVendor().getBusinessName());
-        doc.setCreatedAt(listing.getCreatedAt());
-        doc.setUpdatedAt(listing.getUpdatedAt());
+        doc.setRating(4.5f); // Default rating as Float
         return doc;
     }
 }

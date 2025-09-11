@@ -3,9 +3,15 @@ package com.hopngo.booking.service;
 import com.hopngo.booking.entity.Listing;
 import com.hopngo.booking.entity.Vendor;
 import com.hopngo.booking.entity.Inventory;
+import com.hopngo.booking.entity.CancellationPolicies;
 import com.hopngo.booking.repository.ListingRepository;
 import com.hopngo.booking.repository.InventoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,10 +45,11 @@ public class ListingService {
         this.searchIndexingService = searchIndexingService;
     }
     
+    @CacheEvict(value = {"listings", "geoListings", "vendorListings"}, allEntries = true)
     public Listing createListing(String userId, String title, String description, String category,
                                 BigDecimal basePrice, String currency, Integer maxGuests,
                                 String[] amenities, String[] images, String address,
-                                BigDecimal latitude, BigDecimal longitude) {
+                                BigDecimal latitude, BigDecimal longitude, CancellationPolicies cancellationPolicies) {
         
         // Validate that user is an active vendor
         vendorService.validateProviderRole(userId);
@@ -59,6 +66,7 @@ public class ListingService {
         listing.setAddress(address);
         listing.setLatitude(latitude);
         listing.setLongitude(longitude);
+        listing.setCancellationPolicies(cancellationPolicies);
         listing.setStatus(Listing.ListingStatus.ACTIVE);
         
         Listing savedListing = listingRepository.save(listing);
@@ -85,17 +93,22 @@ public class ListingService {
     }
     
     @Transactional(readOnly = true)
-    public List<Listing> findByVendorUserId(String userId) {
+    @Cacheable(value = "vendorListings", key = "#userId + ':' + #page + ':' + #size")
+    public Page<Listing> findByVendorUserId(String userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
         Vendor vendor = vendorService.findByUserId(userId)
             .orElseThrow(() -> new IllegalArgumentException("Vendor not found for user: " + userId));
-        return listingRepository.findByVendorId(vendor.getId());
+        return listingRepository.findByVendorId(vendor.getId(), pageable);
     }
     
     @Transactional(readOnly = true)
-    public List<Listing> searchListings(Double latitude, Double longitude, Double radiusKm,
+    @Cacheable(value = "geoListings", key = "#latitude + ':' + #longitude + ':' + #radiusKm + ':' + #minPrice + ':' + #maxPrice + ':' + #category + ':' + #maxGuests + ':' + #amenities + ':' + #page + ':' + #size")
+    public Page<Listing> searchListings(Double latitude, Double longitude, Double radiusKm,
                                        LocalDate fromDate, LocalDate toDate,
                                        BigDecimal minPrice, BigDecimal maxPrice,
-                                       String category, Integer maxGuests, List<String> amenities) {
+                                       String category, Integer maxGuests, List<String> amenities,
+                                       int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
         
         List<Listing> listings;
         
@@ -153,10 +166,11 @@ public class ListingService {
         );
     }
     
+    @CacheEvict(value = {"listings", "geoListings", "vendorListings"}, allEntries = true)
     public Listing updateListing(UUID listingId, String userId, String title, String description,
                                 String category, BigDecimal basePrice, String currency,
                                 Integer maxGuests, String[] amenities, String[] images,
-                                String address, BigDecimal latitude, BigDecimal longitude) {
+                                String address, BigDecimal latitude, BigDecimal longitude, CancellationPolicies cancellationPolicies) {
         
         Listing listing = listingRepository.findById(listingId)
             .orElseThrow(() -> new IllegalArgumentException("Listing not found: " + listingId));
@@ -177,6 +191,7 @@ public class ListingService {
         if (address != null) listing.setAddress(address);
         if (latitude != null) listing.setLatitude(latitude);
         if (longitude != null) listing.setLongitude(longitude);
+        if (cancellationPolicies != null) listing.setCancellationPolicies(cancellationPolicies);
         
         Listing updatedListing = listingRepository.save(listing);
         

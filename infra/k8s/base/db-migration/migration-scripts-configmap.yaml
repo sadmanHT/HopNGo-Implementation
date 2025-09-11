@@ -1,0 +1,174 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-migration-scripts
+  labels:
+    app.kubernetes.io/name: db-migration
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: hopngo
+data:
+  V1__Initial_Schema.sql: |
+    -- Initial database schema
+    CREATE TABLE IF NOT EXISTS users (
+        id BIGSERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        first_name VARCHAR(100) NOT NULL,
+        last_name VARCHAR(100) NOT NULL,
+        phone VARCHAR(20),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE TABLE IF NOT EXISTS user_profiles (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+        bio TEXT,
+        avatar_url VARCHAR(500),
+        date_of_birth DATE,
+        gender VARCHAR(20),
+        location VARCHAR(200),
+        preferences JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE TABLE IF NOT EXISTS trips (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(200) NOT NULL,
+        description TEXT,
+        destination VARCHAR(200) NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        budget DECIMAL(10,2),
+        status VARCHAR(50) DEFAULT 'PLANNING',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE TABLE IF NOT EXISTS bookings (
+        id BIGSERIAL PRIMARY KEY,
+        trip_id BIGINT REFERENCES trips(id) ON DELETE CASCADE,
+        user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+        booking_type VARCHAR(50) NOT NULL,
+        provider VARCHAR(100),
+        external_booking_id VARCHAR(200),
+        booking_data JSONB,
+        total_amount DECIMAL(10,2),
+        currency VARCHAR(3) DEFAULT 'USD',
+        status VARCHAR(50) DEFAULT 'PENDING',
+        booked_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- Create indexes for better performance
+    CREATE INDEX idx_users_email ON users(email);
+    CREATE INDEX idx_user_profiles_user_id ON user_profiles(user_id);
+    CREATE INDEX idx_trips_user_id ON trips(user_id);
+    CREATE INDEX idx_trips_status ON trips(status);
+    CREATE INDEX idx_bookings_trip_id ON bookings(trip_id);
+    CREATE INDEX idx_bookings_user_id ON bookings(user_id);
+    CREATE INDEX idx_bookings_status ON bookings(status);
+  
+  V2__Add_Social_Features.sql: |
+    -- Add social features tables
+    CREATE TABLE IF NOT EXISTS user_connections (
+        id BIGSERIAL PRIMARY KEY,
+        follower_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+        following_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+        status VARCHAR(20) DEFAULT 'PENDING',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(follower_id, following_id)
+    );
+    
+    CREATE TABLE IF NOT EXISTS trip_posts (
+        id BIGSERIAL PRIMARY KEY,
+        trip_id BIGINT REFERENCES trips(id) ON DELETE CASCADE,
+        user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        media_urls TEXT[],
+        location VARCHAR(200),
+        visibility VARCHAR(20) DEFAULT 'PUBLIC',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE TABLE IF NOT EXISTS post_likes (
+        id BIGSERIAL PRIMARY KEY,
+        post_id BIGINT REFERENCES trip_posts(id) ON DELETE CASCADE,
+        user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(post_id, user_id)
+    );
+    
+    CREATE INDEX idx_user_connections_follower ON user_connections(follower_id);
+    CREATE INDEX idx_user_connections_following ON user_connections(following_id);
+    CREATE INDEX idx_trip_posts_trip_id ON trip_posts(trip_id);
+    CREATE INDEX idx_trip_posts_user_id ON trip_posts(user_id);
+    CREATE INDEX idx_post_likes_post_id ON post_likes(post_id);
+  
+  V3__Add_Chat_System.sql: |
+    -- Add chat and messaging system
+    CREATE TABLE IF NOT EXISTS chat_rooms (
+        id BIGSERIAL PRIMARY KEY,
+        name VARCHAR(200),
+        room_type VARCHAR(50) DEFAULT 'DIRECT',
+        trip_id BIGINT REFERENCES trips(id) ON DELETE CASCADE,
+        created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE TABLE IF NOT EXISTS chat_participants (
+        id BIGSERIAL PRIMARY KEY,
+        room_id BIGINT REFERENCES chat_rooms(id) ON DELETE CASCADE,
+        user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        role VARCHAR(20) DEFAULT 'MEMBER',
+        UNIQUE(room_id, user_id)
+    );
+    
+    CREATE TABLE IF NOT EXISTS chat_messages (
+        id BIGSERIAL PRIMARY KEY,
+        room_id BIGINT REFERENCES chat_rooms(id) ON DELETE CASCADE,
+        sender_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        message_type VARCHAR(20) DEFAULT 'TEXT',
+        metadata JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE INDEX idx_chat_rooms_trip_id ON chat_rooms(trip_id);
+    CREATE INDEX idx_chat_participants_room_id ON chat_participants(room_id);
+    CREATE INDEX idx_chat_participants_user_id ON chat_participants(user_id);
+    CREATE INDEX idx_chat_messages_room_id ON chat_messages(room_id);
+    CREATE INDEX idx_chat_messages_created_at ON chat_messages(created_at);
+  
+  V4__Add_Feature_Flags.sql: |
+    -- Add feature flags table for configuration service
+    CREATE TABLE IF NOT EXISTS feature_flags (
+        id BIGSERIAL PRIMARY KEY,
+        flag_key VARCHAR(100) UNIQUE NOT NULL,
+        flag_name VARCHAR(200) NOT NULL,
+        description TEXT,
+        enabled BOOLEAN DEFAULT false,
+        rollout_percentage INTEGER DEFAULT 0 CHECK (rollout_percentage >= 0 AND rollout_percentage <= 100),
+        target_users TEXT[],
+        conditions JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- Insert default feature flags
+    INSERT INTO feature_flags (flag_key, flag_name, description, enabled, rollout_percentage) VALUES
+    ('social_features', 'Social Features', 'Enable social features like following and posts', true, 100),
+    ('ai_recommendations', 'AI Recommendations', 'Enable AI-powered trip recommendations', false, 0),
+    ('advanced_search', 'Advanced Search', 'Enable advanced search filters', true, 50),
+    ('real_time_chat', 'Real-time Chat', 'Enable real-time chat functionality', true, 100),
+    ('payment_integration', 'Payment Integration', 'Enable payment processing', true, 100);
+    
+    CREATE INDEX idx_feature_flags_key ON feature_flags(flag_key);
+    CREATE INDEX idx_feature_flags_enabled ON feature_flags(enabled);

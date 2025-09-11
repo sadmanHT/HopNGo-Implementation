@@ -38,6 +38,17 @@ public interface PaymentProvider {
     boolean verifyWebhookSignature(String rawBody, HttpHeaders headers);
     
     /**
+     * Processes a refund for the given payment.
+     * 
+     * @param paymentId the original payment ID to refund
+     * @param refundAmount the amount to refund
+     * @param currency the currency of the refund
+     * @param reason the reason for the refund
+     * @return refund response with provider refund ID and status
+     */
+    RefundResponse processRefund(String paymentId, java.math.BigDecimal refundAmount, String currency, String reason);
+    
+    /**
      * Returns the name/identifier of this payment provider.
      * 
      * @return provider name (e.g., "MOCK", "STRIPE_TEST", "BKASH")

@@ -67,8 +67,15 @@ integration:
     url: ${BOOKING_SERVICE_URL:http://localhost:8083}
   market-service:
     url: ${MARKET_SERVICE_URL:http://localhost:8084}
-
-
+  services:
+    social-service:
+      url: http://social-service:8083
+    booking-service:
+      url: http://booking-service:8084
+    market-service:
+      url: http://market-service:8085
+    auth-service:
+      url: http://auth-service:8081
 
 # Application-specific RabbitMQ settings
 app:
@@ -87,15 +94,3 @@ logging:
     org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-
-# Integration Service URLs
-integration:
-  services:
-    social-service:
-      url: http://social-service:8083
-    booking-service:
-      url: http://booking-service:8084
-    market-service:
-      url: http://market-service:8085
-    auth-service:
-      url: http://auth-service:8081

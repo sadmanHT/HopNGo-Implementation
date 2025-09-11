@@ -20,6 +20,15 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.routing-keys.content-flagged:content.flagged}")
     private String contentFlaggedRoutingKey;
     
+    @Value("${app.rabbitmq.queues.review-flagged:review.flagged}")
+    private String reviewFlaggedQueue;
+    
+    @Value("${app.rabbitmq.routing-keys.review-flagged:review.flagged}")
+    private String reviewFlaggedRoutingKey;
+    
+    @Value("${app.rabbitmq.routing-keys.review-resolved:review.flag.resolved}")
+    private String reviewResolvedRoutingKey;
+    
     // Exchange for content-related events
     @Bean
     public TopicExchange contentExchange() {
@@ -44,6 +53,33 @@ public class RabbitMQConfig {
                 .with(contentFlaggedRoutingKey);
     }
     
+    // Queue for review flagged events
+    @Bean
+    public Queue reviewFlaggedQueue() {
+        return QueueBuilder.durable(reviewFlaggedQueue)
+                .withArgument("x-dead-letter-exchange", contentExchange + ".dlx")
+                .withArgument("x-dead-letter-routing-key", reviewFlaggedRoutingKey + ".dlq")
+                .build();
+    }
+    
+    // Binding for review flagged events
+    @Bean
+    public Binding reviewFlaggedBinding() {
+        return BindingBuilder
+                .bind(reviewFlaggedQueue())
+                .to(contentExchange())
+                .with(reviewFlaggedRoutingKey);
+    }
+    
+    // Binding for review resolved events
+    @Bean
+    public Binding reviewResolvedBinding() {
+        return BindingBuilder
+                .bind(reviewFlaggedQueue())
+                .to(contentExchange())
+                .with(reviewResolvedRoutingKey);
+    }
+    
     // Dead Letter Exchange for failed messages
     @Bean
     public TopicExchange deadLetterExchange() {
@@ -56,6 +92,12 @@ public class RabbitMQConfig {
         return QueueBuilder.durable(contentFlaggedQueue + ".dlq").build();
     }
     
+    // Dead Letter Queue for failed review flagged events
+    @Bean
+    public Queue reviewFlaggedDeadLetterQueue() {
+        return QueueBuilder.durable(reviewFlaggedQueue + ".dlq").build();
+    }
+    
     // Binding for dead letter queue
     @Bean
     public Binding contentFlaggedDeadLetterBinding() {
@@ -63,6 +105,15 @@ public class RabbitMQConfig {
                 .bind(contentFlaggedDeadLetterQueue())
                 .to(deadLetterExchange())
                 .with(contentFlaggedRoutingKey + ".dlq");
+    }
+    
+    // Binding for review flagged dead letter queue
+    @Bean
+    public Binding reviewFlaggedDeadLetterBinding() {
+        return BindingBuilder
+                .bind(reviewFlaggedDeadLetterQueue())
+                .to(deadLetterExchange())
+                .with(reviewFlaggedRoutingKey + ".dlq");
     }
     
     // JSON message converter

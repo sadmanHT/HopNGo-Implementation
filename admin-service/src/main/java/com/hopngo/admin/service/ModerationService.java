@@ -42,17 +42,18 @@ public class ModerationService {
                                                          String assigneeUserId,
                                                          Pageable pageable) {
         Page<ModerationItem> items;
+        Long assigneeUserIdLong = assigneeUserId != null ? Long.valueOf(assigneeUserId) : null;
         
-        if (status != null && type != null && assigneeUserId != null) {
-            items = moderationItemRepository.findByStatusAndTypeAndAssigneeUserId(status, type, assigneeUserId, pageable);
+        if (status != null && type != null && assigneeUserIdLong != null) {
+            items = moderationItemRepository.findByStatusAndTypeAndAssigneeUserId(status, type, assigneeUserIdLong, pageable);
         } else if (status != null && type != null) {
             items = moderationItemRepository.findByStatusAndType(status, type, pageable);
         } else if (status != null) {
             items = moderationItemRepository.findByStatus(status, pageable);
         } else if (type != null) {
             items = moderationItemRepository.findByType(type, pageable);
-        } else if (assigneeUserId != null) {
-            items = moderationItemRepository.findByAssigneeUserId(assigneeUserId, pageable);
+        } else if (assigneeUserIdLong != null) {
+            items = moderationItemRepository.findByAssigneeUserId(assigneeUserIdLong, pageable);
         } else {
             items = moderationItemRepository.findAll(pageable);
         }
@@ -71,7 +72,7 @@ public class ModerationService {
         
         item.setStatus(ModerationStatus.APPROVED);
         item.setDecisionNote(request.getDecisionNote());
-        item.setAssigneeUserId(adminUserId);
+        item.setAssigneeUserId(Long.valueOf(adminUserId));
         item.setUpdatedAt(Instant.now());
         
         ModerationItem savedItem = moderationItemRepository.save(item);
@@ -103,7 +104,7 @@ public class ModerationService {
         
         item.setStatus(ModerationStatus.REJECTED);
         item.setDecisionNote(request.getDecisionNote());
-        item.setAssigneeUserId(adminUserId);
+        item.setAssigneeUserId(Long.valueOf(adminUserId));
         item.setUpdatedAt(Instant.now());
         
         ModerationItem savedItem = moderationItemRepository.save(item);
@@ -162,7 +163,7 @@ public class ModerationService {
         
         item.setStatus(ModerationStatus.REMOVED);
         item.setDecisionNote(request.getDecisionNote());
-        item.setAssigneeUserId(adminUserId);
+        item.setAssigneeUserId(Long.valueOf(adminUserId));
         item.setUpdatedAt(Instant.now());
 
         ModerationItem savedItem = moderationItemRepository.save(item);
@@ -205,18 +206,18 @@ public class ModerationService {
     
     public ModerationItem createModerationItem(ModerationItemType type, String refId, String reason, String reporterUserId) {
         // Check if item already exists
-        Optional<ModerationItem> existing = moderationItemRepository.findByTypeAndRefId(type, refId);
-        if (existing.isPresent()) {
+        ModerationItem existing = moderationItemRepository.findByTypeAndRefId(type, Long.valueOf(refId));
+        if (existing != null) {
             logger.warn("Moderation item already exists for type {} and refId {}", type, refId);
-            return existing.get();
+            return existing;
         }
         
         ModerationItem item = new ModerationItem();
         item.setType(type);
-        item.setRefId(refId);
+        item.setRefId(Long.valueOf(refId));
         item.setStatus(ModerationStatus.OPEN);
         item.setReason(reason);
-        item.setReporterUserId(reporterUserId);
+        item.setReporterUserId(Long.valueOf(reporterUserId));
         item.setCreatedAt(Instant.now());
         item.setUpdatedAt(Instant.now());
         

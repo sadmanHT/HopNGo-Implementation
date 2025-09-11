@@ -35,25 +35,25 @@ commonAnnotations:
   deployment.kubernetes.io/revision: "1"
 
 images:
-  - name: hopngo/gateway
+  - name: ghcr.io/hopngo/gateway
     newTag: staging-latest
-  - name: hopngo/auth-service
+  - name: ghcr.io/hopngo/auth-service
     newTag: staging-latest
-  - name: hopngo/social-service
+  - name: ghcr.io/hopngo/social-service
     newTag: staging-latest
-  - name: hopngo/booking-service
+  - name: ghcr.io/hopngo/booking-service
     newTag: staging-latest
-  - name: hopngo/market-service
+  - name: ghcr.io/hopngo/market-service
     newTag: staging-latest
-  - name: hopngo/chat-service
+  - name: ghcr.io/hopngo/chat-service
     newTag: staging-latest
-  - name: hopngo/notification-service
+  - name: ghcr.io/hopngo/notification-service
     newTag: staging-latest
-  - name: hopngo/trip-planning-service
+  - name: ghcr.io/hopngo/trip-planning-service
     newTag: staging-latest
-  - name: hopngo/ai-service
+  - name: ghcr.io/hopngo/ai-service
     newTag: staging-latest
-  - name: hopngo/emergency-service
+  - name: ghcr.io/hopngo/emergency-service
     newTag: staging-latest
-  - name: hopngo/frontend
+  - name: ghcr.io/hopngo/frontend
     newTag: staging-latest

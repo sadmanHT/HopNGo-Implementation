@@ -29,6 +29,11 @@ interface ReviewCardProps {
     createdAt: string
     productId?: string
     productName?: string
+    vendorResponse?: {
+      id: string
+      content: string
+      createdAt: string
+    }
   }
   onHelpful?: (reviewId: string) => void
 }

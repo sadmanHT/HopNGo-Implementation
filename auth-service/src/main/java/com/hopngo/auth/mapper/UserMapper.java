@@ -25,6 +25,7 @@ public interface UserMapper {
     @Mapping(target = "lastName", source = "lastName")
     @Mapping(target = "role", source = "role")
     @Mapping(target = "isActive", source = "isActive")
+    @Mapping(target = "verifiedProvider", ignore = true)
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
     UserDto toDto(User user);

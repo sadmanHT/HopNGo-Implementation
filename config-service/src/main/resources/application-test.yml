@@ -1,0 +1,67 @@
+server:
+  port: 8092
+
+spring:
+  application:
+    name: config-service
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+  
+  flyway:
+    enabled: false
+
+  # Disable Redis for test profile
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+
+  # H2 Console for debugging
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+# Disable JWT for test profile
+security:
+  oauth2:
+    resourceserver:
+      jwt:
+        issuer-uri: 
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,h2-console
+  endpoint:
+    health:
+      show-details: always
+
+# Cache Configuration (in-memory)
+cache:
+  feature-flags:
+    ttl: 30s
+  assignments:
+    ttl: 1h
+
+# Logging
+logging:
+  level:
+    com.hopngo.config: DEBUG
+    org.springframework.cache: DEBUG
+    org.springframework.security: DEBUG

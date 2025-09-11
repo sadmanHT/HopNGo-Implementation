@@ -37,25 +37,25 @@ commonAnnotations:
   security.kubernetes.io/policy: "strict"
 
 images:
-  - name: hopngo/gateway
+  - name: ghcr.io/hopngo/gateway
     newTag: v1.0.0
-  - name: hopngo/auth-service
+  - name: ghcr.io/hopngo/auth-service
     newTag: v1.0.0
-  - name: hopngo/social-service
+  - name: ghcr.io/hopngo/social-service
     newTag: v1.0.0
-  - name: hopngo/booking-service
+  - name: ghcr.io/hopngo/booking-service
     newTag: v1.0.0
-  - name: hopngo/market-service
+  - name: ghcr.io/hopngo/market-service
     newTag: v1.0.0
-  - name: hopngo/chat-service
+  - name: ghcr.io/hopngo/chat-service
     newTag: v1.0.0
-  - name: hopngo/notification-service
+  - name: ghcr.io/hopngo/notification-service
     newTag: v1.0.0
-  - name: hopngo/trip-planning-service
+  - name: ghcr.io/hopngo/trip-planning-service
     newTag: v1.0.0
-  - name: hopngo/ai-service
+  - name: ghcr.io/hopngo/ai-service
     newTag: v1.0.0
-  - name: hopngo/emergency-service
+  - name: ghcr.io/hopngo/emergency-service
     newTag: v1.0.0
-  - name: hopngo/frontend
+  - name: ghcr.io/hopngo/frontend
     newTag: v1.0.0

@@ -247,6 +247,8 @@ public class IntegrationService {
             case COMMENT -> socialServiceUrl;
             case TRIP -> bookingServiceUrl;
             case LISTING -> marketServiceUrl;
+            case REVIEW -> socialServiceUrl; // Reviews are handled by social service
+            case USER -> authServiceUrl;
             case MESSAGE -> socialServiceUrl; // Assuming messages are handled by social service
             case USER_PROFILE -> authServiceUrl;
         };
@@ -258,6 +260,8 @@ public class IntegrationService {
             case COMMENT -> "/internal/comments/" + refId;
             case TRIP -> "/internal/trips/" + refId;
             case LISTING -> "/internal/listings/" + refId;
+            case REVIEW -> "/internal/reviews/" + refId;
+            case USER -> "/internal/users/" + refId;
             case MESSAGE -> "/internal/messages/" + refId;
             case USER_PROFILE -> "/internal/users/" + refId + "/profile";
         };

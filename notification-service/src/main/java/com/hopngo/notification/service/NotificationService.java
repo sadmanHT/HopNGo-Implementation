@@ -38,6 +38,9 @@ public class NotificationService {
     @Autowired
     private ObjectMapper objectMapper;
     
+    @Autowired
+    private WebPushService webPushService;
+    
     // Booking event handlers
     @Async
     public void sendBookingConfirmedNotification(BookingEvent event) {
@@ -58,6 +61,17 @@ public class NotificationService {
         );
         
         processNotification(notification);
+        
+        // Send web push notification
+        try {
+            webPushService.sendBookingNotification(
+                event.getUserId(),
+                event.getBookingId(),
+                event.getPropertyName()
+            );
+        } catch (Exception e) {
+            logger.error("Failed to send web push notification for booking confirmation", e);
+        }
     }
     
     @Async
@@ -276,6 +290,18 @@ public class NotificationService {
                 );
                 
                 processNotification(notification);
+                
+                // Send web push notification
+                try {
+                    webPushService.sendChatNotification(
+                        recipientId,
+                        event.getSenderName(),
+                        event.getMessageContent(),
+                        event.getConversationId()
+                    );
+                } catch (Exception e) {
+                    logger.error("Failed to send web push notification for chat message", e);
+                }
             }
         }
     }

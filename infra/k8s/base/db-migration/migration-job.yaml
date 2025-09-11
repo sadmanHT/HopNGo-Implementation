@@ -1,0 +1,92 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration
+  labels:
+    app.kubernetes.io/name: db-migration
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: hopngo
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: db-migration
+        app.kubernetes.io/component: database
+    spec:
+      restartPolicy: Never
+      initContainers:
+      - name: flyway-baseline-check
+        image: flyway/flyway:9.22.3
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "Checking Flyway baseline..."
+          flyway -url="$DATABASE_URL" -user="$DATABASE_USER" -password="$DATABASE_PASSWORD" info
+          
+          # Check if baseline exists, if not create it
+          if ! flyway -url="$DATABASE_URL" -user="$DATABASE_USER" -password="$DATABASE_PASSWORD" info | grep -q "Baseline"; then
+            echo "Creating Flyway baseline..."
+            flyway -url="$DATABASE_URL" -user="$DATABASE_USER" -password="$DATABASE_PASSWORD" baseline
+          fi
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: url
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: username
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: password
+      containers:
+      - name: flyway-migrate
+        image: flyway/flyway:9.22.3
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "Starting database migration..."
+          flyway -url="$DATABASE_URL" -user="$DATABASE_USER" -password="$DATABASE_PASSWORD" -locations="filesystem:/flyway/sql" migrate
+          echo "Migration completed successfully"
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: url
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: username
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: password
+        volumeMounts:
+        - name: migration-scripts
+          mountPath: /flyway/sql
+          readOnly: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+      volumes:
+      - name: migration-scripts
+        configMap:
+          name: db-migration-scripts

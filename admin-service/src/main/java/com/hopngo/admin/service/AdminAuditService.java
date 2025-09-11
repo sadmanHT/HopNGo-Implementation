@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -27,18 +28,22 @@ public class AdminAuditService {
         this.auditRepository = auditRepository;
     }
     
-    public void logAction(String actorUserId, String action, String targetType, String targetId, Map<String, Object> details) {
+    public void logAction(Long actorUserId, String action, String targetType, Long targetId, Map<String, Object> details) {
         AdminAudit audit = new AdminAudit();
         audit.setActorUserId(actorUserId);
         audit.setAction(action);
         audit.setTargetType(targetType);
         audit.setTargetId(targetId);
         audit.setDetails(details);
-        audit.setCreatedAt(LocalDateTime.now());
+        audit.setCreatedAt(Instant.now());
         
         auditRepository.save(audit);
         
         logger.debug("Logged admin action: {} by {} on {}:{}", action, actorUserId, targetType, targetId);
+    }
+    
+    public void logAction(String actorUserId, String action, String targetType, String targetId, Map<String, Object> details) {
+        logAction(Long.valueOf(actorUserId), action, targetType, Long.valueOf(targetId), details);
     }
     
     @Transactional(readOnly = true)
@@ -46,13 +51,16 @@ public class AdminAuditService {
                                               String targetType,
                                               String targetId,
                                               String action,
-                                              LocalDateTime startDate,
-                                              LocalDateTime endDate,
+                                              Instant startDate,
+                                              Instant endDate,
                                               Pageable pageable) {
         Page<AdminAudit> audits;
         
-        if (actorUserId != null || targetType != null || targetId != null || action != null || startDate != null || endDate != null) {
-            audits = auditRepository.findByFilters(actorUserId, targetType, targetId, action, startDate, endDate, pageable);
+        Long actorUserIdLong = actorUserId != null ? Long.valueOf(actorUserId) : null;
+        Long targetIdLong = targetId != null ? Long.valueOf(targetId) : null;
+        
+        if (actorUserIdLong != null || targetType != null || targetIdLong != null || action != null || startDate != null || endDate != null) {
+            audits = auditRepository.findByFilters(actorUserIdLong, targetType, targetIdLong, action, startDate, endDate, pageable);
         } else {
             audits = auditRepository.findAll(pageable);
         }
@@ -62,24 +70,27 @@ public class AdminAuditService {
     
     @Transactional(readOnly = true)
     public List<AdminAuditResponse> getRecentAuditsByTarget(String targetType, String targetId, int limit) {
-        List<AdminAudit> audits = auditRepository.findRecentByTarget(targetType, targetId, limit);
+        Long targetIdLong = Long.valueOf(targetId);
+        List<AdminAudit> audits = auditRepository.findRecentByTarget(targetType, targetIdLong, limit);
         return audits.stream()
                 .map(AdminAuditResponse::new)
                 .collect(Collectors.toList());
     }
     
     @Transactional(readOnly = true)
-    public long countAuditsByActor(String actorUserId, LocalDateTime startDate, LocalDateTime endDate) {
-        return auditRepository.countByActorUserIdAndCreatedAtBetween(actorUserId, startDate, endDate);
+    public long countAuditsByActor(String actorUserId, Instant startDate, Instant endDate) {
+        Long actorUserIdLong = Long.valueOf(actorUserId);
+        return auditRepository.countByActorUserIdAndCreatedAtBetween(actorUserIdLong, startDate, endDate);
     }
     
     @Transactional(readOnly = true)
-    public long countAuditsByAction(String action, LocalDateTime startDate, LocalDateTime endDate) {
+    public long countAuditsByAction(String action, Instant startDate, Instant endDate) {
         return auditRepository.countByActionAndCreatedAtBetween(action, startDate, endDate);
     }
     
     @Transactional(readOnly = true)
-    public long countAuditsByTarget(String targetType, String targetId, LocalDateTime startDate, LocalDateTime endDate) {
-        return auditRepository.countByTargetTypeAndTargetIdAndCreatedAtBetween(targetType, targetId, startDate, endDate);
+    public long countAuditsByTarget(String targetType, String targetId, Instant startDate, Instant endDate) {
+        Long targetIdLong = Long.valueOf(targetId);
+        return auditRepository.countByTargetTypeAndTargetIdAndCreatedAtBetween(targetType, targetIdLong, startDate, endDate);
     }
 }

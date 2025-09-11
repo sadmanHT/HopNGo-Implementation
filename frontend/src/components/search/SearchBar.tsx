@@ -1,18 +1,27 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Search, X, Filter } from 'lucide-react';
+import { Search, X, Filter, Camera } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useSearchStore } from '@/lib/state/search';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { useFeatureFlag } from '@/lib/flags';
+import { VisualSearch } from './VisualSearch';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 interface SearchBarProps {
   className?: string;
@@ -28,8 +37,12 @@ export function SearchBar({
   const router = useRouter();
   const [localQuery, setLocalQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showVisualSearch, setShowVisualSearch] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  
+  // Feature flag for visual search
+  const isVisualSearchEnabled = useFeatureFlag('visual-search');
   
   const {
     query,
@@ -116,6 +129,22 @@ export function SearchBar({
     inputRef.current?.focus();
   };
 
+  const handleVisualSearch = async (imageFile: File) => {
+    // In a real implementation, this would upload the image to a visual search API
+    // For demo purposes, we'll simulate a search based on image analysis
+    const mockSearchTerms = [
+      'beach resort tropical paradise',
+      'mountain cabin forest retreat', 
+      'city skyline urban adventure',
+      'historic architecture cultural site',
+      'countryside villa peaceful getaway'
+    ];
+    
+    const randomTerm = mockSearchTerms[Math.floor(Math.random() * mockSearchTerms.length)];
+    await handleSearch(randomTerm);
+    setShowVisualSearch(false);
+  };
+
   const getFilterCount = () => {
     let count = 0;
     if (filters.type && filters.type !== 'all') count++;
@@ -159,42 +188,70 @@ export function SearchBar({
           )}
         </div>
         
-        {showFilters && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="ml-2 h-10 relative"
-              >
-                <Filter className="h-4 w-4 mr-1" />
-                Filters
-                {filterCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">
-                    {filterCount}
-                  </span>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => router.push('/search/filters')}>
-                Advanced Filters
-              </DropdownMenuItem>
-              {filterCount > 0 && (
-                <DropdownMenuItem 
-                  onClick={() => {
-                    // Reset filters logic would go here
-                    // For now, just navigate to clear filters
-                    router.push('/search');
-                  }}
-                  className="text-red-600"
+        <div className="flex items-center space-x-2 ml-2">
+          {/* Visual Search Button */}
+          {isVisualSearchEnabled && (
+            <Dialog open={showVisualSearch} onOpenChange={setShowVisualSearch}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-10"
+                  title="Visual Search"
                 >
-                  Clear Filters ({filterCount})
+                  <Camera className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Visual Search</DialogTitle>
+                </DialogHeader>
+                <VisualSearch 
+                  onSearch={handleVisualSearch}
+                  className="border-0 shadow-none"
+                />
+              </DialogContent>
+            </Dialog>
+          )}
+          
+          {/* Filters */}
+          {showFilters && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-10 relative"
+                >
+                  <Filter className="h-4 w-4 mr-1" />
+                  Filters
+                  {filterCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">
+                      {filterCount}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => router.push('/search/filters')}>
+                  Advanced Filters
                 </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+                {filterCount > 0 && (
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      // Reset filters logic would go here
+                      // For now, just navigate to clear filters
+                      router.push('/search');
+                    }}
+                    className="text-red-600"
+                  >
+                    Clear Filters ({filterCount})
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
 
       {/* Suggestions Dropdown */}

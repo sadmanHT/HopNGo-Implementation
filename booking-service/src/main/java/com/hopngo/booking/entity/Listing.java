@@ -12,7 +12,16 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "listings")
+@Table(name = "listings", indexes = {
+    @Index(name = "idx_listing_vendor_id", columnList = "vendor_id"),
+    @Index(name = "idx_listing_created_at", columnList = "created_at"),
+    @Index(name = "idx_listing_base_price", columnList = "base_price"),
+    @Index(name = "idx_listing_location", columnList = "latitude, longitude"),
+    @Index(name = "idx_listing_category", columnList = "category"),
+    @Index(name = "idx_listing_status", columnList = "status"),
+    @Index(name = "idx_listing_vendor_created", columnList = "vendor_id, created_at"),
+    @Index(name = "idx_listing_geo_price", columnList = "latitude, longitude, base_price")
+})
 public class Listing extends Auditable {
     
     @Id
@@ -62,7 +71,9 @@ public class Listing extends Auditable {
     @Column(nullable = false)
     private ListingStatus status = ListingStatus.ACTIVE;
     
-
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "cancellation_policies", columnDefinition = "jsonb")
+    private CancellationPolicies cancellationPolicies;
     
     @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Inventory> inventory = new ArrayList<>();
@@ -196,7 +207,13 @@ public class Listing extends Auditable {
         this.status = status;
     }
     
-
+    public CancellationPolicies getCancellationPolicies() {
+        return cancellationPolicies;
+    }
+    
+    public void setCancellationPolicies(CancellationPolicies cancellationPolicies) {
+        this.cancellationPolicies = cancellationPolicies;
+    }
     
     public List<Inventory> getInventory() {
         return inventory;

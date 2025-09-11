@@ -16,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @RestController
@@ -61,7 +62,10 @@ public class AuditController {
             @PageableDefault(size = 50, sort = "createdAt") Pageable pageable) {
         
         Page<AdminAuditResponse> auditLog = auditService.getAuditLog(
-            actorUserId, targetType, targetId, action, startDate, endDate, pageable
+            actorUserId, targetType, targetId, action, 
+            startDate != null ? startDate.toInstant(ZoneOffset.UTC) : null,
+            endDate != null ? endDate.toInstant(ZoneOffset.UTC) : null,
+            pageable
         );
         
         return ResponseEntity.ok(auditLog);
@@ -106,7 +110,7 @@ public class AuditController {
             @Parameter(description = "End date (ISO format: yyyy-MM-dd'T'HH:mm:ss)")
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         
-        long count = auditService.countAuditsByActor(actorUserId, startDate, endDate);
+        long count = auditService.countAuditsByActor(actorUserId, startDate.toInstant(ZoneOffset.UTC), endDate.toInstant(ZoneOffset.UTC));
         return ResponseEntity.ok(count);
     }
     
@@ -126,7 +130,7 @@ public class AuditController {
             @Parameter(description = "End date (ISO format: yyyy-MM-dd'T'HH:mm:ss)")
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         
-        long count = auditService.countAuditsByAction(action, startDate, endDate);
+        long count = auditService.countAuditsByAction(action, startDate.toInstant(ZoneOffset.UTC), endDate.toInstant(ZoneOffset.UTC));
         return ResponseEntity.ok(count);
     }
     
@@ -149,7 +153,7 @@ public class AuditController {
             @Parameter(description = "End date (ISO format: yyyy-MM-dd'T'HH:mm:ss)")
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         
-        long count = auditService.countAuditsByTarget(targetType, targetId, startDate, endDate);
+        long count = auditService.countAuditsByTarget(targetType, targetId, startDate.toInstant(ZoneOffset.UTC), endDate.toInstant(ZoneOffset.UTC));
         return ResponseEntity.ok(count);
     }
 }

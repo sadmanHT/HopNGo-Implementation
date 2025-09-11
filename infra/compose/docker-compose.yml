@@ -272,6 +272,87 @@ services:
     profiles:
       - observability
 
+  # Backup Service
+  backup:
+    build:
+      context: ./backup
+      dockerfile: Dockerfile
+    container_name: hopngo-backup
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-hopngo}
+      - POSTGRES_USER=${POSTGRES_USER:-hopngo}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_DB=${MONGO_DB:-hopngo}
+      - MONGO_ROOT_USER=${MONGO_ROOT_USER:-admin}
+      - MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=15672
+      - RABBITMQ_USER=${RABBITMQ_USER:-hopngo}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - OPENSEARCH_HOST=opensearch
+      - OPENSEARCH_PORT=9200
+    volumes:
+      - backup_data:/backups
+      - ./backup/scripts:/scripts:ro
+    depends_on:
+      - postgres
+      - mongodb
+      - redis
+      - rabbitmq
+    networks:
+      - hopngo-network
+    profiles:
+      - backup
+
+  # Backup Scheduler (Supercronic)
+  backup-scheduler:
+    image: supercronic/supercronic:latest
+    container_name: hopngo-backup-scheduler
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-hopngo}
+      - POSTGRES_USER=${POSTGRES_USER:-hopngo}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_DB=${MONGO_DB:-hopngo}
+      - MONGO_ROOT_USER=${MONGO_ROOT_USER:-admin}
+      - MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=15672
+      - RABBITMQ_USER=${RABBITMQ_USER:-hopngo}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - OPENSEARCH_HOST=opensearch
+      - OPENSEARCH_PORT=9200
+    volumes:
+      - backup_data:/backups
+      - ./backup/scripts:/scripts:ro
+      - ./backup/crontab:/etc/crontabs/root:ro
+    command: ["/etc/crontabs/root"]
+    depends_on:
+      - postgres
+      - mongodb
+      - redis
+      - rabbitmq
+      - backup
+    networks:
+      - hopngo-network
+    profiles:
+      - backup
+
 volumes:
   postgres_data:
     driver: local
@@ -290,6 +371,8 @@ volumes:
   grafana_data:
     driver: local
   tempo_data:
+    driver: local
+  backup_data:
     driver: local
 
 networks:

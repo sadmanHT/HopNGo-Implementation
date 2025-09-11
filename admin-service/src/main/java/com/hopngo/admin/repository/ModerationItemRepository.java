@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
+
 @Repository
 public interface ModerationItemRepository extends JpaRepository<ModerationItem, Long> {
 
@@ -70,23 +72,18 @@ public interface ModerationItemRepository extends JpaRepository<ModerationItem, 
     Page<ModerationItem> findByStatusAndTypeAndAssigneeUserId(
             ModerationItem.ModerationStatus status,
             ModerationItem.ModerationItemType type,
-            String assigneeUserId,
+            Long assigneeUserId,
             Pageable pageable
     );
-
-    /**
-     * Find moderation items by assignee user ID
-     */
-    Page<ModerationItem> findByAssigneeUserId(String assigneeUserId, Pageable pageable);
 
     /**
      * Count moderation items by actor user ID and created date range
      */
     @Query("SELECT COUNT(m) FROM ModerationItem m WHERE m.reporterUserId = :actorUserId AND m.createdAt BETWEEN :startDate AND :endDate")
     long countByActorUserIdAndCreatedAtBetween(
-            @Param("actorUserId") String actorUserId,
-            @Param("startDate") java.time.LocalDateTime startDate,
-            @Param("endDate") java.time.LocalDateTime endDate
+            @Param("actorUserId") Long actorUserId,
+            @Param("startDate") Instant startDate,
+            @Param("endDate") Instant endDate
     );
 
 

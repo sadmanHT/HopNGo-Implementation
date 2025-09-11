@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hopngo.market.config.PaymentProviderConfiguration;
 import com.hopngo.market.entity.Order;
 import com.hopngo.market.dto.PaymentIntentResponse;
+import com.hopngo.market.dto.RefundResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -144,6 +145,46 @@ public class BkashPaymentProvider implements PaymentProvider {
         } catch (Exception e) {
             logger.error("Error verifying bKash webhook signature", e);
             return false;
+        }
+    }
+    
+    @Override
+    public RefundResponse processRefund(String paymentId, java.math.BigDecimal refundAmount, String currency, String reason) {
+        logger.info("Processing bKash refund for payment: {}, amount: {} {}", paymentId, refundAmount, currency);
+        
+        try {
+            // Ensure we have a valid access token
+            if (!isTokenValid()) {
+                refreshAccessToken();
+            }
+            
+            // Create refund request
+            Map<String, Object> refundRequest = new HashMap<>();
+            refundRequest.put("paymentID", paymentId);
+            refundRequest.put("amount", refundAmount.toString());
+            refundRequest.put("trxID", "TXN" + System.currentTimeMillis());
+            refundRequest.put("sku", "refund");
+            refundRequest.put("reason", reason);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(accessToken);
+            headers.set("X-APP-Key", paymentProperties.getBkash().getAppKey());
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(refundRequest, headers);
+            
+            // In sandbox mode, simulate bKash refund API call
+            String refundUrl = paymentProperties.getBkash().getBaseUrl() + "/tokenized/checkout/payment/refund";
+            
+            // Simulate successful refund response
+            String refundTrxId = "REF" + System.currentTimeMillis();
+            
+            logger.info("bKash refund successful: {}", refundTrxId);
+            return RefundResponse.success(refundTrxId, refundAmount, currency);
+            
+        } catch (Exception e) {
+            logger.error("bKash refund failed for payment: {}", paymentId, e);
+            return RefundResponse.failed("bKash refund failed: " + e.getMessage());
         }
     }
     

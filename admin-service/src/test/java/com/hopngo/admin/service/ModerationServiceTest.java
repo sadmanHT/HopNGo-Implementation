@@ -17,6 +17,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -49,11 +50,11 @@ class ModerationServiceTest {
         testItem = new ModerationItem();
         testItem.setId(1L);
         testItem.setType(ModerationItemType.POST);
-        testItem.setRefId("post123");
+        testItem.setRefId(Long.valueOf("post123"));
         testItem.setStatus(ModerationStatus.OPEN);
         testItem.setReason("Inappropriate content");
-        testItem.setReporterUserId("reporter123");
-        testItem.setCreatedAt(LocalDateTime.now());
+        testItem.setReporterUserId(Long.valueOf("reporter123"));
+        testItem.setCreatedAt(Instant.now());
 
         testRequest = new ModerationDecisionRequest();
         testRequest.setDecisionNote("Test decision note");
@@ -93,7 +94,7 @@ class ModerationServiceTest {
             item.getDecisionNote().equals("Test decision note") &&
             item.getAssigneeUserId().equals("admin123")
         ));
-        verify(auditService).logAction(eq("admin123"), eq("APPROVE_MODERATION_ITEM"), any());
+        verify(auditService).logAction(eq(Long.valueOf("admin123")), eq("APPROVE_MODERATION_ITEM"), eq("Test decision note"), eq(1L), any());
     }
 
     @Test
@@ -123,7 +124,7 @@ class ModerationServiceTest {
         verify(moderationItemRepository).save(argThat(item -> 
             item.getStatus() == ModerationStatus.REJECTED
         ));
-        verify(auditService).logAction(eq("admin123"), eq("REJECT_MODERATION_ITEM"), any());
+        verify(auditService).logAction(eq(Long.valueOf("admin123")), eq("REJECT_MODERATION_ITEM"), eq("Test decision note"), eq(1L), any());
     }
 
     @Test
@@ -131,7 +132,7 @@ class ModerationServiceTest {
         // Given
         when(moderationItemRepository.findById(1L)).thenReturn(Optional.of(testItem));
         when(moderationItemRepository.save(any(ModerationItem.class))).thenReturn(testItem);
-        doNothing().when(integrationService).removeSocialPost(anyString(), anyString());
+        doNothing().when(integrationService).removeSocialPost(anyLong(), anyString());
 
         // When
         ModerationItemResponse result = moderationService.removeModerationItem(
@@ -139,11 +140,11 @@ class ModerationServiceTest {
 
         // Then
         assertThat(result.getStatus()).isEqualTo(ModerationStatus.REMOVED);
-        verify(integrationService).removeSocialPost("post123", "Test decision note");
+        verify(integrationService).removeSocialPost(Long.valueOf("post123"), "Test decision note");
         verify(moderationItemRepository).save(argThat(item -> 
             item.getStatus() == ModerationStatus.REMOVED
         ));
-        verify(auditService).logAction(eq("admin123"), eq("REMOVE_MODERATION_ITEM"), any());
+        verify(auditService).logAction(eq(Long.valueOf("admin123")), eq("REMOVE_MODERATION_ITEM"), eq("Test decision note"), eq(1L), any());
     }
 
     @Test
@@ -151,7 +152,7 @@ class ModerationServiceTest {
         // Given
         when(moderationItemRepository.findById(1L)).thenReturn(Optional.of(testItem));
         doThrow(new RuntimeException("Integration failed"))
-            .when(integrationService).removeSocialPost(anyString(), anyString());
+            .when(integrationService).removeSocialPost(anyLong(), anyString());
 
         // When & Then
         assertThatThrownBy(() -> moderationService.removeModerationItem(1L, testRequest, "admin123"))
@@ -169,7 +170,7 @@ class ModerationServiceTest {
 
         // Then
         verify(integrationService).banUser("user123", "Test decision note");
-        verify(auditService).logAction(eq("admin123"), eq("BAN_USER"), any());
+        verify(auditService).logAction(eq(Long.valueOf("admin123")), eq("BAN_USER"), eq("Test decision note"), eq(Long.valueOf("user123")), any());
     }
 
     @Test

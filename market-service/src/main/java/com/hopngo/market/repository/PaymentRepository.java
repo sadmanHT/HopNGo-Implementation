@@ -21,6 +21,10 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     // Find payment by order
     Optional<Payment> findByOrder_Id(UUID orderId);
     
+    // Find payment by booking ID through order
+    @Query("SELECT p FROM Payment p WHERE p.order.bookingId = :bookingId")
+    Optional<Payment> findByOrderBookingId(@Param("bookingId") UUID bookingId);
+    
     // Find payment by transaction reference
     Optional<Payment> findByTransactionReference(String transactionReference);
     

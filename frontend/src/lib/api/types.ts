@@ -62,6 +62,20 @@ export interface Booking {
   updatedAt: string;
 }
 
+export interface CancellationRequest {
+  reason: string;
+}
+
+export interface CancellationResponse {
+  bookingId: string;
+  bookingReference: string;
+  status: string;
+  refundAmount: number;
+  refundStatus: string;
+  cancellationReason: string;
+  cancelledAt: string;
+}
+
 // Social types
 export interface Post {
   id: string;

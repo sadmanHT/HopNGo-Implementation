@@ -1,5 +1,6 @@
 package com.hopngo.admin.messaging;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hopngo.admin.entity.ModerationItem;
 import com.hopngo.admin.entity.ModerationItem.ModerationItemType;
 import com.hopngo.admin.repository.ModerationItemRepository;
@@ -26,6 +27,8 @@ class ContentFlaggedEventConsumerTest {
     @InjectMocks
     private ContentFlaggedEventConsumer contentFlaggedEventConsumer;
 
+    private ObjectMapper objectMapper = new ObjectMapper();
+
     private Map<String, Object> validEventData;
 
     @BeforeEach
@@ -40,15 +43,15 @@ class ContentFlaggedEventConsumerTest {
     }
 
     @Test
-    void handleContentFlaggedEvent_WithValidData_ShouldCreateModerationItem() {
+    void handleContentFlaggedEvent_WithValidData_ShouldCreateModerationItem() throws Exception {
         // Given
-        when(moderationItemRepository.findByTypeAndRefId(any(), anyString()))
-            .thenReturn(Optional.empty());
+        when(moderationItemRepository.findByTypeAndRefId(any(), anyLong()))
+            .thenReturn(null);
         when(moderationItemRepository.save(any(ModerationItem.class)))
             .thenReturn(new ModerationItem());
 
         // When
-        contentFlaggedEventConsumer.handleContentFlaggedEvent(validEventData);
+        contentFlaggedEventConsumer.handleContentFlaggedEvent(objectMapper.writeValueAsString(validEventData));
 
         // Then
         verify(moderationItemRepository).save(argThat(item -> 
@@ -60,32 +63,32 @@ class ContentFlaggedEventConsumerTest {
     }
 
     @Test
-    void handleContentFlaggedEvent_WithExistingItem_ShouldNotCreateDuplicate() {
+    void handleContentFlaggedEvent_WithExistingItem_ShouldNotCreateDuplicate() throws Exception {
         // Given
         ModerationItem existingItem = new ModerationItem();
-        when(moderationItemRepository.findByTypeAndRefId(any(), anyString()))
-            .thenReturn(Optional.of(existingItem));
+        when(moderationItemRepository.findByTypeAndRefId(any(), anyLong()))
+            .thenReturn(existingItem);
 
         // When
-        contentFlaggedEventConsumer.handleContentFlaggedEvent(validEventData);
+        contentFlaggedEventConsumer.handleContentFlaggedEvent(objectMapper.writeValueAsString(validEventData));
 
         // Then
         verify(moderationItemRepository, never()).save(any(ModerationItem.class));
     }
 
     @Test
-    void handleContentFlaggedEvent_WithCommentType_ShouldCreateCommentModerationItem() {
+    void handleContentFlaggedEvent_WithCommentType_ShouldCreateCommentModerationItem() throws Exception {
         // Given
         validEventData.put("contentType", "COMMENT");
         validEventData.put("contentId", "comment123");
         
-        when(moderationItemRepository.findByTypeAndRefId(any(), anyString()))
-            .thenReturn(Optional.empty());
+        when(moderationItemRepository.findByTypeAndRefId(any(), anyLong()))
+            .thenReturn(null);
         when(moderationItemRepository.save(any(ModerationItem.class)))
             .thenReturn(new ModerationItem());
 
         // When
-        contentFlaggedEventConsumer.handleContentFlaggedEvent(validEventData);
+        contentFlaggedEventConsumer.handleContentFlaggedEvent(objectMapper.writeValueAsString(validEventData));
 
         // Then
         verify(moderationItemRepository).save(argThat(item -> 
@@ -95,18 +98,18 @@ class ContentFlaggedEventConsumerTest {
     }
 
     @Test
-    void handleContentFlaggedEvent_WithListingType_ShouldCreateListingModerationItem() {
+    void handleContentFlaggedEvent_WithListingType_ShouldCreateListingModerationItem() throws Exception {
         // Given
         validEventData.put("contentType", "LISTING");
         validEventData.put("contentId", "listing123");
         
-        when(moderationItemRepository.findByTypeAndRefId(any(), anyString()))
-            .thenReturn(Optional.empty());
+        when(moderationItemRepository.findByTypeAndRefId(any(), anyLong()))
+            .thenReturn(null);
         when(moderationItemRepository.save(any(ModerationItem.class)))
             .thenReturn(new ModerationItem());
 
         // When
-        contentFlaggedEventConsumer.handleContentFlaggedEvent(validEventData);
+        contentFlaggedEventConsumer.handleContentFlaggedEvent(objectMapper.writeValueAsString(validEventData));
 
         // Then
         verify(moderationItemRepository).save(argThat(item -> 
@@ -116,86 +119,86 @@ class ContentFlaggedEventConsumerTest {
     }
 
     @Test
-    void handleContentFlaggedEvent_WithTripType_ShouldCreateTripModerationItem() {
+    void handleContentFlaggedEvent_WithTripType_ShouldCreateTripModerationItem() throws Exception {
         // Given
         validEventData.put("contentType", "TRIP");
         validEventData.put("contentId", "trip123");
         
-        when(moderationItemRepository.findByTypeAndRefId(any(), anyString()))
-            .thenReturn(Optional.empty());
+        when(moderationItemRepository.findByTypeAndRefId(any(), anyLong()))
+            .thenReturn(null);
         when(moderationItemRepository.save(any(ModerationItem.class)))
             .thenReturn(new ModerationItem());
 
         // When
-        contentFlaggedEventConsumer.handleContentFlaggedEvent(validEventData);
+        contentFlaggedEventConsumer.handleContentFlaggedEvent(objectMapper.writeValueAsString(validEventData));
 
         // Then
         verify(moderationItemRepository).save(argThat(item -> 
-            item.getType() == ModerationItemType.USER &&
+            item.getType() == ModerationItemType.TRIP &&
             item.getRefId().equals("trip123")
         ));
     }
 
     @Test
-    void handleContentFlaggedEvent_WithMissingContentType_ShouldNotCreateItem() {
+    void handleContentFlaggedEvent_WithMissingContentType_ShouldNotCreateItem() throws Exception {
         // Given
         validEventData.remove("contentType");
 
         // When
-        contentFlaggedEventConsumer.handleContentFlaggedEvent(validEventData);
+        contentFlaggedEventConsumer.handleContentFlaggedEvent(objectMapper.writeValueAsString(validEventData));
 
         // Then
         verify(moderationItemRepository, never()).save(any(ModerationItem.class));
     }
 
     @Test
-    void handleContentFlaggedEvent_WithMissingContentId_ShouldNotCreateItem() {
+    void handleContentFlaggedEvent_WithMissingContentId_ShouldNotCreateItem() throws Exception {
         // Given
         validEventData.remove("contentId");
 
         // When
-        contentFlaggedEventConsumer.handleContentFlaggedEvent(validEventData);
+        contentFlaggedEventConsumer.handleContentFlaggedEvent(objectMapper.writeValueAsString(validEventData));
 
         // Then
         verify(moderationItemRepository, never()).save(any(ModerationItem.class));
     }
 
     @Test
-    void handleContentFlaggedEvent_WithMissingReason_ShouldNotCreateItem() {
+    void handleContentFlaggedEvent_WithMissingReason_ShouldNotCreateItem() throws Exception {
         // Given
         validEventData.remove("reason");
 
         // When
-        contentFlaggedEventConsumer.handleContentFlaggedEvent(validEventData);
+        contentFlaggedEventConsumer.handleContentFlaggedEvent(objectMapper.writeValueAsString(validEventData));
 
         // Then
         verify(moderationItemRepository, never()).save(any(ModerationItem.class));
     }
 
     @Test
-    void handleContentFlaggedEvent_WithUnknownContentType_ShouldNotCreateItem() {
+    void handleContentFlaggedEvent_WithUnknownContentType_ShouldNotCreateItem() throws Exception {
         // Given
         validEventData.put("contentType", "UNKNOWN_TYPE");
 
         // When
-        contentFlaggedEventConsumer.handleContentFlaggedEvent(validEventData);
+        contentFlaggedEventConsumer.handleContentFlaggedEvent(objectMapper.writeValueAsString(validEventData));
 
         // Then
         verify(moderationItemRepository, never()).save(any(ModerationItem.class));
     }
 
     @Test
-    void handleContentFlaggedEvent_WithLowPriority_ShouldCreateItemWithCorrectPriority() {
+    void handleContentFlaggedEvent_WithLowPriority_ShouldCreateItemWithCorrectPriority() throws Exception {
         // Given
         validEventData.put("priority", "LOW");
         
-        when(moderationItemRepository.findByTypeAndRefId(any(), anyString()))
-            .thenReturn(Optional.empty());
+        when(moderationItemRepository.findByTypeAndRefId(any(), anyLong()))
+            .thenReturn(null);
         when(moderationItemRepository.save(any(ModerationItem.class)))
             .thenReturn(new ModerationItem());
 
         // When
-        contentFlaggedEventConsumer.handleContentFlaggedEvent(validEventData);
+        contentFlaggedEventConsumer.handleContentFlaggedEvent(objectMapper.writeValueAsString(validEventData));
 
         // Then
         verify(moderationItemRepository).save(argThat(item -> 
@@ -204,17 +207,17 @@ class ContentFlaggedEventConsumerTest {
     }
 
     @Test
-    void handleContentFlaggedEvent_WithInvalidPriority_ShouldDefaultToMedium() {
+    void handleContentFlaggedEvent_WithInvalidPriority_ShouldDefaultToMedium() throws Exception {
         // Given
         validEventData.put("priority", "INVALID_PRIORITY");
         
-        when(moderationItemRepository.findByTypeAndRefId(any(), anyString()))
-            .thenReturn(Optional.empty());
+        when(moderationItemRepository.findByTypeAndRefId(any(), anyLong()))
+            .thenReturn(null);
         when(moderationItemRepository.save(any(ModerationItem.class)))
             .thenReturn(new ModerationItem());
 
         // When
-        contentFlaggedEventConsumer.handleContentFlaggedEvent(validEventData);
+        contentFlaggedEventConsumer.handleContentFlaggedEvent(objectMapper.writeValueAsString(validEventData));
 
         // Then
         verify(moderationItemRepository).save(argThat(item -> 
@@ -223,13 +226,13 @@ class ContentFlaggedEventConsumerTest {
     }
 
     @Test
-    void handleContentFlaggedEvent_WhenRepositoryThrowsException_ShouldHandleGracefully() {
+    void handleContentFlaggedEvent_WhenRepositoryThrowsException_ShouldHandleGracefully() throws Exception {
         // Given
-        when(moderationItemRepository.findByTypeAndRefId(any(), anyString()))
+        when(moderationItemRepository.findByTypeAndRefId(any(), anyLong()))
             .thenThrow(new RuntimeException("Database error"));
 
         // When & Then (should not throw exception)
-        contentFlaggedEventConsumer.handleContentFlaggedEvent(validEventData);
+        contentFlaggedEventConsumer.handleContentFlaggedEvent(objectMapper.writeValueAsString(validEventData));
         
         verify(moderationItemRepository, never()).save(any(ModerationItem.class));
     }

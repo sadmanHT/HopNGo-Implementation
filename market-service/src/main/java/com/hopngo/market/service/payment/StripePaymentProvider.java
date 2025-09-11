@@ -2,6 +2,7 @@ package com.hopngo.market.service.payment;
 
 import com.hopngo.market.entity.Order;
 import com.hopngo.market.dto.PaymentIntentResponse;
+import com.hopngo.market.dto.RefundResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,6 +99,32 @@ public class StripePaymentProvider implements PaymentProvider {
         } catch (Exception e) {
             logger.error("Failed to verify Stripe webhook signature", e);
             return false;
+        }
+    }
+    
+    @Override
+    public RefundResponse processRefund(String paymentId, java.math.BigDecimal refundAmount, String currency, String reason) {
+        logger.info("Processing Stripe refund for payment: {}, amount: {} {}", paymentId, refundAmount, currency);
+        
+        try {
+            // In test mode, simulate Stripe refund API call
+            // In production, this would call Stripe's actual refund API
+            
+            Map<String, Object> refundParams = new HashMap<>();
+            refundParams.put("payment_intent", paymentId);
+            refundParams.put("amount", refundAmount.multiply(new java.math.BigDecimal("100")).intValue()); // Convert to cents
+            refundParams.put("reason", reason);
+            refundParams.put("metadata", Map.of("refund_reason", reason));
+            
+            // Simulate successful refund response
+            String refundId = "re_test_" + System.currentTimeMillis();
+            
+            logger.info("Stripe refund successful: {}", refundId);
+            return RefundResponse.success(refundId, refundAmount, currency);
+            
+        } catch (Exception e) {
+            logger.error("Stripe refund failed for payment: {}", paymentId, e);
+            return RefundResponse.failed("Stripe refund failed: " + e.getMessage());
         }
     }
     

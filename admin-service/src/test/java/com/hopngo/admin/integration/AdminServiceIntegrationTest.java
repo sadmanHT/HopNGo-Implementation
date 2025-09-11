@@ -16,7 +16,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,12 +52,12 @@ class AdminServiceIntegrationTest {
         
         testModerationItem = new ModerationItem();
         testModerationItem.setType(ModerationItemType.POST);
-        testModerationItem.setRefId("post123");
+        testModerationItem.setRefId(Long.valueOf("123"));
         testModerationItem.setReason("Inappropriate content");
-        testModerationItem.setReporterUserId("user456");
+        testModerationItem.setReporterUserId(Long.valueOf("456"));
         testModerationItem.setPriority(ModerationItem.Priority.HIGH);
         testModerationItem.setStatus(ModerationItem.ModerationStatus.OPEN);
-        testModerationItem.setCreatedAt(LocalDateTime.now());
+        testModerationItem.setCreatedAt(Instant.now());
         
         moderationItemRepository.save(testModerationItem);
     }
@@ -151,12 +151,12 @@ class AdminServiceIntegrationTest {
         // Create additional items with different statuses
         ModerationItem approvedItem = new ModerationItem();
         approvedItem.setType(ModerationItemType.COMMENT);
-        approvedItem.setRefId("comment123");
+        approvedItem.setRefId(Long.valueOf("123"));
         approvedItem.setReason("Test reason");
-        approvedItem.setReporterUserId("user789");
+        approvedItem.setReporterUserId(Long.valueOf("789"));
         approvedItem.setPriority(ModerationItem.Priority.MEDIUM);
         approvedItem.setStatus(ModerationItem.ModerationStatus.APPROVED);
-        approvedItem.setCreatedAt(LocalDateTime.now());
+        approvedItem.setCreatedAt(Instant.now());
         moderationItemRepository.save(approvedItem);
 
         mockMvc.perform(get("/api/v1/admin/moderation")
@@ -174,12 +174,12 @@ class AdminServiceIntegrationTest {
         // Create additional item with different type
         ModerationItem commentItem = new ModerationItem();
         commentItem.setType(ModerationItemType.COMMENT);
-        commentItem.setRefId("comment456");
+        commentItem.setRefId(Long.valueOf("456"));
         commentItem.setReason("Test reason");
-        commentItem.setReporterUserId("user789");
+        commentItem.setReporterUserId(Long.valueOf("789"));
         commentItem.setPriority(ModerationItem.Priority.LOW);
         commentItem.setStatus(ModerationItem.ModerationStatus.OPEN);
-        commentItem.setCreatedAt(LocalDateTime.now());
+        commentItem.setCreatedAt(Instant.now());
         moderationItemRepository.save(commentItem);
 
         mockMvc.perform(get("/api/v1/admin/moderation")

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-config
+  labels:
+    app.kubernetes.io/name: database-config
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: hopngo
+data:
+  url: "jdbc:postgresql://postgres-service:5432/hopngo"
+  driver: "org.postgresql.Driver"
+  flyway.baseline-version: "1"
+  flyway.baseline-description: "Initial baseline"
+  flyway.validate-on-migrate: "true"
+  flyway.clean-disabled: "true"

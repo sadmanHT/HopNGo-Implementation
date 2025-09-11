@@ -1,0 +1,11 @@
+# HopNGo Backup Cron Schedule
+# Format: minute hour day month weekday command
+
+# Run full backup every night at 3:00 AM
+0 3 * * * /scripts/backup.sh
+
+# Run quick health check every 6 hours
+0 */6 * * * /scripts/backup.sh --health-check
+
+# Clean old backups every Sunday at 4:00 AM (keep last 30 days)
+0 4 * * 0 find /backups -type d -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]" -mtime +30 -exec rm -rf {} \;

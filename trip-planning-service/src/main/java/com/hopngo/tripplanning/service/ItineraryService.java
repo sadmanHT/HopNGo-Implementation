@@ -9,6 +9,7 @@ import com.hopngo.tripplanning.mapper.ItineraryMapper;
 import com.hopngo.tripplanning.repository.ItineraryRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ public class ItineraryService {
     private final ItineraryRepository itineraryRepository;
     private final ItineraryMapper itineraryMapper;
     private final AIService aiService;
+    private ItinerarySharingService sharingService;
 
     public ItineraryService(ItineraryRepository itineraryRepository,
                            ItineraryMapper itineraryMapper,
@@ -34,6 +36,11 @@ public class ItineraryService {
         this.itineraryRepository = itineraryRepository;
         this.itineraryMapper = itineraryMapper;
         this.aiService = aiService;
+    }
+
+    @Autowired
+    public void setSharingService(ItinerarySharingService sharingService) {
+        this.sharingService = sharingService;
     }
 
     /**
@@ -93,6 +100,15 @@ public class ItineraryService {
         
         Itinerary itinerary = existingItinerary.get();
         
+        // Create version snapshot before updating (if sharing service is available)
+        if (sharingService != null) {
+            try {
+                sharingService.createVersion(id, userId);
+            } catch (Exception e) {
+                logger.warn("Failed to create version snapshot for itinerary {}: {}", id, e.getMessage());
+            }
+        }
+        
         // Apply partial updates manually since we removed the updateEntityFromRequest method
         if (request.getTitle() != null) {
             itinerary.setTitle(request.getTitle());
@@ -102,6 +118,15 @@ public class ItineraryService {
         }
         if (request.getBudget() != null) {
             itinerary.setBudget(request.getBudget());
+        }
+        if (request.getPlan() != null) {
+            itinerary.setPlan(request.getPlan());
+        }
+        if (request.getOrigins() != null) {
+            itinerary.setOrigins(request.getOrigins());
+        }
+        if (request.getDestinations() != null) {
+            itinerary.setDestinations(request.getDestinations());
         }
         
         // Save updated entity

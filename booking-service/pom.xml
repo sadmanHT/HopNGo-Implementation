@@ -97,15 +97,37 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>rabbitmq</artifactId>
+            <scope>test</scope>
+        </dependency>
         
-        <!-- Search Client - temporarily commented out for build testing -->
-        <!--
+        <!-- Pact Provider Testing -->
+        <dependency>
+            <groupId>au.com.dius.pact.provider</groupId>
+            <artifactId>junit5</artifactId>
+            <version>4.6.2</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- Redis dependency for caching -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        
+        <!-- Search Client -->
         <dependency>
             <groupId>com.hopngo</groupId>
             <artifactId>search-client</artifactId>
-            <version>1.0.0</version>
+            <version>0.0.1-SNAPSHOT</version>
         </dependency>
-        -->
     </dependencies>
     <dependencyManagement>
         <dependencies>

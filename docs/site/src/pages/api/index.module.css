@@ -1,0 +1,236 @@
+.apiContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.apiHeader {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.apiHeader h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.apiSubtitle {
+  font-size: 1.2rem;
+  color: var(--ifm-color-emphasis-700);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.quickStart {
+  background: var(--ifm-color-emphasis-100);
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 3rem;
+}
+
+.quickStart h2 {
+  margin-top: 0;
+  color: var(--ifm-color-primary);
+}
+
+.codeBlock {
+  background: var(--ifm-code-background);
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.codeBlock h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: var(--ifm-color-emphasis-800);
+}
+
+.codeBlock pre {
+  background: var(--ifm-color-emphasis-200);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  margin: 0.5rem 0;
+}
+
+.codeBlock code {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.9rem;
+}
+
+.servicesGrid h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--ifm-color-primary);
+}
+
+.servicesContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.serviceCard {
+  background: var(--ifm-color-emphasis-100);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.serviceCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.serviceHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.serviceHeader h3 {
+  margin: 0;
+  color: var(--ifm-color-primary);
+}
+
+.servicePort {
+  background: var(--ifm-color-primary);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8rem;
+}
+
+.serviceDescription {
+  color: var(--ifm-color-emphasis-700);
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.serviceFeatures {
+  margin-bottom: 1.5rem;
+}
+
+.serviceFeatures h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: var(--ifm-color-emphasis-800);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.serviceFeatures ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.serviceFeatures li {
+  font-size: 0.9rem;
+  color: var(--ifm-color-emphasis-700);
+  margin-bottom: 0.25rem;
+}
+
+.serviceLinks {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.serviceLinks .button {
+  flex: 1;
+  min-width: 120px;
+}
+
+.sdkSection {
+  background: var(--ifm-color-emphasis-100);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.sdkSection h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--ifm-color-primary);
+}
+
+.toolsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.toolCard {
+  background: white;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: transform 0.2s ease;
+}
+
+.toolCard:hover {
+  transform: translateY(-2px);
+}
+
+.toolCard h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: var(--ifm-color-primary);
+}
+
+.toolCard p {
+  color: var(--ifm-color-emphasis-700);
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .serviceCard,
+[data-theme='dark'] .quickStart,
+[data-theme='dark'] .sdkSection {
+  background: var(--ifm-color-emphasis-200);
+}
+
+[data-theme='dark'] .toolCard {
+  background: var(--ifm-color-emphasis-200);
+}
+
+[data-theme='dark'] .codeBlock {
+  background: var(--ifm-color-emphasis-300);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .apiContainer {
+    padding: 1rem;
+  }
+  
+  .apiHeader h1 {
+    font-size: 2rem;
+  }
+  
+  .servicesContainer {
+    grid-template-columns: 1fr;
+  }
+  
+  .serviceLinks {
+    flex-direction: column;
+  }
+  
+  .serviceLinks .button {
+    flex: none;
+  }
+  
+  .toolsGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -10,6 +10,7 @@ public class UserDto {
     private String lastName;
     private String role;
     private Boolean isActive;
+    private Boolean verifiedProvider;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     
@@ -22,6 +23,15 @@ public class UserDto {
         this.firstName = firstName;
         this.lastName = lastName;
         this.role = role;
+    }
+    
+    public UserDto(Long id, String email, String firstName, String lastName, String role, Boolean verifiedProvider) {
+        this.id = id;
+        this.email = email;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.role = role;
+        this.verifiedProvider = verifiedProvider;
     }
     
     // Getters and Setters
@@ -89,6 +99,14 @@ public class UserDto {
         this.updatedAt = updatedAt;
     }
     
+    public Boolean getVerifiedProvider() {
+        return verifiedProvider;
+    }
+    
+    public void setVerifiedProvider(Boolean verifiedProvider) {
+        this.verifiedProvider = verifiedProvider;
+    }
+    
     // Helper methods
     public String getFullName() {
         return firstName + " " + lastName;
@@ -103,6 +121,7 @@ public class UserDto {
                 ", lastName='" + lastName + '\'' +
                 ", role='" + role + '\'' +
                 ", isActive=" + isActive +
+                ", verifiedProvider=" + verifiedProvider +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 '}';

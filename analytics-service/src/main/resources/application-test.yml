@@ -1,0 +1,66 @@
+server:
+  port: 8093
+
+spring:
+  application:
+    name: analytics-service
+  datasource:
+    url: jdbc:h2:mem:analytics_testdb
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+  
+  flyway:
+    enabled: false
+
+  # H2 Console for debugging
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # Disable RabbitMQ for test profile
+  cloud:
+    stream:
+      default-binder: test
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,h2-console
+  endpoint:
+    health:
+      show-details: always
+
+# Analytics Configuration (test values)
+analytics:
+  batch:
+    size: 10
+    flush-interval: 5s
+  retention:
+    raw-events: 7d
+    aggregated-data: 30d
+  privacy:
+    anonymize-ip: false
+    hash-user-ids: false
+  kpi:
+    calculation-schedule: "0 */5 * * * ?" # Every 5 minutes for testing
+
+# Logging
+logging:
+  level:
+    com.hopngo.analytics: DEBUG
+    org.springframework.cloud.stream: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

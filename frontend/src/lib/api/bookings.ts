@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { ApiResponse, Booking } from './types';
+import { ApiResponse, Booking, CancellationRequest, CancellationResponse } from './types';
 
 export interface CreateBookingRequest {
   serviceType: 'transport' | 'accommodation' | 'activity';
@@ -38,6 +38,10 @@ class BookingsApi {
 
   async cancelBooking(id: string): Promise<ApiResponse<void>> {
     return apiClient.delete(`/bookings/${id}`);
+  }
+
+  async cancelBookingWithRefund(id: string, request: CancellationRequest): Promise<ApiResponse<CancellationResponse>> {
+    return apiClient.post(`/bookings/${id}/cancel`, request);
   }
 }
 

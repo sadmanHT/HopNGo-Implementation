@@ -1,5 +1,6 @@
 package com.hopngo.booking.dto;
 
+import com.hopngo.booking.entity.CancellationPolicies;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.List;
@@ -41,5 +42,7 @@ public record ListingCreateRequest(
     
     List<String> amenities,
     
-    List<String> images
+    List<String> images,
+    
+    CancellationPolicies cancellationPolicies
 ) {}

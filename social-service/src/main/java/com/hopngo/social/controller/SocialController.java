@@ -6,6 +6,7 @@ import com.hopngo.social.service.PostService;
 import com.hopngo.social.service.CommentService;
 import com.hopngo.social.service.HeatmapService;
 import com.hopngo.social.service.HeatmapCacheService;
+import com.hopngo.social.util.PaginationValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -70,11 +71,12 @@ public class SocialController {
     @Operation(summary = "Get social media feed", description = "Get paginated feed of recent posts")
     public ResponseEntity<Page<PostResponse>> getFeed(
             @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Page size (max 50)") @RequestParam(defaultValue = "20") int size,
             HttpServletRequest httpRequest) {
         
+        PaginationValidator.ValidatedPagination pagination = PaginationValidator.validate(page, size);
         String userId = AuthFilter.getCurrentUserId(httpRequest);
-        Page<PostResponse> feed = postService.getFeed(page, size, userId);
+        Page<PostResponse> feed = postService.getFeed(pagination.getPage(), pagination.getSize(), userId);
         return ResponseEntity.ok(feed);
     }
     
@@ -137,12 +139,13 @@ public class SocialController {
     public ResponseEntity<Page<CommentResponse>> getComments(
             @PathVariable String postId,
             @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
+            @Parameter(description = "Page size (max 50)") @RequestParam(defaultValue = "20") int size) {
         
         try {
-            Page<CommentResponse> comments = commentService.getCommentsByPostId(postId, page, size);
+            PaginationValidator.ValidatedPagination pagination = PaginationValidator.validate(page, size);
+            Page<CommentResponse> comments = commentService.getCommentsByPostId(postId, pagination.getPage(), pagination.getSize());
             return ResponseEntity.ok(comments);
-        } catch (RuntimeException e) {
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -218,11 +221,12 @@ public class SocialController {
     public ResponseEntity<Page<PostResponse>> getUserPosts(
             @PathVariable String userId,
             @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Page size (max 50)") @RequestParam(defaultValue = "20") int size,
             HttpServletRequest httpRequest) {
         
+        PaginationValidator.ValidatedPagination pagination = PaginationValidator.validate(page, size);
         String currentUserId = AuthFilter.getCurrentUserId(httpRequest);
-        Page<PostResponse> posts = postService.getUserPosts(userId, page, size, currentUserId);
+        Page<PostResponse> posts = postService.getUserPosts(userId, pagination.getPage(), pagination.getSize(), currentUserId);
         return ResponseEntity.ok(posts);
     }
     
@@ -230,11 +234,12 @@ public class SocialController {
     @Operation(summary = "Get bookmarked posts", description = "Get user's bookmarked posts")
     public ResponseEntity<Page<PostResponse>> getBookmarkedPosts(
             @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Page size (max 50)") @RequestParam(defaultValue = "20") int size,
             HttpServletRequest httpRequest) {
         
+        PaginationValidator.ValidatedPagination pagination = PaginationValidator.validate(page, size);
         String userId = AuthFilter.getCurrentUserId(httpRequest);
-        Page<PostResponse> bookmarkedPosts = postService.getBookmarkedPosts(userId, page, size);
+        Page<PostResponse> bookmarkedPosts = postService.getBookmarkedPosts(userId, pagination.getPage(), pagination.getSize());
         return ResponseEntity.ok(bookmarkedPosts);
     }
     

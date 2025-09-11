@@ -59,14 +59,25 @@ public class OutboxPublisher {
     
     private void publishEvent(OutboxEvent event) {
         try {
-            // Create the message payload
-            EventMessage message = new EventMessage(
-                event.getAggregateType(),
-                event.getAggregateId(),
-                event.getEventType(),
-                event.getEventData().toString(),
-                event.getCreatedAt()
-            );
+            // Create the message payload in the format expected by admin-service
+            EventMessage message;
+            
+            if (event.getEventType().startsWith("review.")) {
+                // Format for admin-service consumer
+                message = new EventMessage(
+                    mapEventTypeForAdmin(event.getEventType()),
+                    event.getEventData()
+                );
+            } else {
+                // Original format for other services
+                message = new EventMessage(
+                    event.getAggregateType(),
+                    event.getAggregateId(),
+                    event.getEventType(),
+                    event.getEventData().toString(),
+                    event.getCreatedAt()
+                );
+            }
             
             // Determine the routing key based on event type
             String routingKey = determineRoutingKey(event.getEventType());
@@ -84,6 +95,17 @@ public class OutboxPublisher {
         }
     }
     
+    private String mapEventTypeForAdmin(String eventType) {
+        switch (eventType) {
+            case "review.flagged":
+                return "REVIEW_FLAGGED";
+            case "review.flag.resolved":
+                return "REVIEW_FLAG_RESOLVED";
+            default:
+                return eventType.toUpperCase().replace(".", "_");
+        }
+    }
+    
     private String determineRoutingKey(String eventType) {
         // Map event types to routing keys/bindings
         if (eventType.startsWith("vendor.")) {
@@ -91,13 +113,13 @@ public class OutboxPublisher {
         } else if (eventType.startsWith("listing.")) {
             return "listing-events-out-0";
         } else if (eventType.startsWith("booking.")) {
-            return "booking-events-out-0";
+            return "bookingEvents-out-0";
         } else if (eventType.startsWith("review.")) {
-            return "review-events-out-0";
+            return "reviewEvents-out-0";
         }
         
         // Default routing key
-        return "booking-events-out-0";
+        return "bookingEvents-out-0";
     }
     
     @Transactional
@@ -156,11 +178,19 @@ class EventMessage {
     private String aggregateType;
     private String aggregateId;
     private String eventType;
+    private Object payload;
     private String eventData;
     private LocalDateTime timestamp;
     
     public EventMessage() {}
     
+    // Constructor for admin-service format
+    public EventMessage(String eventType, Object payload) {
+        this.eventType = eventType;
+        this.payload = payload;
+    }
+    
+    // Constructor for original format
     public EventMessage(String aggregateType, String aggregateId, String eventType, 
                        String eventData, LocalDateTime timestamp) {
         this.aggregateType = aggregateType;
@@ -179,6 +209,9 @@ class EventMessage {
     
     public String getEventType() { return eventType; }
     public void setEventType(String eventType) { this.eventType = eventType; }
+    
+    public Object getPayload() { return payload; }
+    public void setPayload(Object payload) { this.payload = payload; }
     
     public String getEventData() { return eventData; }
     public void setEventData(String eventData) { this.eventData = eventData; }

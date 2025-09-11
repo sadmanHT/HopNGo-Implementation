@@ -1,0 +1,71 @@
+import { useTranslation } from '@/lib/i18n';
+import { TripsClient } from './TripsClient';
+
+export default async function TripsPage({ params: { locale } }: { params: { locale: string } }) {
+  const { t } = await useTranslation(locale, 'common');
+  
+  // Create translations object for client component
+  const translations = {
+    'trips.pleaseLogin': t('trips.pleaseLogin'),
+    'trips.loginRequired': t('trips.loginRequired'),
+    'auth.goToLogin': t('auth.goToLogin'),
+    'trips.title': t('trips.title'),
+    'trips.subtitle': t('trips.subtitle'),
+    'trips.createNew': t('trips.createNew'),
+    'trips.searchPlaceholder': t('trips.searchPlaceholder'),
+    'trips.error': t('trips.error'),
+    'trips.fetchError': t('trips.fetchError'),
+    'trips.success': t('trips.success'),
+    'trips.revertSuccess': t('trips.revertSuccess'),
+    'trips.revertError': t('trips.revertError'),
+    'trips.createSuccess': t('trips.createSuccess'),
+    'trips.createError': t('trips.createError'),
+    'trips.noResults': t('trips.noResults'),
+    'trips.noItineraries': t('trips.noItineraries'),
+    'trips.tryDifferentSearch': t('trips.tryDifferentSearch'),
+    'trips.createFirst': t('trips.createFirst'),
+    'trips.status.draft': t('trips.status.draft'),
+    'trips.status.published': t('trips.status.published'),
+    'trips.status.completed': t('trips.status.completed'),
+    'trips.daysCount': t('trips.daysCount'),
+    'trips.viewDetails': t('trips.viewDetails'),
+    'trips.details': t('trips.details'),
+    'trips.versions': t('trips.versions'),
+    'trips.destinations': t('trips.destinations'),
+    'trips.duration': t('trips.duration'),
+    'trips.budget': t('trips.budget'),
+    'trips.groupSize': t('trips.groupSize'),
+    'trips.people': t('trips.people'),
+    'trips.route': t('trips.route'),
+    'trips.versionHistory': t('trips.versionHistory'),
+    'trips.noVersionHistory': t('trips.noVersionHistory'),
+    'trips.versionNumber': t('trips.versionNumber'),
+    'trips.current': t('trips.current'),
+    'trips.revert': t('trips.revert'),
+    'trips.titlePlaceholder': t('trips.titlePlaceholder'),
+    'trips.addDestination': t('trips.addDestination'),
+    'trips.startDate': t('trips.startDate'),
+    'trips.endDate': t('trips.endDate'),
+    'trips.generatePlan': t('trips.generatePlan'),
+    'common.city': t('common.city'),
+    'common.country': t('common.country'),
+    'common.cancel': t('common.cancel'),
+    'trips.planNewTrip': t('trips.planNewTrip'),
+    'trips.noTripsFound': t('trips.noTripsFound'),
+    'trips.noTripsYet': t('trips.noTripsYet'),
+    'trips.adjustSearchTerms': t('trips.adjustSearchTerms'),
+    'trips.startPlanning': t('trips.startPlanning'),
+    'trips.planFirstTrip': t('trips.planFirstTrip'),
+    'trips.tripTitle': t('trips.tripTitle'),
+    'trips.enterTripTitle': t('trips.enterTripTitle'),
+    'trips.days': t('trips.days'),
+    'trips.origin': t('trips.origin'),
+    'trips.destinationsCount': t('trips.destinationsCount'),
+    'trips.from': t('trips.from'),
+    'trips.to': t('trips.to'),
+    'trips.generatedItinerary': t('trips.generatedItinerary'),
+    'trips.version': t('trips.version')
+  };
+  
+  return <TripsClient translations={translations} />;
+}

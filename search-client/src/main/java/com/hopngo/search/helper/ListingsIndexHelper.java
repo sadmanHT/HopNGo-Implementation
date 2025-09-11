@@ -1,5 +1,6 @@
 package com.hopngo.search.helper;
 
+import com.hopngo.search.model.ListingDocument;
 import com.hopngo.search.service.SearchClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,0 +1,31 @@
+{
+  "name": "hopngo-smoke-tests",
+  "version": "1.0.0",
+  "description": "Post-rollout smoke tests for HopNGo application",
+  "main": "smoke-tests.js",
+  "scripts": {
+    "test": "node smoke-tests.js",
+    "test:staging": "BASE_URL=https://staging.hopngo.com node smoke-tests.js",
+    "test:production": "BASE_URL=https://hopngo.com node smoke-tests.js",
+    "test:local": "BASE_URL=http://localhost:8080 node smoke-tests.js",
+    "install": "npm ci"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "chai": "^4.3.10"
+  },
+  "devDependencies": {
+    "mocha": "^10.2.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "smoke-tests",
+    "integration-tests",
+    "hopngo",
+    "api-testing"
+  ],
+  "author": "HopNGo Team",
+  "license": "MIT"
+}

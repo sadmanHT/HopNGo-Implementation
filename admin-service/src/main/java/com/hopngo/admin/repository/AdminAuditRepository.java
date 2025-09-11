@@ -55,12 +55,12 @@ public interface AdminAuditRepository extends JpaRepository<AdminAudit, Long> {
     /**
      * Get recent audit entries for a specific target
      */
-    @Query("SELECT a FROM AdminAudit a WHERE a.targetType = :targetType AND a.targetId = :targetId " +
-           "ORDER BY a.createdAt DESC")
+    @Query(value = "SELECT a FROM AdminAudit a WHERE a.targetType = :targetType AND a.targetId = :targetId " +
+           "ORDER BY a.createdAt DESC LIMIT :limit")
     List<AdminAudit> findRecentByTarget(
             @Param("targetType") String targetType,
             @Param("targetId") Long targetId,
-            Pageable pageable
+            @Param("limit") int limit
     );
 
     /**
@@ -78,8 +78,9 @@ public interface AdminAuditRepository extends JpaRepository<AdminAudit, Long> {
      */
     default Page<AdminAudit> findByFilters(
             Long actorUserId,
-            String action,
             String targetType,
+            Long targetId,
+            String action,
             Instant startDate,
             Instant endDate,
             Pageable pageable
@@ -97,6 +98,16 @@ public interface AdminAuditRepository extends JpaRepository<AdminAudit, Long> {
      */
     @Query("SELECT a FROM AdminAudit a ORDER BY a.createdAt DESC")
     List<AdminAudit> findAllByOrderByTimestampDesc();
+
+    /**
+     * Count audit entries by action and date range
+     */
+    long countByActionAndCreatedAtBetween(String action, Instant startDate, Instant endDate);
+
+    /**
+     * Count audit entries by target type, target ID and date range
+     */
+    long countByTargetTypeAndTargetIdAndCreatedAtBetween(String targetType, Long targetId, Instant startDate, Instant endDate);
 
     /**
      * Alias for findAllByOrderByTimestampDesc

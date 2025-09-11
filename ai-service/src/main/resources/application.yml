@@ -53,6 +53,14 @@ moderation:
     violence: 0.8
     harassment: 0.7
 
+# Routing Configuration
+routing:
+  osrm:
+    base-url: http://localhost:5000
+  mapbox:
+    token: ${MAPBOX_TOKEN:}
+  use-mapbox: ${USE_MAPBOX:false}
+
 springdoc:
   api-docs:
     path: /api-docs

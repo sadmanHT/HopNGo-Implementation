@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -40,12 +41,15 @@ class AdminAuditServiceTest {
     void setUp() {
         testAudit = new AdminAudit();
         testAudit.setId(1L);
-        testAudit.setUserId("admin123");
+        testAudit.setActorUserId(123L);
         testAudit.setAction("APPROVE_MODERATION_ITEM");
-        testAudit.setResourceType("ModerationItem");
-        testAudit.setResourceId("item123");
-        testAudit.setDetails("{\"itemId\":123,\"status\":\"APPROVED\"}");
-        testAudit.setTimestamp(LocalDateTime.now());
+        testAudit.setTargetType("ModerationItem");
+        testAudit.setTargetId(456L);
+        Map<String, Object> details = new HashMap<>();
+        details.put("itemId", 123L);
+        details.put("status", "APPROVED");
+        testAudit.setDetails(details);
+        testAudit.setCreatedAt(java.time.Instant.now());
     }
 
     @Test
@@ -58,14 +62,17 @@ class AdminAuditServiceTest {
         when(adminAuditRepository.save(any(AdminAudit.class))).thenReturn(testAudit);
 
         // When
-        adminAuditService.logAction("admin123", "APPROVE_MODERATION_ITEM", details);
+        adminAuditService.logAction(123L, "APPROVE_MODERATION_ITEM", "MODERATION_ITEM", 456L, details);
 
         // Then
         verify(adminAuditRepository).save(argThat(audit -> 
-            audit.getUserId().equals("admin123") &&
+            audit.getActorUserId().equals(123L) &&
             audit.getAction().equals("APPROVE_MODERATION_ITEM") &&
-            audit.getDetails().contains("itemId") &&
-            audit.getDetails().contains("APPROVED")
+            audit.getTargetType().equals("MODERATION_ITEM") &&
+            audit.getTargetId().equals(456L) &&
+            audit.getDetails() != null &&
+            audit.getDetails().containsKey("itemId") &&
+            audit.getDetails().containsValue("APPROVED")
         ));
     }
 
@@ -75,35 +82,56 @@ class AdminAuditServiceTest {
         when(adminAuditRepository.save(any(AdminAudit.class))).thenReturn(testAudit);
 
         // When
-        adminAuditService.logAction("admin123", "BAN_USER", null);
+        adminAuditService.logAction(456L, "BAN_USER", "USER", 456L, null);
 
         // Then
         verify(adminAuditRepository).save(argThat(audit -> 
-            audit.getUserId().equals("admin123") &&
+            audit.getActorUserId().equals(456L) &&
             audit.getAction().equals("BAN_USER") &&
-            audit.getDetails().equals("{}")
+            audit.getTargetType().equals("USER") &&
+            audit.getTargetId().equals(456L) &&
+            audit.getDetails() == null
         ));
     }
 
     @Test
-    void getAuditEntries_ShouldReturnPagedResults() {
+    void testGetUserAuditHistory() {
         // Given
-        Pageable pageable = PageRequest.of(0, 10);
+        Pageable pageable = PageRequest.of(0, 100);
         Page<AdminAudit> page = new PageImpl<>(List.of(testAudit));
-        when(adminAuditRepository.findAllByOrderByTimestampDesc(pageable)).thenReturn(page);
+        when(adminAuditRepository.findByFilters(
+            123L, null, null, null, null, null, pageable))
+            .thenReturn(page);
 
         // When
-        Page<AdminAuditResponse> result = adminAuditService.getAuditEntries(
-            null, null, null, pageable);
+        Page<AdminAuditResponse> result = adminAuditService.getAuditLog(
+            "123", null, null, null, null, null, pageable);
+
+        // Then
+        assertThat(result.getContent()).hasSize(1);
+        verify(adminAuditRepository).findByFilters(
+            123L, null, null, null, null, null, pageable);
+    }
+
+    @Test
+    void testGetActionHistory() {
+        // Given
+        Pageable pageable = PageRequest.of(0, 100);
+        Page<AdminAudit> page = new PageImpl<>(List.of(testAudit));
+        when(adminAuditRepository.findByFilters(
+            null, null, null, "APPROVE_MODERATION_ITEM", null, null, pageable))
+            .thenReturn(page);
+
+        // When
+        Page<AdminAuditResponse> result = adminAuditService.getAuditLog(
+            null, null, null, "APPROVE_MODERATION_ITEM", null, null, pageable);
 
         // Then
         assertThat(result.getContent()).hasSize(1);
         AdminAuditResponse response = result.getContent().get(0);
-        assertThat(response.getId()).isEqualTo(1L);
-        assertThat(response.getUserId()).isEqualTo("admin123");
         assertThat(response.getAction()).isEqualTo("APPROVE_MODERATION_ITEM");
-        assertThat(response.getResourceType()).isEqualTo("ModerationItem");
-        assertThat(response.getResourceId()).isEqualTo("item123");
+        verify(adminAuditRepository).findByFilters(
+            null, null, null, "APPROVE_MODERATION_ITEM", null, null, pageable);
     }
 
     @Test
@@ -114,18 +142,24 @@ class AdminAuditServiceTest {
         LocalDateTime endDate = LocalDateTime.now();
         Page<AdminAudit> page = new PageImpl<>(List.of(testAudit));
         
-        when(adminAuditRepository.findByUserIdAndActionAndTimestampBetweenOrderByTimestampDesc(
-            "admin123", "APPROVE_MODERATION_ITEM", startDate, endDate, pageable))
+        when(adminAuditRepository.findByFilters(
+            123L, null, null, "APPROVE_MODERATION_ITEM", 
+            startDate.atZone(java.time.ZoneId.systemDefault()).toInstant(), 
+            endDate.atZone(java.time.ZoneId.systemDefault()).toInstant(), pageable))
             .thenReturn(page);
 
         // When
-        Page<AdminAuditResponse> result = adminAuditService.getAuditEntries(
-            "admin123", "APPROVE_MODERATION_ITEM", startDate, endDate, pageable);
+        Page<AdminAuditResponse> result = adminAuditService.getAuditLog(
+            "123", null, null, "APPROVE_MODERATION_ITEM", 
+            startDate.atZone(java.time.ZoneId.systemDefault()).toInstant(), 
+            endDate.atZone(java.time.ZoneId.systemDefault()).toInstant(), pageable);
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        verify(adminAuditRepository).findByUserIdAndActionAndTimestampBetweenOrderByTimestampDesc(
-            "admin123", "APPROVE_MODERATION_ITEM", startDate, endDate, pageable);
+        verify(adminAuditRepository).findByFilters(
+            123L, null, null, "APPROVE_MODERATION_ITEM", 
+            startDate.atZone(java.time.ZoneId.systemDefault()).toInstant(), 
+            endDate.atZone(java.time.ZoneId.systemDefault()).toInstant(), pageable);
     }
 
     @Test
@@ -134,16 +168,18 @@ class AdminAuditServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<AdminAudit> page = new PageImpl<>(List.of(testAudit));
         
-        when(adminAuditRepository.findByUserIdOrderByTimestampDesc("admin123", pageable))
+        when(adminAuditRepository.findByFilters(
+            123L, null, null, null, null, null, pageable))
             .thenReturn(page);
 
         // When
-        Page<AdminAuditResponse> result = adminAuditService.getAuditEntries(
-            "admin123", null, null, null, pageable);
+        Page<AdminAuditResponse> result = adminAuditService.getAuditLog(
+            "123", null, null, null, null, null, pageable);
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        verify(adminAuditRepository).findByUserIdOrderByTimestampDesc("admin123", pageable);
+        verify(adminAuditRepository).findByFilters(
+            123L, null, null, null, null, null, pageable);
     }
 
     @Test
@@ -152,16 +188,18 @@ class AdminAuditServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<AdminAudit> page = new PageImpl<>(List.of(testAudit));
         
-        when(adminAuditRepository.findByActionOrderByTimestampDesc("APPROVE_MODERATION_ITEM", pageable))
+        when(adminAuditRepository.findByFilters(
+            null, null, null, "APPROVE_MODERATION_ITEM", null, null, pageable))
             .thenReturn(page);
 
         // When
-        Page<AdminAuditResponse> result = adminAuditService.getAuditEntries(
-            null, "APPROVE_MODERATION_ITEM", null, null, pageable);
+        Page<AdminAuditResponse> result = adminAuditService.getAuditLog(
+            null, null, null, "APPROVE_MODERATION_ITEM", null, null, pageable);
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        verify(adminAuditRepository).findByActionOrderByTimestampDesc("APPROVE_MODERATION_ITEM", pageable);
+        verify(adminAuditRepository).findByFilters(
+            null, null, null, "APPROVE_MODERATION_ITEM", null, null, pageable);
     }
 
     @Test
@@ -172,15 +210,23 @@ class AdminAuditServiceTest {
         LocalDateTime endDate = LocalDateTime.now();
         Page<AdminAudit> page = new PageImpl<>(List.of(testAudit));
         
-        when(adminAuditRepository.findByTimestampBetweenOrderByTimestampDesc(startDate, endDate, pageable))
+        when(adminAuditRepository.findByFilters(
+            null, null, null, null, 
+            startDate.atZone(java.time.ZoneId.systemDefault()).toInstant(),
+            endDate.atZone(java.time.ZoneId.systemDefault()).toInstant(), pageable))
             .thenReturn(page);
 
         // When
-        Page<AdminAuditResponse> result = adminAuditService.getAuditEntries(
-            null, null, startDate, endDate, pageable);
+        Page<AdminAuditResponse> result = adminAuditService.getAuditLog(
+            null, null, null, null,
+            startDate.atZone(java.time.ZoneId.systemDefault()).toInstant(),
+            endDate.atZone(java.time.ZoneId.systemDefault()).toInstant(), pageable);
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        verify(adminAuditRepository).findByTimestampBetweenOrderByTimestampDesc(startDate, endDate, pageable);
+        verify(adminAuditRepository).findByFilters(
+            null, null, null, null,
+            startDate.atZone(java.time.ZoneId.systemDefault()).toInstant(),
+            endDate.atZone(java.time.ZoneId.systemDefault()).toInstant(), pageable);
     }
 }

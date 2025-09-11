@@ -293,6 +293,111 @@ public class OutboxService {
         outboxEventRepository.save(event);
     }
     
+    // Vendor Response Events
+    public void publishVendorResponseCreatedEvent(VendorResponse vendorResponse) {
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("vendorResponseId", vendorResponse.getId().toString());
+        eventData.put("reviewId", vendorResponse.getReview().getId().toString());
+        eventData.put("vendorUserId", vendorResponse.getVendorUserId());
+        eventData.put("message", vendorResponse.getMessage());
+        eventData.put("listingId", vendorResponse.getReview().getListing().getId().toString());
+        eventData.put("vendorId", vendorResponse.getReview().getVendor().getId().toString());
+        eventData.put("createdAt", vendorResponse.getCreatedAt() != null ? vendorResponse.getCreatedAt().toString() : null);
+        
+        OutboxEvent event = new OutboxEvent(
+            "VendorResponse", 
+            vendorResponse.getId().toString(), 
+            "vendor.response.created", 
+            eventData
+        );
+        
+        outboxEventRepository.save(event);
+    }
+    
+    public void publishVendorResponseUpdatedEvent(VendorResponse vendorResponse) {
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("vendorResponseId", vendorResponse.getId().toString());
+        eventData.put("reviewId", vendorResponse.getReview().getId().toString());
+        eventData.put("vendorUserId", vendorResponse.getVendorUserId());
+        eventData.put("message", vendorResponse.getMessage());
+        eventData.put("listingId", vendorResponse.getReview().getListing().getId().toString());
+        eventData.put("vendorId", vendorResponse.getReview().getVendor().getId().toString());
+        eventData.put("updatedAt", vendorResponse.getUpdatedAt() != null ? vendorResponse.getUpdatedAt().toString() : null);
+        
+        OutboxEvent event = new OutboxEvent(
+            "VendorResponse", 
+            vendorResponse.getId().toString(), 
+            "vendor.response.updated", 
+            eventData
+        );
+        
+        outboxEventRepository.save(event);
+    }
+    
+    public void publishVendorResponseDeletedEvent(VendorResponse vendorResponse) {
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("vendorResponseId", vendorResponse.getId().toString());
+        eventData.put("reviewId", vendorResponse.getReview().getId().toString());
+        eventData.put("vendorUserId", vendorResponse.getVendorUserId());
+        eventData.put("listingId", vendorResponse.getReview().getListing().getId().toString());
+        eventData.put("vendorId", vendorResponse.getReview().getVendor().getId().toString());
+        eventData.put("deletedAt", vendorResponse.getUpdatedAt() != null ? vendorResponse.getUpdatedAt().toString() : null);
+        
+        OutboxEvent event = new OutboxEvent(
+            "VendorResponse", 
+            vendorResponse.getId().toString(), 
+            "vendor.response.deleted", 
+            eventData
+        );
+        
+        outboxEventRepository.save(event);
+    }
+    
+    // Review Flag Events
+    public void publishReviewFlaggedEvent(ReviewFlag reviewFlag) {
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("reviewFlagId", reviewFlag.getId().toString());
+        eventData.put("reviewId", reviewFlag.getReview().getId().toString());
+        eventData.put("reporterUserId", reviewFlag.getReporterUserId());
+        eventData.put("reason", reviewFlag.getReason());
+        eventData.put("status", reviewFlag.getStatus().toString());
+        eventData.put("listingId", reviewFlag.getReview().getListing().getId().toString());
+        eventData.put("vendorId", reviewFlag.getReview().getVendor().getId().toString());
+        eventData.put("createdAt", reviewFlag.getCreatedAt() != null ? reviewFlag.getCreatedAt().toString() : null);
+        
+        OutboxEvent event = new OutboxEvent(
+            "ReviewFlag", 
+            reviewFlag.getId().toString(), 
+            "review.flagged", 
+            eventData
+        );
+        
+        outboxEventRepository.save(event);
+    }
+    
+    public void publishReviewFlagResolvedEvent(ReviewFlag reviewFlag) {
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("reviewFlagId", reviewFlag.getId().toString());
+        eventData.put("reviewId", reviewFlag.getReview().getId().toString());
+        eventData.put("reporterUserId", reviewFlag.getReporterUserId());
+        eventData.put("reason", reviewFlag.getReason());
+        eventData.put("status", reviewFlag.getStatus().toString());
+        eventData.put("decisionNote", reviewFlag.getDecisionNote());
+        eventData.put("resolvedByUserId", reviewFlag.getResolvedByUserId());
+        eventData.put("listingId", reviewFlag.getReview().getListing().getId().toString());
+        eventData.put("vendorId", reviewFlag.getReview().getVendor().getId().toString());
+        eventData.put("resolvedAt", reviewFlag.getUpdatedAt() != null ? reviewFlag.getUpdatedAt().toString() : null);
+        
+        OutboxEvent event = new OutboxEvent(
+            "ReviewFlag", 
+            reviewFlag.getId().toString(), 
+            "review.flag.resolved", 
+            eventData
+        );
+        
+        outboxEventRepository.save(event);
+    }
+    
     // Utility methods
     @Transactional(readOnly = true)
     public List<OutboxEvent> getPendingEvents() {

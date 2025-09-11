@@ -22,11 +22,8 @@ import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
-@Transactional
-public class BookingIntegrationTest {
+public class BookingIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -48,8 +45,8 @@ public class BookingIntegrationTest {
 
     private Vendor testVendor;
     private Listing testListing;
-    private final String testUserId = "test-user-123";
-    private final String testVendorUserId = "test-vendor-456";
+    private final String testUserId = TEST_USER_ID;
+    private final String testVendorUserId = TEST_VENDOR_USER_ID;
 
     @BeforeEach
     void setUp() {
@@ -132,7 +129,7 @@ public class BookingIntegrationTest {
         // Create booking
         mockMvc.perform(post("/api/v1/bookings")
                 .header("X-User-ID", testUserId)
-                .header("X-User-Role", "CUSTOMER")
+                .header("X-User-Role", CUSTOMER_ROLE)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -159,7 +156,7 @@ public class BookingIntegrationTest {
 
         mockMvc.perform(post("/api/v1/bookings")
                 .header("X-User-ID", testUserId)
-                .header("X-User-Role", "CUSTOMER")
+                .header("X-User-Role", CUSTOMER_ROLE)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request1)))
                 .andExpect(status().isCreated());
@@ -175,7 +172,7 @@ public class BookingIntegrationTest {
 
         mockMvc.perform(post("/api/v1/bookings")
                 .header("X-User-ID", "another-user-789")
-                .header("X-User-Role", "CUSTOMER")
+                .header("X-User-Role", CUSTOMER_ROLE)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request2)))
                 .andExpect(status().isBadRequest());

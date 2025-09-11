@@ -3,9 +3,11 @@ package com.hopngo.auth.service;
 import com.hopngo.auth.dto.*;
 import com.hopngo.auth.entity.RefreshToken;
 import com.hopngo.auth.entity.User;
+import com.hopngo.auth.entity.UserFlags;
 import com.hopngo.auth.mapper.UserMapper;
 import com.hopngo.auth.repository.RefreshTokenRepository;
 import com.hopngo.auth.repository.UserRepository;
+import com.hopngo.auth.repository.UserFlagsRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +27,7 @@ public class AuthService {
     
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final UserFlagsRepository userFlagsRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
@@ -34,11 +37,13 @@ public class AuthService {
     
     public AuthService(UserRepository userRepository,
                       RefreshTokenRepository refreshTokenRepository,
+                      UserFlagsRepository userFlagsRepository,
                       JwtService jwtService,
                       PasswordEncoder passwordEncoder,
                       UserMapper userMapper) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.userFlagsRepository = userFlagsRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.userMapper = userMapper;
@@ -145,7 +150,14 @@ public class AuthService {
             throw new RuntimeException("User account is inactive");
         }
         
-        return userMapper.toDto(user);
+        // Get user flags to include verified provider status
+        UserFlags userFlags = userFlagsRepository.findByUserId(userId).orElse(null);
+        boolean isVerifiedProvider = userFlags != null && userFlags.isVerifiedProvider();
+        
+        UserDto userDto = userMapper.toDto(user);
+        userDto.setVerifiedProvider(isVerifiedProvider);
+        
+        return userDto;
     }
     
     /**

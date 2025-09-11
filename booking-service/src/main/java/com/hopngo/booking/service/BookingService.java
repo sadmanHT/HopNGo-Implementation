@@ -9,6 +9,11 @@ import com.hopngo.booking.repository.BookingRepository;
 import com.hopngo.booking.repository.InventoryRepository;
 import com.hopngo.booking.repository.ListingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -44,6 +49,7 @@ public class BookingService {
         this.outboxService = outboxService;
     }
     
+    @CacheEvict(value = "bookings", allEntries = true)
     public Booking createBooking(String userId, UUID listingId, LocalDate startDate, 
                                 LocalDate endDate, Integer guests, String specialRequests) {
         
@@ -128,13 +134,17 @@ public class BookingService {
     }
     
     @Transactional(readOnly = true)
-    public List<Booking> findByUserId(String userId) {
-        return bookingRepository.findByUserId(userId);
+    @Cacheable(value = "bookings", key = "'user:' + #userId + ':' + #page + ':' + #size")
+    public Page<Booking> findByUserId(String userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return bookingRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
     }
     
     @Transactional(readOnly = true)
-    public List<Booking> findByVendorUserId(String vendorUserId) {
-        return bookingRepository.findByVendorUserId(vendorUserId);
+    @Cacheable(value = "bookings", key = "'vendor:' + #vendorUserId + ':' + #page + ':' + #size")
+    public Page<Booking> findByVendorUserId(String vendorUserId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return bookingRepository.findByVendorUserIdOrderByCreatedAtDesc(vendorUserId, pageable);
     }
     
     @Transactional(readOnly = true)
@@ -142,6 +152,7 @@ public class BookingService {
         return bookingRepository.findByBookingReference(bookingReference);
     }
     
+    @CacheEvict(value = "bookings", allEntries = true)
     public Booking confirmBooking(UUID bookingId, String userId) {
         Booking booking = bookingRepository.findById(bookingId)
             .orElseThrow(() -> new IllegalArgumentException("Booking not found: " + bookingId));
@@ -164,6 +175,7 @@ public class BookingService {
         return confirmedBooking;
     }
     
+    @CacheEvict(value = "bookings", allEntries = true)
     public Booking cancelBooking(UUID bookingId, String userId) {
         Booking booking = bookingRepository.findById(bookingId)
             .orElseThrow(() -> new IllegalArgumentException("Booking not found: " + bookingId));

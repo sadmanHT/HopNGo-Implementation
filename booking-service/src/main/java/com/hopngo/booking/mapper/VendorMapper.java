@@ -1,7 +1,7 @@
 package com.hopngo.booking.mapper;
 
 import com.hopngo.booking.dto.VendorCreateRequest;
-import com.hopngo.booking.dto.VendorResponse;
+import com.hopngo.booking.dto.VendorDto;
 import com.hopngo.booking.entity.Vendor;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -19,7 +19,7 @@ public interface VendorMapper {
     @Mapping(source = "phone", target = "contactPhone")
     Vendor toEntity(VendorCreateRequest request);
     
-    VendorResponse toResponse(Vendor vendor);
+    VendorDto toResponse(Vendor vendor);
     
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)

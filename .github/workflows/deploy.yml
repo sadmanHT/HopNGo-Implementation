@@ -1,0 +1,271 @@
+name: Deploy - Environment Promotion
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      force_deploy:
+        description: 'Force deployment (skip checks)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: hopngo
+  KUBECTL_VERSION: v1.28.0
+
+jobs:
+  # Staging deployment (automatic on main branch)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging.hopngo.com
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: ${{ env.KUBECTL_VERSION }}
+        
+    - name: Configure kubectl for staging
+      run: |
+        echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        kubectl config current-context
+        
+    - name: Run database migrations
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🗄️ Running database migrations..."
+        kubectl apply -f infra/k8s/overlays/staging/
+        kubectl wait --for=condition=complete job/db-migration --timeout=300s -n hopngo-staging
+        
+    - name: Deploy to staging with Argo Rollouts
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🚀 Deploying to staging environment..."
+        
+        # Update image tags in kustomization
+        cd infra/k8s/overlays/staging
+        
+        # Update all service images to latest commit SHA
+        services=("auth-service" "booking-service" "gateway" "social-service" "trip-planning-service" "chat-service" "emergency-service" "notification-service" "ai-service" "market-service")
+        
+        for service in "${services[@]}"; do
+          echo "Updating $service image tag..."
+          kustomize edit set image ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/$service=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/$service:${{ github.sha }}
+        done
+        
+        # Apply the deployment
+        kubectl apply -k .
+        
+        # Wait for rollouts to complete
+        for service in "${services[@]}"; do
+          echo "Waiting for $service rollout..."
+          kubectl argo rollouts get rollout $service -n hopngo-staging --watch --timeout=600s
+        done
+        
+    - name: Run staging smoke tests
+      run: |
+        echo "🧪 Running staging smoke tests..."
+        
+        # Wait for services to be ready
+        sleep 60
+        
+        # Test login flow
+        response=$(curl -s -o /dev/null -w "%{http_code}" https://staging.hopngo.com/api/v1/auth/health)
+        if [ "$response" != "200" ]; then
+          echo "❌ Staging health check failed"
+          exit 1
+        fi
+        
+        echo "✅ Staging deployment successful!"
+        
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ Staging deployment completed successfully"
+          echo "🔗 Environment: https://staging.hopngo.com"
+        else
+          echo "❌ Staging deployment failed"
+        fi
+
+  # Production deployment (requires manual approval)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: |
+      (github.ref == 'refs/heads/main' && needs.deploy-staging.result == 'success') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment:
+      name: production
+      url: https://hopngo.com
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: ${{ env.KUBECTL_VERSION }}
+        
+    - name: Configure kubectl for production
+      run: |
+        echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        kubectl config current-context
+        
+    - name: Pre-deployment checks
+      if: github.event.inputs.force_deploy != 'true'
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🔍 Running pre-deployment checks..."
+        
+        # Check staging health
+        staging_health=$(curl -s -o /dev/null -w "%{http_code}" https://staging.hopngo.com/api/v1/auth/health)
+        if [ "$staging_health" != "200" ]; then
+          echo "❌ Staging environment is not healthy (HTTP $staging_health)"
+          exit 1
+        fi
+        
+        # Check production current status
+        prod_health=$(curl -s -o /dev/null -w "%{http_code}" https://hopngo.com/api/v1/auth/health)
+        if [ "$prod_health" != "200" ]; then
+          echo "⚠️ Production environment is not healthy (HTTP $prod_health)"
+          echo "Proceeding with deployment to fix issues..."
+        fi
+        
+        echo "✅ Pre-deployment checks passed"
+        
+    - name: Run database migrations
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🗄️ Running production database migrations..."
+        kubectl apply -f infra/k8s/overlays/production/
+        kubectl wait --for=condition=complete job/db-migration --timeout=300s -n hopngo-production
+        
+    - name: Deploy to production with blue/green strategy
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🚀 Deploying to production environment..."
+        
+        # Update image tags in kustomization
+        cd infra/k8s/overlays/production
+        
+        # Update all service images to latest commit SHA
+        services=("auth-service" "booking-service" "gateway" "social-service" "trip-planning-service" "chat-service" "emergency-service" "notification-service" "ai-service" "market-service")
+        
+        for service in "${services[@]}"; do
+          echo "Updating $service image tag..."
+          kustomize edit set image ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/$service=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/$service:${{ github.sha }}
+        done
+        
+        # Apply the deployment
+        kubectl apply -k .
+        
+        # Wait for rollouts to complete with blue/green strategy
+        for service in "${services[@]}"; do
+          echo "Waiting for $service blue/green rollout..."
+          kubectl argo rollouts get rollout $service -n hopngo-production --watch --timeout=900s
+        done
+        
+    - name: Run production smoke tests
+      run: |
+        echo "🧪 Running production smoke tests..."
+        
+        # Wait for services to be ready
+        sleep 90
+        
+        # Test critical flows
+        tests=("health" "login" "search")
+        
+        for test in "${tests[@]}"; do
+          case $test in
+            "health")
+              response=$(curl -s -o /dev/null -w "%{http_code}" https://hopngo.com/api/v1/auth/health)
+              ;;
+            "login")
+              response=$(curl -s -o /dev/null -w "%{http_code}" https://hopngo.com/api/v1/auth/login -X POST -H "Content-Type: application/json" -d '{}')
+              ;;
+            "search")
+              response=$(curl -s -o /dev/null -w "%{http_code}" https://hopngo.com/api/v1/trips/search)
+              ;;
+          esac
+          
+          if [ "$response" != "200" ] && [ "$response" != "400" ] && [ "$response" != "401" ]; then
+            echo "❌ Production $test test failed (HTTP $response)"
+            exit 1
+          fi
+          
+          echo "✅ Production $test test passed"
+        done
+        
+        echo "✅ Production deployment successful!"
+        
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ Production deployment completed successfully"
+          echo "🔗 Environment: https://hopngo.com"
+          echo "📊 Monitor: https://grafana.hopngo.com"
+        else
+          echo "❌ Production deployment failed"
+          echo "🔄 Consider rolling back if needed"
+        fi
+
+  # Rollback job (manual trigger only)
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && failure()
+    environment:
+      name: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: ${{ env.KUBECTL_VERSION }}
+        
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        
+    - name: Rollback production deployment
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🔄 Rolling back production deployment..."
+        
+        services=("auth-service" "booking-service" "gateway" "social-service" "trip-planning-service" "chat-service" "emergency-service" "notification-service" "ai-service" "market-service")
+        
+        for service in "${services[@]}"; do
+          echo "Rolling back $service..."
+          kubectl argo rollouts undo rollout $service -n hopngo-production
+          kubectl argo rollouts get rollout $service -n hopngo-production --watch --timeout=600s
+        done
+        
+        echo "✅ Rollback completed"

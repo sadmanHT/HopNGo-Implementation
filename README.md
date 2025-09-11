@@ -15,6 +15,18 @@
 [![CI](https://github.com/HopNGo/HopNGo/actions/workflows/ci.yml/badge.svg)](https://github.com/HopNGo/HopNGo/actions/workflows/ci.yml)
 [![Docker Build](https://github.com/HopNGo/HopNGo/actions/workflows/docker.yml/badge.svg)](https://github.com/HopNGo/HopNGo/actions/workflows/docker.yml)
 [![Integration Tests](https://github.com/HopNGo/HopNGo/actions/workflows/it.yml/badge.svg)](https://github.com/HopNGo/HopNGo/actions/workflows/it.yml)
+[![Deploy](https://github.com/HopNGo/HopNGo/actions/workflows/deploy.yml/badge.svg)](https://github.com/HopNGo/HopNGo/actions/workflows/deploy.yml)
+
+## 🚀 Progressive Delivery
+
+HopNGo implements advanced progressive delivery strategies using **Argo Rollouts** for safe, controlled deployments:
+
+- **Blue/Green Deployments** - Zero-downtime deployments with instant rollback capability
+- **Canary Deployments** - Gradual traffic shifting (25% → 50% → 100%) with automated health checks
+- **Feature Flags** - Dark launches and A/B testing for controlled feature rollouts
+- **Automated Rollbacks** - Automatic rollback on SLO violations (error rate >5%, latency >2s)
+- **Manual Approval Gates** - Production deployments require manual approval after staging validation
+- **Smoke Testing** - Post-deployment validation of critical user flows
 
 ## 🏗️ Architecture
 
@@ -27,15 +39,15 @@
 ┌─────────────────────────▼───────────────────────────────────────────────────┐
 │                           API Gateway (Spring Boot)                         │
 │                            http://localhost:8080                           │
-└─┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────┘
-  │         │         │         │         │         │         │         │
-┌─▼─┐     ┌─▼─┐     ┌─▼─┐     ┌─▼─┐     ┌─▼─┐     ┌─▼─┐     ┌─▼─┐     ┌─▼─┐
-│Auth│     │Soc│     │Book│    │Mkt│     │Chat│    │Trip│    │ AI │    │Emg│
-│Svc │     │Svc│     │Svc │    │Svc│     │Svc │    │Svc │    │Svc │    │Svc│
-│:81 │     │:82│     │:83 │    │:84│     │:85 │    │:87 │    │:88 │    │:86│
-└───┘     └───┘     └───┘     └───┘     └───┘     └───┘     └───┘     └───┘
-  │         │         │         │         │         │         │         │
-┌─▼─────────▼─────────▼─────────▼─────────▼─────────▼─────────▼─────────▼─────┐
+└─┬───────┬───────┬───────┬───────┬───────┬───────┬───────┬───────┬───────┘
+  │       │       │       │       │       │       │       │       │
+┌─▼─┐   ┌─▼─┐   ┌─▼─┐   ┌─▼─┐   ┌─▼─┐   ┌─▼─┐   ┌─▼─┐   ┌─▼─┐   ┌─▼─┐
+│Auth│   │Soc│   │Book│  │Mkt│   │Chat│  │Trip│  │ AI │  │Emg│   │Cfg│
+│Svc │   │Svc│   │Svc │  │Svc│   │Svc │  │Svc │  │Svc │  │Svc│   │Svc│
+│:81 │   │:82│   │:83 │  │:84│   │:85 │  │:87 │  │:88 │  │:86│   │:92│
+└───┘   └───┘   └───┘   └───┘   └───┘   └───┘   └───┘   └───┘   └───┘
+  │       │       │       │       │       │       │       │       │
+┌─▼───────▼───────▼───────▼───────▼───────▼───────▼───────▼───────▼───────┐
 │                              Data Layer                                    │
 │  ┌──────────┐  ┌─────────┐  ┌─────────┐  ┌──────────────┐  ┌─────────────┐ │
 │  │PostgreSQL│  │  Redis  │  │ MongoDB │  │Elasticsearch │  │  RabbitMQ   │ │
@@ -67,6 +79,7 @@
 | **AI Service** | 8088 | Spring Boot + Python Integration | AI recommendations and insights | ✅ Implemented |
 | **Emergency Service** | 8086 | Spring Boot + JPA | Emergency assistance and alerts | ✅ Implemented |
 | **Notification Service** | 8089 | Spring Boot + RabbitMQ | Push notifications and alerts | ✅ Implemented |
+| **Config Service** | 8092 | Spring Boot + JPA + Redis | Feature flags and A/B testing | ✅ Implemented |
 
 ## 🛠️ Tech Stack
 
@@ -92,10 +105,12 @@
 ### Infrastructure & DevOps
 - **Docker** - Containerization
 - **Kubernetes** - Container orchestration
+- **Argo Rollouts** - Progressive delivery with blue/green and canary deployments
 - **Helm** - Kubernetes package management
 - **Kustomize** - Kubernetes configuration management
 - **NGINX Ingress** - Load balancing and SSL termination
 - **Cert-Manager** - Automatic SSL certificate management
+- **Flyway** - Database migration management with baseline checks
 
 ### Observability
 - **Prometheus** - Metrics collection
@@ -180,7 +195,26 @@ docker-compose down
 
 ## ☸️ Kubernetes Deployment
 
-### Infrastructure Setup
+### Progressive Delivery with Argo Rollouts
+
+HopNGo uses **Argo Rollouts** for advanced deployment strategies with automated health checks and rollback capabilities.
+
+#### Deployment Strategies
+
+**Blue/Green Deployment** (Gateway Service):
+- Instant traffic switching between versions
+- Zero-downtime deployments
+- Immediate rollback capability
+- Health checks before traffic promotion
+
+**Canary Deployment** (Core Services):
+- Gradual traffic shifting: 25% → 50% → 100%
+- Automated analysis with SLO monitoring
+- Error rate threshold: <5%
+- Latency threshold: <2000ms
+- Automatic rollback on violations
+
+#### Infrastructure Setup
 
 HopNGo includes comprehensive Kubernetes manifests with Helm charts for infrastructure dependencies.
 
@@ -195,6 +229,23 @@ HopNGo includes comprehensive Kubernetes manifests with Helm charts for infrastr
 
 # Deploy to production environment
 .\infra\scripts\install.ps1 install production
+```
+
+#### Progressive Deployment Workflow
+
+```bash
+# Trigger staging deployment (automatic on main branch)
+git push origin main
+
+# Monitor rollout progress
+kubectl argo rollouts get rollout gateway -n hopngo-staging --watch
+
+# Promote to production (requires manual approval)
+# 1. Staging deployment completes successfully
+# 2. Smoke tests pass
+# 3. Manual approval in GitHub Actions
+# 4. Production canary deployment begins
+# 5. Automated analysis and promotion
 ```
 
 #### Manual Deployment
@@ -239,6 +290,9 @@ kubectl apply -k infra/k8s/overlays/dev
 
 ### Kubernetes Features
 
+- **Argo Rollouts** - Progressive delivery with blue/green and canary strategies
+- **Automated Analysis** - SLO-based health checks with automatic rollback
+- **Database Migrations** - Pre-deployment Flyway jobs with baseline validation
 - **Horizontal Pod Autoscaling (HPA)** - Automatic scaling based on CPU/memory
 - **Ingress with SSL termination** - NGINX Ingress Controller with Cert-Manager
 - **ConfigMaps and Secrets** - Environment-specific configuration
@@ -246,6 +300,7 @@ kubectl apply -k infra/k8s/overlays/dev
 - **Resource limits** - CPU and memory constraints
 - **Security policies** - Pod security standards
 - **Network policies** - Service-to-service communication control
+- **Smoke Testing** - Post-deployment validation of critical flows
 
 ## 📊 Observability & Monitoring
 
@@ -344,13 +399,20 @@ HopNGo/
 │
 ├── docs/                           # Documentation
 │   ├── ARCHITECTURE.md
-│   └── github-secrets.md
+│   ├── github-secrets.md
+│   └── runbook-deploy.md           # Deployment runbook
+│
+├── tests/                          # Testing framework
+│   └── smoke/                      # Smoke tests
+│       ├── smoke-tests.js          # Critical flow validation
+│       └── package.json            # Test dependencies
 │
 └── .github/                        # GitHub workflows
     └── workflows/
-        ├── ci.yml
-        ├── docker.yml
-        └── it.yml
+        ├── ci.yml                  # Continuous integration
+        ├── docker.yml              # Container builds
+        ├── it.yml                  # Integration tests
+        └── deploy.yml              # Progressive deployment pipeline
 ```
 
 ## 🌐 Service URLs
@@ -369,6 +431,7 @@ HopNGo/
 - **Trip Planning**: http://localhost:8087
 - **AI Service**: http://localhost:8088
 - **Notification Service**: http://localhost:8089
+- **Config Service**: http://localhost:8092
 
 #### Infrastructure Services
 - **PostgreSQL**: localhost:5432 (hopngo/hopngo_dev_2024!)
@@ -444,6 +507,217 @@ Secrets are managed through Kubernetes Secret objects:
 
 # Create secrets for production
 .\infra\scripts\create-secrets.ps1 production
+```
+
+## 🎛️ Feature Flags & A/B Testing
+
+HopNGo includes a comprehensive feature flag and A/B testing system powered by the config-service. This allows for controlled feature rollouts, experimentation, and dynamic configuration management.
+
+### Overview
+
+The feature flag system consists of:
+- **Config Service** (port 8092) - Backend API for managing flags and experiments
+- **Frontend Hooks** - React hooks for consuming feature flags and experiments
+- **Redis Caching** - Fast flag evaluation with automatic cache invalidation
+- **Database Storage** - PostgreSQL for persistent flag and experiment configuration
+
+### Quick Start
+
+#### 1. Initialize Feature Flags in Frontend
+
+```typescript
+import { initializeFlags } from '@/lib/flags';
+
+// Initialize in your app root (e.g., layout.tsx or _app.tsx)
+useEffect(() => {
+  initializeFlags();
+}, []);
+```
+
+#### 2. Use Feature Flags
+
+```typescript
+import { useFeatureFlag } from '@/lib/flags';
+
+function MyComponent() {
+  const isVisualSearchEnabled = useFeatureFlag('visual-search');
+  
+  return (
+    <div>
+      {isVisualSearchEnabled && (
+        <VisualSearchButton />
+      )}
+      <RegularSearch />
+    </div>
+  );
+}
+```
+
+#### 3. Use A/B Experiments
+
+```typescript
+import { useExperiment } from '@/lib/flags';
+
+function BookingSearch() {
+  const { variant, trackEvent } = useExperiment('booking-search-layout');
+  
+  const handleSearch = () => {
+    trackEvent('search_performed', { query: searchQuery });
+    // ... search logic
+  };
+  
+  if (variant === 'enhanced') {
+    return <EnhancedSearchLayout onSearch={handleSearch} />;
+  }
+  
+  return <CompactSearchLayout onSearch={handleSearch} />;
+}
+```
+
+### API Endpoints
+
+The config-service provides REST APIs for managing feature flags and experiments:
+
+#### Feature Flags
+```bash
+# Get all feature flags for a user
+GET /api/v1/config/flags?userId=123
+
+# Get specific feature flag
+GET /api/v1/config/flags/visual-search?userId=123
+
+# Admin: Create/update feature flag
+POST /api/v1/config/admin/flags
+PUT /api/v1/config/admin/flags/{flagKey}
+```
+
+#### A/B Experiments
+```bash
+# Get user's experiment assignments
+GET /api/v1/config/experiments?userId=123
+
+# Get specific experiment assignment
+GET /api/v1/config/experiments/booking-search-layout?userId=123
+
+# Track experiment events
+POST /api/v1/config/experiments/booking-search-layout/events
+```
+
+### Configuration
+
+#### Environment Variables
+
+```bash
+# Config Service
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/hopngo
+SPRING_REDIS_HOST=localhost
+SPRING_REDIS_PORT=6379
+
+# Frontend
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
+
+#### Database Schema
+
+The system uses four main tables:
+- `feature_flags` - Feature flag definitions and targeting rules
+- `experiments` - A/B experiment configurations
+- `experiment_variants` - Experiment variant definitions with traffic allocation
+- `assignments` - User assignments to experiments and flag overrides
+
+### Sample Data
+
+The system comes with sample feature flags and experiments:
+
+#### Feature Flags
+- **visual-search** - Toggle visual search functionality (50% rollout)
+- **enhanced-booking** - Enhanced booking flow (enabled for premium users)
+- **dark-mode** - Dark mode UI theme (disabled by default)
+
+#### A/B Experiments
+- **booking-search-layout** - Tests compact vs enhanced search layouts (50/50 split)
+- **pricing-display** - Tests different pricing presentation formats
+
+### Advanced Usage
+
+#### Custom Targeting Rules
+
+Feature flags support advanced targeting based on:
+- User segments (premium, new, returning)
+- Geographic location
+- Device type
+- Custom user attributes
+
+#### Event Tracking
+
+Track user interactions for experiment analysis:
+
+```typescript
+const { trackEvent } = useExperiment('booking-search-layout');
+
+// Track conversion events
+trackEvent('booking_completed', {
+  bookingId: 'booking-123',
+  amount: 150.00,
+  variant: 'enhanced'
+});
+
+// Track engagement events
+trackEvent('search_filter_used', {
+  filterType: 'price',
+  variant: 'compact'
+});
+```
+
+#### Cache Management
+
+The system uses Redis for fast flag evaluation:
+- Flags are cached for 5 minutes by default
+- Cache is automatically invalidated when flags are updated
+- Fallback to database if Redis is unavailable
+
+### Monitoring & Analytics
+
+#### Health Checks
+```bash
+# Check config service health
+curl http://localhost:8092/actuator/health
+
+# View flag evaluation metrics
+curl http://localhost:8092/actuator/metrics/flags.evaluations
+```
+
+#### Experiment Results
+
+Experiment events are stored for analysis:
+- Conversion rates by variant
+- User engagement metrics
+- Statistical significance testing
+
+### Best Practices
+
+1. **Flag Naming**: Use kebab-case with descriptive names (e.g., `visual-search`, `enhanced-checkout`)
+2. **Gradual Rollouts**: Start with small percentages and gradually increase
+3. **Cleanup**: Remove unused flags and completed experiments regularly
+4. **Testing**: Test both enabled and disabled states of features
+5. **Documentation**: Document flag purposes and expected behavior
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **Flags not updating**: Check Redis connection and cache TTL
+2. **Experiment assignment inconsistency**: Verify user ID consistency across requests
+3. **Performance issues**: Monitor flag evaluation frequency and optimize caching
+
+#### Debug Logging
+
+```yaml
+# application.yml
+logging:
+  level:
+    com.hopngo.config.service: DEBUG
+    com.hopngo.config.cache: DEBUG
 ```
 
 ## 💳 Payment Setup
@@ -644,14 +918,44 @@ cd frontend && pnpm test:e2e
 
 ## 🚀 Deployment
 
-### CI/CD Pipeline
+### CI/CD Pipeline with Progressive Delivery
 
-GitHub Actions workflows handle:
+GitHub Actions workflows implement a comprehensive progressive delivery pipeline:
 
-- **Continuous Integration**: Code quality, tests, security scans
+#### Continuous Integration
+- **Code Quality**: ESLint, SonarQube, security scans
+- **Testing**: Unit tests, integration tests, contract testing
 - **Docker Build**: Multi-architecture container images
-- **Integration Tests**: Cross-service testing
-- **Deployment**: Automated deployment to staging/production
+- **Security**: Container image scanning, dependency checks
+
+#### Progressive Deployment Pipeline
+
+**Staging Deployment** (Automatic on main branch):
+1. **Pre-deployment**: Database migrations with Flyway
+2. **Deployment**: Argo Rollouts with health checks
+3. **Validation**: Smoke tests for critical user flows
+4. **Notification**: Slack/Teams deployment status
+
+**Production Deployment** (Manual approval required):
+1. **Prerequisites**: Successful staging deployment + smoke tests
+2. **Manual Approval**: GitHub Actions approval gate
+3. **Canary Deployment**: 25% → 50% → 100% traffic shifting
+4. **Automated Analysis**: SLO monitoring (error rate <5%, latency <2s)
+5. **Auto-rollback**: Immediate rollback on SLO violations
+6. **Smoke Testing**: Post-deployment validation
+
+**Rollback Capabilities**:
+- **Manual Rollback**: One-click rollback via GitHub Actions
+- **Automated Rollback**: Triggered by SLO violations
+- **Database Rollback**: Flyway-managed schema rollbacks
+
+#### Deployment Runbook
+
+See [docs/runbook-deploy.md](docs/runbook-deploy.md) for comprehensive deployment procedures, including:
+- Pre-deployment checklists
+- Monitoring and observability
+- Troubleshooting guides
+- Emergency procedures
 
 ### Manual Deployment
 

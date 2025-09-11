@@ -7,6 +7,8 @@ import com.hopngo.social.entity.Post;
 import com.hopngo.social.repository.CommentRepository;
 import com.hopngo.social.repository.PostRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +27,7 @@ public class CommentService {
     @Autowired
     private PostRepository postRepository;
     
+    @CacheEvict(value = "comments", allEntries = true)
     public CommentResponse createComment(CreateCommentRequest request, String userId) {
         // Verify post exists
         Optional<Post> postOpt = postRepository.findById(request.getPostId());
@@ -49,6 +52,7 @@ public class CommentService {
         return convertToCommentResponse(savedComment);
     }
     
+    @Cacheable(value = "comments", key = "'post:' + #postId + ':' + #page + ':' + #size")
     public Page<CommentResponse> getCommentsByPostId(String postId, int page, int size) {
         // Verify post exists
         if (!postRepository.existsById(postId)) {
@@ -66,6 +70,7 @@ public class CommentService {
         return comments.map(this::convertToCommentResponse);
     }
     
+    @CacheEvict(value = "comments", allEntries = true)
     public boolean deleteComment(String commentId, String userId) {
         Optional<Comment> commentOpt = commentRepository.findById(commentId);
         if (commentOpt.isEmpty()) {

@@ -1,0 +1,172 @@
+server:
+  port: 8093
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
+
+spring:
+  application:
+    name: analytics-service
+  profiles:
+    active: dev
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/hopngo_analytics
+    username: hopngo_user
+    password: hopngo_pass
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+    open-in-view: false
+  
+  # Flyway Configuration
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+  
+  # RabbitMQ Configuration
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: hopngo_user
+    password: hopngo_pass
+    virtual-host: /hopngo
+    connection-timeout: 60000
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+          multiplier: 2
+        default-requeue-rejected: false
+        acknowledge-mode: manual
+  
+  # Jackson Configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non_null
+  
+  # Cache Configuration
+  cache:
+    type: simple
+    cache-names:
+      - events
+      - metrics
+      - sessions
+
+# Eureka Client Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+    metadata-map:
+      management.context-path: /actuator
+
+# Management and Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,flyway
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      service: analytics-service
+      environment: ${spring.profiles.active}
+
+# Logging Configuration
+logging:
+  level:
+    com.hopngo.analytics: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.springframework.amqp: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{36}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{36}] - %msg%n"
+  file:
+    name: logs/analytics-service.log
+    max-size: 100MB
+    max-history: 30
+
+# Analytics Service Specific Configuration
+analytics:
+  # Event Processing Configuration
+  events:
+    batch:
+      max-size: 100
+      timeout-ms: 5000
+    deduplication:
+      enabled: true
+      cache-size: 10000
+      ttl-minutes: 60
+    privacy:
+      filter-bots: true
+      filter-internal-ips: true
+      anonymize-ips: true
+      require-consent: false
+  
+  # Rate Limiting Configuration
+  rate-limit:
+    enabled: true
+    requests-per-minute: 1000
+    burst-capacity: 100
+  
+  # Aggregation Configuration
+  aggregation:
+    enabled: true
+    batch-size: 1000
+    schedule:
+      hourly: "0 5 * * * *"  # Every hour at 5 minutes past
+      daily: "0 10 1 * * *"   # Every day at 1:10 AM
+      weekly: "0 15 2 * * 1"  # Every Monday at 2:15 AM
+  
+  # Data Retention Configuration
+  retention:
+    raw-events-days: 90
+    aggregated-metrics-days: 365
+    user-sessions-days: 30

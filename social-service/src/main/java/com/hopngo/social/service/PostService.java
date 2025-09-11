@@ -9,6 +9,8 @@ import com.hopngo.social.service.EventPublisher;
 import com.hopngo.social.service.AiModerationService;
 import com.hopngo.social.service.AiModerationService.ModerationResult;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +42,7 @@ public class PostService {
     
     // SearchIndexingService removed due to missing dependencies
     
+    @CacheEvict(value = {"socialFeed", "userPosts"}, allEntries = true)
     public PostResponse createPost(CreatePostRequest request, String userId) {
         Post.Location location = null;
         if (request.getLocation() != null) {
@@ -102,6 +105,7 @@ public class PostService {
         return Optional.empty();
     }
     
+    @Cacheable(value = "socialFeed", key = "'feed:' + #page + ':' + #size + ':' + #currentUserId")
     public Page<PostResponse> getFeed(int page, int size, String currentUserId) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Post> posts = postRepository.findAllByOrderByCreatedAtDesc(pageable);
@@ -119,6 +123,7 @@ public class PostService {
         throw new RuntimeException("Post not found");
     }
     
+    @CacheEvict(value = "bookmarks", allEntries = true)
     public boolean toggleBookmark(String postId, String userId) {
         // Check if post exists
         if (!postRepository.existsById(postId)) {
@@ -135,6 +140,7 @@ public class PostService {
         }
     }
     
+    @Cacheable(value = "userPosts", key = "'user:' + #userId + ':' + #page + ':' + #size + ':' + #currentUserId")
     public Page<PostResponse> getUserPosts(String userId, int page, int size, String currentUserId) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Post> posts;
@@ -149,6 +155,7 @@ public class PostService {
         return posts.map(post -> convertToPostResponse(post, currentUserId));
     }
     
+    @Cacheable(value = "bookmarks", key = "'user:' + #userId + ':' + #page + ':' + #size")
     public Page<PostResponse> getBookmarkedPosts(String userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<com.hopngo.social.entity.Bookmark> bookmarks = bookmarkRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
@@ -206,6 +213,7 @@ public class PostService {
     /**
      * Update post visibility (used by admin service)
      */
+    @CacheEvict(value = {"socialFeed", "userPosts"}, allEntries = true)
     public void updatePostVisibility(String postId, Post.Visibility visibility) {
         Optional<Post> postOpt = postRepository.findById(postId);
         if (postOpt.isPresent()) {

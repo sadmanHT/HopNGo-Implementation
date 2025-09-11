@@ -1,11 +1,26 @@
 server:
   port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
+    min-response-size: 1024
+  http2:
+    enabled: true
 
 spring:
   application:
     name: gateway
   cloud:
     gateway:
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 30s
+        pool:
+          type: elastic
+          max-idle-time: 15s
+          max-life-time: 60s
+      httpserver:
+        idle-timeout: 30s
       routes:
         # Auth Service
         - id: auth-service
@@ -80,11 +95,29 @@ spring:
           filters:
             - name: JwtAuthenticationFilter
         
+        # Config Service
+        - id: config-service
+          uri: http://config-service:8092
+          predicates:
+            - Path=/api/v1/config/**
+          filters:
+            - name: JwtAuthenticationFilter
+            - StripPrefix=2
+        
         # Admin Service
         - id: admin-service
           uri: http://admin-service:8090
           predicates:
             - Path=/api/v1/admin/**
+          filters:
+            - name: JwtAuthenticationFilter
+            - StripPrefix=2
+        
+        # Analytics Service
+        - id: analytics-service
+          uri: http://analytics-service:8093
+          predicates:
+            - Path=/api/v1/analytics/**
           filters:
             - name: JwtAuthenticationFilter
             - StripPrefix=2
@@ -110,6 +143,25 @@ spring:
             allowedHeaders: "*"
             allowCredentials: true
             maxAge: 3600
+      default-filters:
+         - name: AcceptLanguageFilter
+         - name: ETagFilter
+         - name: AddResponseHeader
+           args:
+             name: Cache-Control
+             value: "public, max-age=300"
+         - name: AddResponseHeader
+           args:
+             name: X-Content-Type-Options
+             value: nosniff
+         - name: AddResponseHeader
+           args:
+             name: X-Frame-Options
+             value: DENY
+         - name: AddResponseHeader
+           args:
+             name: Vary
+             value: "Accept-Encoding, Authorization, Accept-Language"
 
 # Actuator configuration
 management:

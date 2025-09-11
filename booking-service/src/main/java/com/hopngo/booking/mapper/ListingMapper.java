@@ -15,6 +15,7 @@ public interface ListingMapper {
     @Mapping(source = "vendorId", target = "vendor.id")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(source = "cancellationPolicies", target = "cancellationPolicies")
     Listing toEntity(ListingCreateRequest request);
     
     @Mapping(source = "vendor.id", target = "vendorId")
@@ -25,5 +26,6 @@ public interface ListingMapper {
     @Mapping(source = "vendorId", target = "vendor.id")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(source = "cancellationPolicies", target = "cancellationPolicies")
     void updateEntity(ListingCreateRequest request, @MappingTarget Listing listing);
 }

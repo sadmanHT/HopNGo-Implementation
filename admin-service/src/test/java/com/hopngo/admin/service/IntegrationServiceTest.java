@@ -45,7 +45,7 @@ class IntegrationServiceTest {
             .thenReturn(response);
 
         // When
-        integrationService.removeSocialPost("post123", "Inappropriate content");
+        integrationService.removeSocialPost(Long.valueOf("post123"), "Inappropriate content");
 
         // Then
         verify(restTemplate).exchange(
@@ -64,7 +64,7 @@ class IntegrationServiceTest {
             .thenReturn(response);
 
         // When & Then
-        assertThatThrownBy(() -> integrationService.removeSocialPost("post123", "reason"))
+        assertThatThrownBy(() -> integrationService.removeSocialPost(Long.valueOf("post123"), "reason"))
             .isInstanceOf(RuntimeException.class)
             .hasMessage("Failed to remove social post");
     }
@@ -76,7 +76,7 @@ class IntegrationServiceTest {
             .thenThrow(new RestClientException("Connection failed"));
 
         // When & Then
-        assertThatThrownBy(() -> integrationService.removeSocialPost("post123", "reason"))
+        assertThatThrownBy(() -> integrationService.removeSocialPost(Long.valueOf("post123"), "reason"))
             .isInstanceOf(RuntimeException.class)
             .hasMessage("Social post removal failed");
     }
@@ -89,7 +89,7 @@ class IntegrationServiceTest {
             .thenReturn(response);
 
         // When
-        integrationService.removeSocialComment("comment123", "Spam content");
+        integrationService.removeSocialComment(Long.valueOf("comment123"), "Spam content");
 
         // Then
         verify(restTemplate).exchange(
@@ -108,7 +108,7 @@ class IntegrationServiceTest {
             .thenReturn(response);
 
         // When
-        integrationService.removeMarketListing("listing123", "Fraudulent listing");
+        integrationService.removeMarketListing(Long.valueOf("listing123"), "Fraudulent listing");
 
         // Then
         verify(restTemplate).exchange(
@@ -127,7 +127,7 @@ class IntegrationServiceTest {
             .thenReturn(response);
 
         // When
-        integrationService.removeBookingTrip("trip123", "Unsafe trip");
+        integrationService.removeBookingTrip(Long.valueOf("trip123"), "Unsafe trip");
 
         // Then
         verify(restTemplate).exchange(
@@ -193,7 +193,7 @@ class IntegrationServiceTest {
             .thenReturn(response);
 
         // When
-        boolean result = integrationService.removeContent(ModerationItemType.POST, "post123");
+        boolean result = integrationService.removeContent(ModerationItemType.POST, Long.valueOf("post123"));
 
         // Then
         assertThat(result).isTrue();
@@ -213,7 +213,7 @@ class IntegrationServiceTest {
             .thenReturn(response);
 
         // When
-        boolean result = integrationService.removeContent(ModerationItemType.LISTING, "listing123");
+        boolean result = integrationService.removeContent(ModerationItemType.LISTING, Long.valueOf("listing123"));
 
         // Then
         assertThat(result).isTrue();

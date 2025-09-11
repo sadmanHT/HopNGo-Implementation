@@ -87,6 +87,26 @@ services:
       - ./frontend:/app
       - /app/node_modules
 
+  # OSRM routing service
+  osrm:
+    image: osrm/osrm-backend:latest
+    container_name: hopngo-osrm
+    ports:
+      - "5000:5000"
+    volumes:
+      - osrm_data:/data
+    command: >
+      sh -c "if [ ! -f /data/bangladesh-latest.osrm ]; then
+        wget -O /data/bangladesh-latest.osm.pbf https://download.geofabrik.com/asia/bangladesh-latest.osm.pbf &&
+        osrm-extract -p /opt/car.lua /data/bangladesh-latest.osm.pbf &&
+        osrm-partition /data/bangladesh-latest.osrm &&
+        osrm-customize /data/bangladesh-latest.osrm;
+      fi &&
+      osrm-routed --algorithm mld /data/bangladesh-latest.osrm"
+    networks:
+      - hopngo-network
+    restart: unless-stopped
+
   # Nginx reverse proxy
   nginx:
     image: nginx:alpine
@@ -106,6 +126,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  osrm_data:
 
 networks:
   hopngo-network:

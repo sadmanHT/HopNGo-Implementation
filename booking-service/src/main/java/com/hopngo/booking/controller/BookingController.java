@@ -4,12 +4,15 @@ import com.hopngo.booking.dto.*;
 import com.hopngo.booking.entity.*;
 import com.hopngo.booking.mapper.*;
 import com.hopngo.booking.service.*;
+import com.hopngo.booking.service.RefundCalculationService;
+import com.hopngo.booking.util.PaginationValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +39,7 @@ public class BookingController {
     private final ListingService listingService;
     private final BookingService bookingService;
     private final ReviewService reviewService;
+    private final RefundCalculationService refundCalculationService;
     private final VendorMapper vendorMapper;
     private final ListingMapper listingMapper;
     private final BookingMapper bookingMapper;
@@ -45,6 +50,7 @@ public class BookingController {
                            ListingService listingService,
                            BookingService bookingService,
                            ReviewService reviewService,
+                           RefundCalculationService refundCalculationService,
                            VendorMapper vendorMapper,
                            ListingMapper listingMapper,
                            BookingMapper bookingMapper,
@@ -53,6 +59,7 @@ public class BookingController {
         this.listingService = listingService;
         this.bookingService = bookingService;
         this.reviewService = reviewService;
+        this.refundCalculationService = refundCalculationService;
         this.vendorMapper = vendorMapper;
         this.listingMapper = listingMapper;
         this.bookingMapper = bookingMapper;
@@ -63,7 +70,7 @@ public class BookingController {
     
     @PostMapping("/vendors")
     @Operation(summary = "Create vendor profile", description = "Create a new vendor profile for PROVIDER users")
-    public ResponseEntity<VendorResponse> createVendor(
+    public ResponseEntity<VendorDto> createVendor(
             @RequestHeader("X-User-ID") String userId,
             @RequestHeader("X-User-Role") String userRole,
             @Valid @RequestBody VendorCreateRequest request) {
@@ -86,7 +93,7 @@ public class BookingController {
     
     @GetMapping("/vendors/me")
     @Operation(summary = "Get my vendor profile")
-    public ResponseEntity<VendorResponse> getMyVendorProfile(
+    public ResponseEntity<VendorDto> getMyVendorProfile(
             @RequestHeader("X-User-ID") String userId) {
         
         Optional<Vendor> vendor = vendorService.findByUserId(userId);
@@ -96,7 +103,7 @@ public class BookingController {
     
     @PutMapping("/vendors/me")
     @Operation(summary = "Update my vendor profile")
-    public ResponseEntity<VendorResponse> updateMyVendorProfile(
+    public ResponseEntity<VendorDto> updateMyVendorProfile(
             @RequestHeader("X-User-ID") String userId,
             @Valid @RequestBody VendorCreateRequest request) {
         
@@ -136,7 +143,7 @@ public class BookingController {
             userId, listing.getTitle(), listing.getDescription(), "ACCOMMODATION", // default category
             listing.getBasePrice(), "USD", listing.getMaxGuests(),
             listing.getAmenities(), listing.getImages(), listing.getAddress(),
-            listing.getLatitude(), listing.getLongitude()
+            listing.getLatitude(), listing.getLongitude(), listing.getCancellationPolicies()
         );
         
         ListingResponse response = listingMapper.toResponse(listing);
@@ -144,8 +151,8 @@ public class BookingController {
     }
     
     @GetMapping("/listings")
-    @Operation(summary = "Search listings", description = "Search listings with filters")
-    public ResponseEntity<List<ListingResponse>> searchListings(
+    @Operation(summary = "Search listings", description = "Search listings with filters and pagination")
+    public ResponseEntity<Page<ListingResponse>> searchListings(
             @RequestParam(required = false) @Parameter(description = "Latitude for geo search") Double lat,
             @RequestParam(required = false) @Parameter(description = "Longitude for geo search") Double lng,
             @RequestParam(required = false) @Parameter(description = "Search radius in km") Double radius,
@@ -155,15 +162,18 @@ public class BookingController {
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Integer maxGuests,
-            @RequestParam(required = false) List<String> amenities) {
+            @RequestParam(required = false) List<String> amenities,
+            @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size (max 50)") @RequestParam(defaultValue = "20") int size) {
         
-        List<Listing> listings = listingService.searchListings(
-            lat, lng, radius, from, to, minPrice, maxPrice, category, maxGuests, amenities
+        PaginationValidator.ValidatedPagination pagination = PaginationValidator.validate(page, size);
+        
+        Page<Listing> listings = listingService.searchListings(
+            lat, lng, radius, from, to, minPrice, maxPrice, category, maxGuests, amenities,
+            pagination.getPage(), pagination.getSize()
         );
         
-        List<ListingResponse> responses = listings.stream()
-            .map(listingMapper::toResponse)
-            .collect(Collectors.toList());
+        Page<ListingResponse> responses = listings.map(listingMapper::toResponse);
         
         return ResponseEntity.ok(responses);
     }
@@ -178,13 +188,14 @@ public class BookingController {
     
     @GetMapping("/listings/me")
     @Operation(summary = "Get my listings")
-    public ResponseEntity<List<ListingResponse>> getMyListings(
-            @RequestHeader("X-User-ID") String userId) {
+    public ResponseEntity<Page<ListingResponse>> getMyListings(
+            @RequestHeader("X-User-ID") String userId,
+            @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size (max 50)") @RequestParam(defaultValue = "20") int size) {
         
-        List<Listing> listings = listingService.findByVendorUserId(userId);
-        List<ListingResponse> responses = listings.stream()
-            .map(listingMapper::toResponse)
-            .collect(Collectors.toList());
+        PaginationValidator.ValidatedPagination pagination = PaginationValidator.validate(page, size);
+        Page<Listing> listings = listingService.findByVendorUserId(userId, pagination.getPage(), pagination.getSize());
+        Page<ListingResponse> responses = listings.map(listingMapper::toResponse);
         return ResponseEntity.ok(responses);
     }
     
@@ -206,7 +217,7 @@ public class BookingController {
             listingId, userId, listing.getTitle(), listing.getDescription(),
             "ACCOMMODATION", listing.getBasePrice(), "USD",
             listing.getMaxGuests(), listing.getAmenities(), listing.getImages(),
-            listing.getAddress(), listing.getLatitude(), listing.getLongitude()
+            listing.getAddress(), listing.getLatitude(), listing.getLongitude(), listing.getCancellationPolicies()
         );
         
         ListingResponse response = listingMapper.toResponse(listing);
@@ -260,25 +271,27 @@ public class BookingController {
     
     @GetMapping
     @Operation(summary = "Get my bookings")
-    public ResponseEntity<List<BookingResponse>> getMyBookings(
-            @RequestHeader("X-User-ID") String userId) {
+    public ResponseEntity<Page<BookingResponse>> getMyBookings(
+            @RequestHeader("X-User-ID") String userId,
+            @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size (max 50)") @RequestParam(defaultValue = "20") int size) {
         
-        List<Booking> bookings = bookingService.findByUserId(userId);
-        List<BookingResponse> responses = bookings.stream()
-            .map(bookingMapper::toResponse)
-            .collect(Collectors.toList());
+        PaginationValidator.ValidatedPagination pagination = PaginationValidator.validate(page, size);
+        Page<Booking> bookings = bookingService.findByUserId(userId, pagination.getPage(), pagination.getSize());
+        Page<BookingResponse> responses = bookings.map(bookingMapper::toResponse);
         return ResponseEntity.ok(responses);
     }
     
     @GetMapping("/vendor")
     @Operation(summary = "Get bookings for my listings")
-    public ResponseEntity<List<BookingResponse>> getVendorBookings(
-            @RequestHeader("X-User-ID") String userId) {
+    public ResponseEntity<Page<BookingResponse>> getVendorBookings(
+            @RequestHeader("X-User-ID") String userId,
+            @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size (max 50)") @RequestParam(defaultValue = "20") int size) {
         
-        List<Booking> bookings = bookingService.findByVendorUserId(userId);
-        List<BookingResponse> responses = bookings.stream()
-            .map(bookingMapper::toResponse)
-            .collect(Collectors.toList());
+        PaginationValidator.ValidatedPagination pagination = PaginationValidator.validate(page, size);
+        Page<Booking> bookings = bookingService.findByVendorUserId(userId, pagination.getPage(), pagination.getSize());
+        Page<BookingResponse> responses = bookings.map(bookingMapper::toResponse);
         return ResponseEntity.ok(responses);
     }
     
@@ -322,7 +335,53 @@ public class BookingController {
         
         return ResponseEntity.badRequest().build();
     }
-    
+
+    @PostMapping("/{bookingId}/cancel")
+    @Operation(summary = "Cancel booking with refund calculation", description = "Cancel a booking and calculate refund based on cancellation policies")
+    public ResponseEntity<CancellationResponse> cancelBookingWithRefund(
+            @PathVariable UUID bookingId,
+            @RequestHeader("X-User-ID") String userId,
+            @Valid @RequestBody CancellationRequest request) {
+        
+        // Get the booking and verify ownership
+        Optional<Booking> optionalBooking = bookingService.findById(bookingId);
+        if (optionalBooking.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        Booking booking = optionalBooking.get();
+        
+        // Check if user owns the booking
+        if (!booking.getUserId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        // Check if booking can be cancelled
+        if ("CANCELLED".equals(booking.getStatus()) || "COMPLETED".equals(booking.getStatus())) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        // Calculate refund
+        RefundCalculationService.RefundCalculationResult refundResult = 
+            refundCalculationService.calculateRefund(booking);
+        
+        // Cancel the booking
+        Booking cancelledBooking = bookingService.cancelBooking(bookingId, userId);
+        
+        // Create response
+        CancellationResponse response = new CancellationResponse(
+            cancelledBooking.getId(),
+            cancelledBooking.getBookingReference(),
+            cancelledBooking.getStatus(),
+            refundResult.getRefundAmount(),
+            refundResult.getRefundType(),
+            request.reason(),
+            LocalDateTime.now()
+        );
+        
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/reference/{bookingReference}")
     @Operation(summary = "Get booking by reference")
     public ResponseEntity<BookingResponse> getBookingByReference(

@@ -2,6 +2,8 @@ package com.hopngo.booking.repository;
 
 import com.hopngo.booking.entity.Booking;
 import com.hopngo.booking.entity.BookingStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -85,13 +87,17 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Param("status") BookingStatus status
     );
     
-    @Query("SELECT b FROM Booking b WHERE b.userId = :userId " +
+    @Query("SELECT b FROM Booking b JOIN FETCH b.listing JOIN FETCH b.vendor WHERE b.userId = :userId " +
            "ORDER BY b.createdAt DESC")
-    List<Booking> findByUserIdOrderByCreatedAtDesc(@Param("userId") String userId);
+    Page<Booking> findByUserIdOrderByCreatedAtDesc(@Param("userId") String userId, Pageable pageable);
     
-    @Query("SELECT b FROM Booking b WHERE b.vendor.id = :vendorId " +
+    @Query("SELECT b FROM Booking b JOIN FETCH b.listing JOIN FETCH b.vendor WHERE b.vendor.id = :vendorId " +
            "ORDER BY b.createdAt DESC")
-    List<Booking> findByVendorIdOrderByCreatedAtDesc(@Param("vendorId") UUID vendorId);
+    Page<Booking> findByVendorIdOrderByCreatedAtDesc(@Param("vendorId") UUID vendorId, Pageable pageable);
+    
+    @Query("SELECT b FROM Booking b JOIN FETCH b.listing JOIN FETCH b.vendor WHERE b.vendor.userId = :vendorUserId " +
+           "ORDER BY b.createdAt DESC")
+    Page<Booking> findByVendorUserIdOrderByCreatedAtDesc(@Param("vendorUserId") String vendorUserId, Pageable pageable);
     
     @Query("SELECT SUM(b.totalAmount) FROM Booking b WHERE b.vendor.id = :vendorId AND " +
            "b.status = 'CONFIRMED' AND " +

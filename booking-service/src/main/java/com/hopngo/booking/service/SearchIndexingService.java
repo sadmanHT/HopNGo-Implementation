@@ -1,8 +1,8 @@
 package com.hopngo.booking.service;
 
 import com.hopngo.booking.entity.Listing;
-import com.hopngo.search.client.helper.ListingsIndexHelper;
-import com.hopngo.search.client.model.ListingDocument;
+import com.hopngo.search.helper.ListingsIndexHelper;
+import com.hopngo.search.helper.ListingsIndexHelper.ListingDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -105,20 +105,16 @@ public class SearchIndexingService {
         doc.setId(listing.getId().toString());
         doc.setTitle(listing.getTitle());
         doc.setDescription(listing.getDescription());
-        doc.setCategory(listing.getCategory());
-        doc.setBasePrice(listing.getBasePrice());
-        doc.setCurrency(listing.getCurrency());
-        doc.setMaxGuests(listing.getMaxGuests());
-        doc.setAmenities(listing.getAmenities() != null ? List.of(listing.getAmenities()) : List.of());
-        doc.setImages(listing.getImages() != null ? List.of(listing.getImages()) : List.of());
-        doc.setAddress(listing.getAddress());
-        doc.setLatitude(listing.getLatitude());
-        doc.setLongitude(listing.getLongitude());
-        doc.setStatus(listing.getStatus().name());
+        doc.setPrice(listing.getBasePrice() != null ? listing.getBasePrice().doubleValue() : 0.0);
+        doc.setAmenities(listing.getAmenities() != null ? List.of(listing.getAmenities().split(",")) : List.of());
+        if (listing.getLatitude() != null && listing.getLongitude() != null) {
+            ListingsIndexHelper.GeoLocation geo = new ListingsIndexHelper.GeoLocation(
+                listing.getLatitude(), listing.getLongitude()
+            );
+            doc.setGeo(geo);
+        }
         doc.setVendorId(listing.getVendor().getId().toString());
-        doc.setVendorName(listing.getVendor().getBusinessName());
-        doc.setCreatedAt(listing.getCreatedAt());
-        doc.setUpdatedAt(listing.getUpdatedAt());
+        doc.setRating(4.5f); // Default rating as Float
         return doc;
     }
 }

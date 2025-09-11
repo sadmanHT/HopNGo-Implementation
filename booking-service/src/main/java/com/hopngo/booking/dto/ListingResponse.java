@@ -1,5 +1,6 @@
 package com.hopngo.booking.dto;
 
+import com.hopngo.booking.entity.CancellationPolicies;
 import com.hopngo.booking.entity.Listing.ListingStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ public record ListingResponse(
     List<String> amenities,
     List<String> images,
     ListingStatus status,
+    CancellationPolicies cancellationPolicies,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {}

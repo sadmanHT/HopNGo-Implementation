@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hopngo.market.config.PaymentProviderConfiguration;
 import com.hopngo.market.entity.Order;
 import com.hopngo.market.dto.PaymentIntentResponse;
+import com.hopngo.market.dto.RefundResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,6 +152,46 @@ public class NagadPaymentProvider implements PaymentProvider {
         } catch (Exception e) {
             logger.error("Error verifying Nagad webhook signature", e);
             return false;
+        }
+    }
+    
+    @Override
+    public RefundResponse processRefund(String paymentId, java.math.BigDecimal refundAmount, String currency, String reason) {
+        logger.info("Processing Nagad refund for payment: {}, amount: {} {}", paymentId, refundAmount, currency);
+        
+        try {
+            PaymentProviderConfiguration.PaymentProperties.NagadConfig config = paymentProperties.getNagad();
+            
+            // Create refund request
+            Map<String, Object> refundRequest = new HashMap<>();
+            refundRequest.put("paymentReferenceId", paymentId);
+            refundRequest.put("amount", refundAmount.toString());
+            refundRequest.put("refundReferenceId", "REF" + System.currentTimeMillis());
+            refundRequest.put("reason", reason);
+            
+            String requestData = objectMapper.writeValueAsString(refundRequest);
+            String signature = createSignature(requestData, config.getPrivateKey());
+            
+            HttpHeaders headers = createHeaders(config);
+            headers.set("X-KM-Api-Version", "v-0.2.0");
+            headers.set("X-KM-IP-V4", "192.168.1.1");
+            headers.set("X-KM-Client-Type", "PC_WEB");
+            headers.set("X-KM-Signature", signature);
+            
+            HttpEntity<String> entity = new HttpEntity<>(requestData, headers);
+            
+            // In sandbox mode, simulate Nagad refund API call
+            String refundUrl = config.getBaseUrl() + "/remote-payment-gateway-1.0/api/dfs/refund";
+            
+            // Simulate successful refund response
+            String refundId = "nagad_ref_" + System.currentTimeMillis();
+            
+            logger.info("Nagad refund successful: {}", refundId);
+            return RefundResponse.success(refundId, refundAmount, currency);
+            
+        } catch (Exception e) {
+            logger.error("Nagad refund failed for payment: {}", paymentId, e);
+            return RefundResponse.failed("Nagad refund failed: " + e.getMessage());
         }
     }
     

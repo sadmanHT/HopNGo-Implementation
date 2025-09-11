@@ -1,0 +1,19 @@
+{
+  "name": "openapi-aggregator",
+  "version": "1.0.0",
+  "description": "Aggregates OpenAPI specs from all HopNGo microservices",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "fs-extra": "^11.2.0",
+    "chalk": "^5.3.0"
+  },
+  "keywords": ["openapi", "swagger", "microservices", "hopngo"],
+  "author": "HopNGo Team",
+  "license": "MIT"
+}
