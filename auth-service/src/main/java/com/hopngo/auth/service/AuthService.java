@@ -31,6 +31,9 @@ public class AuthService {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
+    private final TwoFactorAuthService twoFactorAuthService;
+    private final PasswordValidationService passwordValidationService;
+    private final AccountLockoutService accountLockoutService;
     
     @Value("${jwt.refresh-expiration}")
     private long refreshTokenExpiration;
@@ -40,13 +43,19 @@ public class AuthService {
                       UserFlagsRepository userFlagsRepository,
                       JwtService jwtService,
                       PasswordEncoder passwordEncoder,
-                      UserMapper userMapper) {
+                      UserMapper userMapper,
+                      TwoFactorAuthService twoFactorAuthService,
+                      PasswordValidationService passwordValidationService,
+                      AccountLockoutService accountLockoutService) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.userFlagsRepository = userFlagsRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.userMapper = userMapper;
+        this.twoFactorAuthService = twoFactorAuthService;
+        this.passwordValidationService = passwordValidationService;
+        this.accountLockoutService = accountLockoutService;
     }
     
     /**
@@ -58,6 +67,15 @@ public class AuthService {
         // Check if user already exists
         if (userRepository.existsByEmailIgnoreCase(request.getEmail())) {
             throw new RuntimeException("User with email " + request.getEmail() + " already exists");
+        }
+        
+        // Validate password
+        PasswordValidationService.PasswordValidationResult validation = 
+                passwordValidationService.validatePassword(request.getPassword(), request.getEmail());
+        
+        if (!validation.isValid()) {
+            throw new RuntimeException("Password validation failed: " + 
+                    String.join(", ", validation.getErrors()));
         }
         
         // Create new user
@@ -82,18 +100,54 @@ public class AuthService {
     /**
      * Authenticate user login
      */
-    public AuthResponse login(LoginRequest request) {
+    public AuthResponse login(LoginRequest request, String ipAddress) {
         logger.info("Attempting login for email: {}", request.getEmail());
+        
+        // Check for account/IP lockout first
+        AccountLockoutService.LockoutStatus lockoutStatus = 
+                accountLockoutService.getLockoutStatus(request.getEmail(), ipAddress);
+        
+        if (lockoutStatus.isLocked()) {
+            if (lockoutStatus.isUserLocked()) {
+                throw new RuntimeException("Account is temporarily locked due to too many failed attempts. Try again in " + 
+                        lockoutStatus.getUserLockoutRemainingSeconds() / 60 + " minutes.");
+            }
+            if (lockoutStatus.isIpLocked()) {
+                throw new RuntimeException("IP address is temporarily blocked due to too many failed attempts. Try again in " + 
+                        lockoutStatus.getIpLockoutRemainingSeconds() / 60 + " minutes.");
+            }
+        }
         
         // Find user by email
         User user = userRepository.findByEmailIgnoreCaseAndIsActiveTrue(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElse(null);
         
-        // Verify password
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            logger.warn("Invalid password attempt for user: {}", request.getEmail());
+        // Check credentials
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            // Record failed attempt
+            accountLockoutService.recordFailedAttempt(request.getEmail(), ipAddress);
+            logger.warn("Invalid credentials attempt for email: {}", request.getEmail());
             throw new RuntimeException("Invalid email or password");
         }
+        
+        // Check if 2FA is enabled
+        if (user.is2faEnabled()) {
+            // If 2FA code is not provided, return response indicating 2FA is required
+            if (request.getTotpCode() == null || request.getTotpCode().trim().isEmpty()) {
+                return new AuthResponse(null, null, null, true);
+            }
+            
+            // Verify 2FA code
+            boolean is2FAValid = twoFactorAuthService.verify2FA(user, request.getTotpCode(), request.isBackupCode());
+            if (!is2FAValid) {
+                // Record failed attempt for invalid 2FA
+                accountLockoutService.recordFailedAttempt(request.getEmail(), ipAddress);
+                throw new RuntimeException("Invalid 2FA code");
+            }
+        }
+        
+        // Record successful login (clears failed attempts)
+        accountLockoutService.recordSuccessfulLogin(request.getEmail(), ipAddress);
         
         logger.info("User logged in successfully: {}", user.getId());
         
@@ -101,7 +155,7 @@ public class AuthService {
         String accessToken = jwtService.generateToken(user);
         String refreshToken = generateRefreshToken(user);
         
-        return new AuthResponse(accessToken, refreshToken, userMapper.toDto(user));
+        return new AuthResponse(accessToken, refreshToken, userMapper.toDto(user), false);
     }
     
     /**
@@ -189,7 +243,7 @@ public class AuthService {
     /**
      * Generate refresh token for user
      */
-    private String generateRefreshToken(User user) {
+    public String generateRefreshToken(User user) {
         // Clean up expired tokens for this user
         cleanupExpiredTokens(user);
         
@@ -209,6 +263,14 @@ public class AuthService {
     public User getUserByEmail(String email) {
         return userRepository.findByEmailIgnoreCaseAndIsActiveTrue(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+    }
+
+    /**
+     * Find user by email (returns Optional)
+     */
+    @Transactional(readOnly = true)
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmailIgnoreCaseAndIsActiveTrue(email);
     }
 
     /**
@@ -253,6 +315,15 @@ public class AuthService {
         
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new RuntimeException("Current password is incorrect");
+        }
+        
+        // Validate new password
+        PasswordValidationService.PasswordValidationResult validation = 
+                passwordValidationService.validatePassword(newPassword, user.getEmail());
+        
+        if (!validation.isValid()) {
+            throw new RuntimeException("Password validation failed: " + 
+                    String.join(", ", validation.getErrors()));
         }
         
         user.setPasswordHash(passwordEncoder.encode(newPassword));

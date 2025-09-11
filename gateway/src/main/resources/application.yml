@@ -28,6 +28,9 @@ spring:
           predicates:
             - Path=/api/v1/auth/**
           filters:
+            - name: RequestValidationFilter
+            - name: RateLimitingFilter
+            - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
         # Social Service
@@ -36,6 +39,9 @@ spring:
           predicates:
             - Path=/social/**
           filters:
+            - name: RequestValidationFilter
+            - name: RateLimitingFilter
+            - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
         # Booking Service
@@ -44,6 +50,9 @@ spring:
           predicates:
             - Path=/bookings/**
           filters:
+            - name: RequestValidationFilter
+            - name: RateLimitingFilter
+            - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
         # Market Service
@@ -52,6 +61,9 @@ spring:
           predicates:
             - Path=/market/**
           filters:
+            - name: RequestValidationFilter
+            - name: RateLimitingFilter
+            - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
         # Chat Service
@@ -60,6 +72,9 @@ spring:
           predicates:
             - Path=/chat/**
           filters:
+            - name: RequestValidationFilter
+            - name: RateLimitingFilter
+            - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
         # Notification Service
@@ -68,6 +83,9 @@ spring:
           predicates:
             - Path=/notify/**
           filters:
+            - name: RequestValidationFilter
+            - name: RateLimitingFilter
+            - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
         # Trip Planning Service
@@ -76,6 +94,9 @@ spring:
           predicates:
             - Path=/trips/**
           filters:
+            - name: RequestValidationFilter
+            - name: RateLimitingFilter
+            - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
         # AI Service
@@ -84,6 +105,9 @@ spring:
           predicates:
             - Path=/api/v1/ai/**
           filters:
+            - name: RequestValidationFilter
+            - name: RateLimitingFilter
+            - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
             - StripPrefix=2
         
@@ -93,6 +117,9 @@ spring:
           predicates:
             - Path=/search/**
           filters:
+            - name: RequestValidationFilter
+            - name: RateLimitingFilter
+            - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
         # Config Service
@@ -101,6 +128,9 @@ spring:
           predicates:
             - Path=/api/v1/config/**
           filters:
+            - name: RequestValidationFilter
+            - name: RateLimitingFilter
+            - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
             - StripPrefix=2
         
@@ -110,6 +140,9 @@ spring:
           predicates:
             - Path=/api/v1/admin/**
           filters:
+            - name: RequestValidationFilter
+            - name: RateLimitingFilter
+            - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
             - StripPrefix=2
         
@@ -119,6 +152,9 @@ spring:
           predicates:
             - Path=/api/v1/analytics/**
           filters:
+            - name: RequestValidationFilter
+            - name: RateLimitingFilter
+            - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
             - StripPrefix=2
         
@@ -128,28 +164,57 @@ spring:
           predicates:
             - Path=/api/v1/emergency/**
           filters:
+            - name: RequestValidationFilter
+            - name: RateLimitingFilter
+            - name: SecurityHeadersFilter
             - StripPrefix=2
+        
+        # Support Service
+        - id: support-service
+          uri: http://support-service:8093
+          predicates:
+            - Path=/api/v1/support/**
+          filters:
+            - name: RequestValidationFilter
+            - name: RateLimitingFilter
+            - name: SecurityHeadersFilter
+            - name: JwtAuthenticationFilter
       
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOriginPatterns: "http://localhost:3000"
+            allowedOriginPatterns: 
+              - "${FRONTEND_URL:http://localhost:3000}"
+              - "${FRONTEND_DOMAIN:https://hopngo.com}"
             allowedMethods:
               - GET
               - POST
               - PUT
               - DELETE
+              - PATCH
               - OPTIONS
-            allowedHeaders: "*"
+            allowedHeaders:
+              - "Authorization"
+              - "Content-Type"
+              - "Accept"
+              - "Origin"
+              - "X-Requested-With"
+              - "Access-Control-Request-Method"
+              - "Access-Control-Request-Headers"
+              - "X-CSRF-Token"
+              - "X-Client-Version"
+            exposedHeaders:
+              - "X-Total-Count"
+              - "X-Page-Count"
+              - "Link"
+              - "X-RateLimit-Remaining"
+              - "X-RateLimit-Reset"
             allowCredentials: true
-            maxAge: 3600
+            maxAge: 1800
       default-filters:
          - name: AcceptLanguageFilter
          - name: ETagFilter
-         - name: AddResponseHeader
-           args:
-             name: Cache-Control
-             value: "public, max-age=300"
+         # Security Headers
          - name: AddResponseHeader
            args:
              name: X-Content-Type-Options
@@ -160,8 +225,43 @@ spring:
              value: DENY
          - name: AddResponseHeader
            args:
+             name: X-XSS-Protection
+             value: "1; mode=block"
+         - name: AddResponseHeader
+           args:
+             name: Referrer-Policy
+             value: strict-origin-when-cross-origin
+         - name: AddResponseHeader
+           args:
+             name: Permissions-Policy
+             value: "camera=(), microphone=(), geolocation=(self), payment=()"
+         - name: AddResponseHeader
+           args:
+             name: Strict-Transport-Security
+             value: "max-age=31536000; includeSubDomains; preload"
+         # Content Security Policy
+         - name: AddResponseHeader
+           args:
+             name: Content-Security-Policy
+             value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' ${FRONTEND_URL:http://localhost:3000} ${API_URL:http://localhost:8080} wss: ws:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+         # Cache Control
+         - name: AddResponseHeader
+           args:
+             name: Cache-Control
+             value: "no-cache, no-store, must-revalidate"
+         - name: AddResponseHeader
+           args:
+             name: Pragma
+             value: no-cache
+         - name: AddResponseHeader
+           args:
+             name: Expires
+             value: "0"
+         # Vary Header
+         - name: AddResponseHeader
+           args:
              name: Vary
-             value: "Accept-Encoding, Authorization, Accept-Language"
+             value: "Accept-Encoding, Authorization, Accept-Language, Origin"
 
 # Actuator configuration
 management:
@@ -196,6 +296,24 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
+# Security configuration
+security:
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000,https://hopngo.com}
+  strict-origin-validation: ${STRICT_ORIGIN_VALIDATION:true}
+  enable-request-logging: ${ENABLE_REQUEST_LOGGING:false}
+  max-request-size: ${MAX_REQUEST_SIZE:10MB}
+  enable-path-traversal-protection: ${ENABLE_PATH_TRAVERSAL_PROTECTION:true}
+  enable-request-size-validation: ${ENABLE_REQUEST_SIZE_VALIDATION:true}
+  blocked-file-extensions: ${BLOCKED_FILE_EXTENSIONS:.exe,.bat,.cmd,.sh,.ps1,.vbs,.jar,.war,.zip,.rar}
+
+# Rate limiting configuration
+rate-limiting:
+  enabled: ${RATE_LIMITING_ENABLED:true}
+  requests-per-minute: ${RATE_LIMIT_PER_MINUTE:60}
+  requests-per-hour: ${RATE_LIMIT_PER_HOUR:1000}
+  burst-capacity: ${RATE_LIMIT_BURST:10}
+  whitelist-ips: ${RATE_LIMIT_WHITELIST:127.0.0.1,::1}
+  
 # Redis configuration (for future rate limiting)
 spring.data.redis:
   host: localhost

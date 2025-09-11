@@ -255,16 +255,17 @@ export default function MapPage() {
   const getCostEstimate = () => {
     if (!routeData) return null;
     
-    const costs = COST_ESTIMATES[transportMode as keyof typeof COST_ESTIMATES];
     const distance = routeData.distanceKm;
     
     if (transportMode === 'driving') {
+      const costs = COST_ESTIMATES.driving;
       return {
         fuel: (costs.fuel * distance).toFixed(0),
         maintenance: (costs.maintenance * distance).toFixed(0),
         total: (costs.total * distance).toFixed(0)
       };
     } else {
+      const costs = COST_ESTIMATES[transportMode as 'walking' | 'cycling'];
       return {
         calories: (costs.calories * distance).toFixed(0),
         time: routeData.durationMin,

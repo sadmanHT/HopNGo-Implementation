@@ -7,14 +7,15 @@ import { languages } from '@/lib/i18n';
 
 type Props = {
   children: ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 };
 
 export async function generateStaticParams() {
   return languages.map((lang) => ({ locale: lang.code }));
 }
 
-export default function LocaleLayout({ children, params: { locale } }: Props) {
+export default async function LocaleLayout({ children, params }: Props) {
+  const { locale } = await params;
   return (
     <I18nProvider locale={locale}>
       <QueryProvider>

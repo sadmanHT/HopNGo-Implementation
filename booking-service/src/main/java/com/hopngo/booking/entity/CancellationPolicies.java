@@ -63,6 +63,11 @@ public class CancellationPolicies implements Serializable {
         this.cutoffHours = cutoffHours;
     }
     
+    // Alias method for backward compatibility
+    public BigDecimal getPartialPct() {
+        return partialPercentage;
+    }
+    
     @Override
     public String toString() {
         return "CancellationPolicies{" +

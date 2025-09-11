@@ -35,18 +35,21 @@ public class BookingService {
     private final InventoryRepository inventoryRepository;
     private final ListingService listingService;
     private final OutboxService outboxService;
+    private final AiEmbeddingService aiEmbeddingService;
     
     @Autowired
     public BookingService(BookingRepository bookingRepository,
                          ListingRepository listingRepository,
                          InventoryRepository inventoryRepository,
                          ListingService listingService,
-                         OutboxService outboxService) {
+                         OutboxService outboxService,
+                         AiEmbeddingService aiEmbeddingService) {
         this.bookingRepository = bookingRepository;
         this.listingRepository = listingRepository;
         this.inventoryRepository = inventoryRepository;
         this.listingService = listingService;
         this.outboxService = outboxService;
+        this.aiEmbeddingService = aiEmbeddingService;
     }
     
     @CacheEvict(value = "bookings", allEntries = true)
@@ -101,8 +104,27 @@ public class BookingService {
 
         Booking savedBooking = bookingRepository.save(booking);
 
+        // Generate and upsert embeddings for search
+        aiEmbeddingService.processBookingEmbedding(
+            savedBooking.getId(), userId, listingId,
+            listing.getTitle(), startDate, endDate, guests,
+            specialRequests, totalAmount
+        );
+
         // Publish booking created event
         outboxService.publishBookingCreatedEvent(savedBooking);
+        
+        // Publish add to cart event for analytics funnel tracking
+        try {
+            outboxService.publishAddToCartEvent(
+                listingId.toString(),
+                listing.getVendor().getId().toString(),
+                userId
+            );
+        } catch (Exception e) {
+            // Log error but don't fail the booking creation
+            System.err.println("Failed to emit add to cart event: " + e.getMessage());
+        }
         
         return savedBooking;
     }

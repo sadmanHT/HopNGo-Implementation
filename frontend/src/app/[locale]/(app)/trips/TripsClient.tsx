@@ -138,8 +138,8 @@ export function TripsClient({ translations }: TripsClientProps) {
     } catch (error) {
       console.error('Error fetching itineraries:', error);
       toast({
-        title: t['trips.error'],
-        description: t['trips.fetchError'],
+        title: t('trips.error'),
+        description: t('trips.fetchError'),
         variant: 'destructive',
       });
     } finally {
@@ -181,8 +181,8 @@ export function TripsClient({ translations }: TripsClientProps) {
       
       if (response.ok) {
         toast({
-          title: t['trips.success'],
-          description: t['trips.revertSuccess'].replace('{version}', version.version.toString()),
+          title: t('trips.success'),
+          description: t('trips.revertSuccess').replace('{version}', version.version.toString()),
         });
         fetchItineraries();
         fetchItineraryVersions(itineraryId);
@@ -192,8 +192,8 @@ export function TripsClient({ translations }: TripsClientProps) {
     } catch (error) {
       console.error('Error reverting to version:', error);
       toast({
-        title: t['trips.error'],
-        description: t['trips.revertError'],
+        title: t('trips.error'),
+        description: t('trips.revertError'),
         variant: 'destructive',
       });
     }
@@ -212,8 +212,8 @@ export function TripsClient({ translations }: TripsClientProps) {
       
       if (response.ok) {
         toast({
-          title: t['trips.success'],
-          description: t['trips.createSuccess'],
+          title: t('trips.success'),
+          description: t('trips.createSuccess'),
         });
         setShowCreateForm(false);
         setNewItinerary({
@@ -232,8 +232,8 @@ export function TripsClient({ translations }: TripsClientProps) {
     } catch (error) {
       console.error('Error creating itinerary:', error);
       toast({
-        title: t['trips.error'],
-        description: t['trips.createError'],
+        title: t('trips.error'),
+        description: t('trips.createError'),
         variant: 'destructive',
       });
     }
@@ -273,7 +273,7 @@ export function TripsClient({ translations }: TripsClientProps) {
       ...itinerary.destinations.map(d => `${d.city} ${d.country}`)
     ].join(' ').toLowerCase();
     
-    return searchVariations.some(variation => 
+    return searchVariations.transliterated.some(variation => 
       searchableText.includes(variation.toLowerCase())
     ) || searchableText.includes(normalizedSearch);
   });
@@ -306,12 +306,12 @@ export function TripsClient({ translations }: TripsClientProps) {
         <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">{t['trips.pleaseLogin']}</CardTitle>
+              <CardTitle className="text-2xl">{t('trips.pleaseLogin')}</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
-              <p className="text-gray-600 mb-6">{t['trips.loginRequired']}</p>
+              <p className="text-gray-600 mb-6">{t('trips.loginRequired')}</p>
               <Link href="/auth/login">
-                <Button className="w-full">{t['auth.goToLogin']}</Button>
+                <Button className="w-full">{t('auth.goToLogin')}</Button>
               </Link>
             </CardContent>
           </Card>
@@ -340,12 +340,12 @@ export function TripsClient({ translations }: TripsClientProps) {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{t['trips.title']}</h1>
-            <p className="text-gray-600 mt-2">{t['trips.subtitle']}</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('trips.title')}</h1>
+            <p className="text-gray-600 mt-2">{t('trips.subtitle')}</p>
           </div>
           <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
-            {t['trips.createNew']}
+            {t('trips.createNew')}
           </Button>
         </div>
 
@@ -354,7 +354,7 @@ export function TripsClient({ translations }: TripsClientProps) {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               type="text"
-              placeholder={t['trips.searchPlaceholder']}
+              placeholder={t('trips.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -384,14 +384,14 @@ export function TripsClient({ translations }: TripsClientProps) {
             <CardContent>
               <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {searchTerm ? t['trips.noResults'] : t['trips.noItineraries']}
+                {searchTerm ? t('trips.noResults') : t('trips.noItineraries')}
               </h3>
               <p className="text-gray-600 mb-6">
-                {searchTerm ? t['trips.tryDifferentSearch'] : t['trips.createFirst']}
+                {searchTerm ? t('trips.tryDifferentSearch') : t('trips.createFirst')}
               </p>
               {!searchTerm && (
                 <Button onClick={() => setShowCreateForm(true)}>
-                  {t['trips.createNew']}
+                  {t('trips.createNew')}
                 </Button>
               )}
             </CardContent>
@@ -404,7 +404,7 @@ export function TripsClient({ translations }: TripsClientProps) {
                   <div className="flex justify-between items-start">
                     <CardTitle className="text-lg">{itinerary.title}</CardTitle>
                     <Badge variant={itinerary.status === 'published' ? 'default' : 'secondary'}>
-                      {t[`trips.status.${itinerary.status}`]}
+                      {t(`trips.status.${itinerary.status}`)}
                     </Badge>
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
@@ -417,7 +417,7 @@ export function TripsClient({ translations }: TripsClientProps) {
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center text-gray-600">
                         <Calendar className="h-4 w-4 mr-1" />
-                        {t['trips.daysCount'].replace('{count}', calculateDays(itinerary.startDate, itinerary.endDate).toString())}
+                        {t('trips.daysCount').replace('{count}', calculateDays(itinerary.startDate, itinerary.endDate).toString())}
                       </div>
                       <div className="flex items-center text-gray-600">
                         <Users className="h-4 w-4 mr-1" />
@@ -426,11 +426,11 @@ export function TripsClient({ translations }: TripsClientProps) {
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <DollarSign className="h-4 w-4 mr-1" />
-                      {formatCurrency(itinerary.budget, itinerary.currency)}
+                      {formatCurrency(itinerary.budget, { currency: itinerary.currency })}
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Clock className="h-4 w-4 mr-1" />
-                      {formatDate(itinerary.updatedAt, 'relative')}
+                      {formatDate(itinerary.updatedAt, { format: 'relative' })}
                     </div>
                   </div>
                   <div className="flex gap-2 mt-4">
@@ -446,7 +446,7 @@ export function TripsClient({ translations }: TripsClientProps) {
                           }}
                         >
                           <Eye className="h-4 w-4 mr-1" />
-                          {t['trips.viewDetails']}
+                          {t('trips.viewDetails')}
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -456,13 +456,13 @@ export function TripsClient({ translations }: TripsClientProps) {
                         {selectedItinerary && (
                           <Tabs defaultValue="details" className="w-full">
                             <TabsList className="grid w-full grid-cols-2">
-                              <TabsTrigger value="details">{t['trips.details']}</TabsTrigger>
-                              <TabsTrigger value="versions">{t['trips.versions']}</TabsTrigger>
+                              <TabsTrigger value="details">{t('trips.details')}</TabsTrigger>
+                              <TabsTrigger value="versions">{t('trips.versions')}</TabsTrigger>
                             </TabsList>
                             <TabsContent value="details" className="space-y-4">
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                  <Label className="text-sm font-medium">{t['trips.destinations']}</Label>
+                                  <Label className="text-sm font-medium">{t('trips.destinations')}</Label>
                                   <div className="mt-1">
                                     {selectedItinerary.destinations.map((dest, index) => (
                                       <div key={index} className="text-sm text-gray-600">
@@ -472,29 +472,29 @@ export function TripsClient({ translations }: TripsClientProps) {
                                   </div>
                                 </div>
                                 <div>
-                                  <Label className="text-sm font-medium">{t['trips.duration']}</Label>
+                                  <Label className="text-sm font-medium">{t('trips.duration')}</Label>
                                   <div className="text-sm text-gray-600 mt-1">
                                     {formatDate(selectedItinerary.startDate)} - {formatDate(selectedItinerary.endDate)}
                                     <br />
-                                    ({t['trips.daysCount'].replace('{count}', calculateDays(selectedItinerary.startDate, selectedItinerary.endDate).toString())})
+                                    ({t('trips.daysCount').replace('{count}', calculateDays(selectedItinerary.startDate, selectedItinerary.endDate).toString())})
                                   </div>
                                 </div>
                                 <div>
-                                  <Label className="text-sm font-medium">{t['trips.budget']}</Label>
+                                  <Label className="text-sm font-medium">{t('trips.budget')}</Label>
                                   <div className="text-sm text-gray-600 mt-1">
-                                    {formatCurrency(selectedItinerary.budget, selectedItinerary.currency)}
+                                    {formatCurrency(selectedItinerary.budget, { currency: selectedItinerary.currency })}
                                   </div>
                                 </div>
                                 <div>
-                                  <Label className="text-sm font-medium">{t['trips.groupSize']}</Label>
+                                  <Label className="text-sm font-medium">{t('trips.groupSize')}</Label>
                                   <div className="text-sm text-gray-600 mt-1">
-                                    {selectedItinerary.groupSize} {t['trips.people']}
+                                    {selectedItinerary.groupSize} {t('trips.people')}
                                   </div>
                                 </div>
                               </div>
                               <Separator />
                               <div>
-                                <Label className="text-sm font-medium">{t['trips.route']}</Label>
+                                <Label className="text-sm font-medium">{t('trips.route')}</Label>
                                 <div className="mt-2 space-y-2">
                                   {selectedItinerary.destinations.map((dest, index) => (
                                     <div key={index} className="flex items-center text-sm">
@@ -510,7 +510,7 @@ export function TripsClient({ translations }: TripsClientProps) {
                             <TabsContent value="versions" className="space-y-4">
                               <div className="flex items-center gap-2 mb-4">
                                 <History className="h-4 w-4" />
-                                <h3 className="font-medium">{t['trips.versionHistory']}</h3>
+                                <h3 className="font-medium">{t('trips.versionHistory')}</h3>
                               </div>
                               {isLoadingVersions ? (
                                 <div className="space-y-2">
@@ -522,7 +522,7 @@ export function TripsClient({ translations }: TripsClientProps) {
                                 </div>
                               ) : itineraryVersions.length === 0 ? (
                                 <p className="text-gray-600 text-center py-8">
-                                  {t['trips.noVersionHistory']}
+                                  {t('trips.noVersionHistory')}
                                 </p>
                               ) : (
                                 <ScrollArea className="h-64">
@@ -533,17 +533,17 @@ export function TripsClient({ translations }: TripsClientProps) {
                                           <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
                                               <span className="font-medium">
-                                                {t['trips.versionNumber'].replace('{version}', version.version.toString())}
+                                                {t('trips.versionNumber').replace('{version}', version.version.toString())}
                                               </span>
                                               {version.isCurrent && (
                                                 <Badge variant="default" className="text-xs">
-                                                  {t['trips.current']}
+                                                  {t('trips.current')}
                                                 </Badge>
                                               )}
                                             </div>
                                             <p className="text-sm text-gray-600 mb-1">{version.title}</p>
                                             <p className="text-xs text-gray-500">
-                                              {formatDate(version.createdAt, 'relative')}
+                                              {formatDate(version.createdAt, { format: 'relative' })}
                                             </p>
                                           </div>
                                           {!version.isCurrent && (
@@ -554,7 +554,7 @@ export function TripsClient({ translations }: TripsClientProps) {
                                               className="ml-2"
                                             >
                                               <RotateCcw className="h-3 w-3 mr-1" />
-                                              {t['trips.revert']}
+                                              {t('trips.revert')}
                                             </Button>
                                           )}
                                         </div>
@@ -579,32 +579,32 @@ export function TripsClient({ translations }: TripsClientProps) {
         <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{t['trips.createNew']}</DialogTitle>
+              <DialogTitle>{t('trips.createNew')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="title">{t['trips.title']}</Label>
+                <Label htmlFor="title">{t('trips.title')}</Label>
                 <Input
                   id="title"
                   value={newItinerary.title}
                   onChange={(e) => setNewItinerary(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder={t['trips.titlePlaceholder']}
+                  placeholder={t('trips.titlePlaceholder')}
                 />
               </div>
               
               <div>
-                <Label>{t['trips.destinations']}</Label>
+                <Label>{t('trips.destinations')}</Label>
                 <div className="space-y-2 mt-2">
                   {newItinerary.destinations.map((dest, index) => (
                     <div key={index} className="flex gap-2 items-center">
                       <Input
-                        placeholder={t['common.city']}
+                        placeholder={t('common.city')}
                         value={dest.city}
                         onChange={(e) => updateDestination(index, 'city', e.target.value)}
                         className="flex-1"
                       />
                       <Input
-                        placeholder={t['common.country']}
+                        placeholder={t('common.country')}
                         value={dest.country}
                         onChange={(e) => updateDestination(index, 'country', e.target.value)}
                         className="flex-1"
@@ -627,14 +627,14 @@ export function TripsClient({ translations }: TripsClientProps) {
                     className="w-full"
                   >
                     <Plus className="h-4 w-4 mr-1" />
-                    {t['trips.addDestination']}
+                    {t('trips.addDestination')}
                   </Button>
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="startDate">{t['trips.startDate']}</Label>
+                  <Label htmlFor="startDate">{t('trips.startDate')}</Label>
                   <Input
                     id="startDate"
                     type="date"
@@ -643,7 +643,7 @@ export function TripsClient({ translations }: TripsClientProps) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="endDate">{t['trips.endDate']}</Label>
+                  <Label htmlFor="endDate">{t('trips.endDate')}</Label>
                   <Input
                     id="endDate"
                     type="date"
@@ -655,7 +655,7 @@ export function TripsClient({ translations }: TripsClientProps) {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="budget">{t['trips.budget']}</Label>
+                  <Label htmlFor="budget">{t('trips.budget')}</Label>
                   <Input
                     id="budget"
                     type="number"
@@ -665,7 +665,7 @@ export function TripsClient({ translations }: TripsClientProps) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="groupSize">{t['trips.groupSize']}</Label>
+                  <Label htmlFor="groupSize">{t('trips.groupSize')}</Label>
                   <Input
                     id="groupSize"
                     type="number"
@@ -678,10 +678,10 @@ export function TripsClient({ translations }: TripsClientProps) {
               
               <div className="flex gap-2 pt-4">
                 <Button onClick={createItinerary} className="flex-1">
-                  {t['trips.generatePlan']}
+                  {t('trips.generatePlan')}
                 </Button>
                 <Button variant="outline" onClick={() => setShowCreateForm(false)}>
-                  {t['common.cancel']}
+                  {t('common.cancel')}
                 </Button>
               </div>
             </div>

@@ -14,6 +14,7 @@ import {
   RefreshCw,
   AlertCircle
 } from 'lucide-react';
+import { BookingErrorMessage } from '@/components/common/ErrorMessage';
 
 export interface BookingStatusTrackerProps {
   bookingId: string;
@@ -151,12 +152,10 @@ export default function BookingStatusTracker({
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <p className="text-sm text-red-800">Error: {error}</p>
-            </div>
-          </div>
+          <BookingErrorMessage 
+            message={error}
+            onRetry={onRetry}
+          />
         )}
 
         {/* Action Buttons */}

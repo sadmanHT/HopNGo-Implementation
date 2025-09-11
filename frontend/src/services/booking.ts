@@ -1,4 +1,4 @@
-export interface SearchParams {
+export interface SearchParams extends Record<string, string> {
   location: string;
   checkIn: string;
   checkOut: string;

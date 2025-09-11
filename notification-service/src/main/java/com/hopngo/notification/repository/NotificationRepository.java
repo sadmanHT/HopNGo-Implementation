@@ -80,4 +80,26 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     // Delete and return count
     @Query("SELECT COUNT(n) FROM Notification n WHERE n.status = :status AND n.createdAt < :cutoffDate")
     long countByStatusAndCreatedAtBefore(@Param("status") NotificationStatus status, @Param("cutoffDate") LocalDateTime cutoffDate);
+    
+    // Find failed notifications for retry
+    @Query("SELECT n FROM Notification n WHERE n.status = 'FAILED' AND n.lastAttemptAt < :cutoffTime AND n.retryCount < :maxRetryAttempts AND (n.nextRetryAt IS NULL OR n.nextRetryAt <= CURRENT_TIMESTAMP)")
+    List<Notification> findFailedNotificationsForRetry(
+            @Param("cutoffTime") LocalDateTime cutoffTime,
+            @Param("maxRetryAttempts") int maxRetryAttempts,
+            Pageable pageable
+    );
+    
+    // Delete old notifications
+    @Query("DELETE FROM Notification n WHERE n.createdAt < :cutoffDate AND n.status = :status")
+    int deleteOldNotifications(
+            @Param("cutoffDate") LocalDateTime cutoffDate,
+            @Param("status") NotificationStatus status
+    );
+    
+    // Delete old failed notifications
+    @Query("DELETE FROM Notification n WHERE n.createdAt < :cutoffDate AND n.status = 'FAILED' AND n.retryCount >= :maxRetryAttempts")
+    int deleteOldFailedNotifications(
+            @Param("cutoffDate") LocalDateTime cutoffDate,
+            @Param("maxRetryAttempts") int maxRetryAttempts
+    );
 }

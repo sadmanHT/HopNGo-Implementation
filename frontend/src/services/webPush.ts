@@ -84,7 +84,7 @@ class WebPushService {
     try {
       const subscription = await this.serviceWorkerRegistration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey),
+        applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey) as BufferSource,
       });
 
       const subscriptionData: PushSubscriptionData = {
@@ -163,10 +163,8 @@ class WebPushService {
       body: payload.body,
       icon: payload.icon || '/icons/icon-192x192.svg',
       badge: payload.badge || '/icons/icon-72x72.svg',
-      image: payload.image,
       tag: payload.tag,
       data: payload.data,
-      actions: payload.actions,
       requireInteraction: true,
       silent: false,
     };
@@ -240,7 +238,8 @@ class WebPushService {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
     const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
+    const buffer = new ArrayBuffer(rawData.length);
+    const outputArray = new Uint8Array(buffer);
 
     for (let i = 0; i < rawData.length; ++i) {
       outputArray[i] = rawData.charCodeAt(i);

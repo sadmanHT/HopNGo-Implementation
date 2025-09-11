@@ -20,10 +20,12 @@ export interface PaginatedResponse<T> {
 export interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  name: string;
+  firstName?: string;
+  lastName?: string;
   avatar?: string;
   isVerified?: boolean;
+  role?: string;
   createdAt: string;
   updatedAt: string;
 }

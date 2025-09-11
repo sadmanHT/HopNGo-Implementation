@@ -27,7 +27,7 @@ public record RefundSucceededEvent(
             refund.getAmount(),
             refund.getCurrency(),
             refund.getProviderRefundId(),
-            refund.getPayment().getProvider(),
+            refund.getPayment().getProvider().name(),
             refund.getProcessedAt()
         );
     }

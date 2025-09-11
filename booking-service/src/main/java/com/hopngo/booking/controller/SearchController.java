@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -181,9 +182,10 @@ public class SearchController {
                                            BigDecimal minPrice, BigDecimal maxPrice,
                                            String category, Integer maxGuests,
                                            List<String> amenities) {
-        return listingService.searchListings(
-            lat, lng, radius, from, to, minPrice, maxPrice, category, maxGuests, amenities
+        Page<Listing> page = listingService.searchListings(
+            lat, lng, radius, from, to, minPrice, maxPrice, category, maxGuests, amenities, 0, 50
         );
+        return page.getContent();
     }
     
     private ListingDocument convertToDocument(Listing listing) {
@@ -192,10 +194,10 @@ public class SearchController {
         doc.setTitle(listing.getTitle());
         doc.setDescription(listing.getDescription());
         doc.setPrice(listing.getBasePrice() != null ? listing.getBasePrice().doubleValue() : 0.0);
-        doc.setAmenities(listing.getAmenities() != null ? List.of(listing.getAmenities().split(",")) : List.of());
+        doc.setAmenities(listing.getAmenities() != null ? List.of(listing.getAmenities()) : List.of());
         if (listing.getLatitude() != null && listing.getLongitude() != null) {
             ListingsIndexHelper.GeoLocation geo = new ListingsIndexHelper.GeoLocation(
-                listing.getLatitude(), listing.getLongitude()
+                listing.getLatitude().doubleValue(), listing.getLongitude().doubleValue()
             );
             doc.setGeo(geo);
         }

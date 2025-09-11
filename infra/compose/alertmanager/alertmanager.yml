@@ -1,0 +1,304 @@
+global:
+  # Global configuration
+  smtp_smarthost: 'mailhog:1025'
+  smtp_from: 'alerts@hopngo.com'
+  smtp_auth_username: ''
+  smtp_auth_password: ''
+  smtp_require_tls: false
+
+# Templates for alert notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route tree for alert routing
+route:
+  # Default route configuration
+  group_by: ['alertname', 'service', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: 'default-receiver'
+  
+  # Routing rules
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      group_interval: 2m
+      repeat_interval: 1h
+      routes:
+        # Service down alerts - highest priority
+        - match:
+            alertname: ServiceDown
+          receiver: 'service-down-alerts'
+          group_wait: 0s
+          group_interval: 1m
+          repeat_interval: 30m
+        
+        # SLO burn rate alerts
+        - match_re:
+            alertname: '.*SLOBurnRateHigh'
+          receiver: 'slo-burn-alerts'
+          group_wait: 5s
+          group_interval: 2m
+          repeat_interval: 2h
+        
+        # Infrastructure alerts
+        - match_re:
+            alertname: '(DiskSpaceLow|PostgreSQLConnectionSaturationHigh|JVMHeapUtilizationHigh)'
+          receiver: 'infrastructure-alerts'
+          group_wait: 10s
+          group_interval: 5m
+          repeat_interval: 4h
+    
+    # Warning alerts - less frequent notifications
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 2m
+      group_interval: 10m
+      repeat_interval: 6h
+    
+    # Team-specific routing
+    - match:
+        team: platform
+      receiver: 'platform-team'
+      continue: true
+    
+    - match:
+        team: booking
+      receiver: 'booking-team'
+      continue: true
+    
+    - match:
+        team: market
+      receiver: 'market-team'
+      continue: true
+    
+    - match:
+        team: auth
+      receiver: 'auth-team'
+      continue: true
+
+# Inhibition rules to suppress redundant alerts
+inhibit_rules:
+  # Suppress warning alerts when critical alerts are firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service', 'instance']
+  
+  # Suppress individual service alerts when service is down
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      alertname: '(ServiceHighResponseTime|ServiceHighErrorRate|.*SLOBurnRate.*)'
+    equal: ['service', 'instance']
+  
+  # Suppress JVM alerts when service is down
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      alertname: 'JVM.*'
+    equal: ['job', 'instance']
+
+# Receivers define how to send notifications
+receivers:
+  # Default receiver
+  - name: 'default-receiver'
+    email_configs:
+      - to: 'alerts@hopngo.com'
+        subject: '[HopNGo] {{ .GroupLabels.alertname }} - {{ .GroupLabels.severity | toUpper }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Severity: {{ .Labels.severity }}
+          Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ if .Labels.runbook_url }}Runbook: {{ .Labels.runbook_url }}{{ end }}
+          {{ end }}
+        html: |
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; }
+              .alert { margin: 10px 0; padding: 10px; border-left: 4px solid #ccc; }
+              .critical { border-left-color: #d32f2f; background-color: #ffebee; }
+              .warning { border-left-color: #f57c00; background-color: #fff3e0; }
+              .resolved { border-left-color: #388e3c; background-color: #e8f5e8; }
+            </style>
+          </head>
+          <body>
+            <h2>HopNGo Alert Notification</h2>
+            {{ range .Alerts }}
+            <div class="alert {{ .Labels.severity }}">
+              <h3>{{ .Annotations.summary }}</h3>
+              <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+              <p><strong>Service:</strong> {{ .Labels.service }}</p>
+              <p><strong>Severity:</strong> {{ .Labels.severity | toUpper }}</p>
+              <p><strong>Started:</strong> {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
+              {{ if .Labels.runbook_url }}<p><strong>Runbook:</strong> <a href="{{ .Labels.runbook_url }}">{{ .Labels.runbook_url }}</a></p>{{ end }}
+            </div>
+            {{ end }}
+          </body>
+          </html>
+
+  # Critical alerts receiver
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'critical-alerts@hopngo.com'
+        subject: '[HopNGo CRITICAL] {{ .GroupLabels.alertname }}'
+        body: |
+          🚨 CRITICAL ALERT 🚨
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ if .Labels.runbook_url }}Runbook: {{ .Labels.runbook_url }}{{ end }}
+          
+          {{ end }}
+          
+          Immediate action required!
+    # Future: Add PagerDuty/OpsGenie integration here
+    # pagerduty_configs:
+    #   - routing_key: 'YOUR_PAGERDUTY_INTEGRATION_KEY'
+    #     description: '{{ .GroupLabels.alertname }}'
+    #     severity: 'critical'
+
+  # Service down alerts - highest priority
+  - name: 'service-down-alerts'
+    email_configs:
+      - to: 'oncall@hopngo.com'
+        subject: '[HopNGo SERVICE DOWN] {{ .GroupLabels.service }}'
+        body: |
+          🔥 SERVICE DOWN ALERT 🔥
+          
+          {{ range .Alerts }}
+          Service: {{ .Labels.service }}
+          Instance: {{ .Labels.instance }}
+          Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          
+          {{ end }}
+          
+          IMMEDIATE ESCALATION REQUIRED!
+    # Future: Add SMS/phone call integration
+    # webhook_configs:
+    #   - url: 'https://api.twilio.com/2010-04-01/Accounts/YOUR_ACCOUNT_SID/Messages.json'
+    #     send_resolved: false
+
+  # SLO burn rate alerts
+  - name: 'slo-burn-alerts'
+    email_configs:
+      - to: 'sre-team@hopngo.com'
+        subject: '[HopNGo SLO] {{ .GroupLabels.alertname }}'
+        body: |
+          📊 SLO BURN RATE ALERT
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Service: {{ .Labels.service }}
+          SLI Type: {{ .Labels.sli_type }}
+          Description: {{ .Annotations.description }}
+          Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ if .Labels.runbook_url }}Runbook: {{ .Labels.runbook_url }}{{ end }}
+          {{ end }}
+
+  # Infrastructure alerts
+  - name: 'infrastructure-alerts'
+    email_configs:
+      - to: 'infrastructure@hopngo.com'
+        subject: '[HopNGo Infrastructure] {{ .GroupLabels.alertname }}'
+        body: |
+          🏗️ INFRASTRUCTURE ALERT
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Instance: {{ .Labels.instance }}
+          Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ if .Labels.runbook_url }}Runbook: {{ .Labels.runbook_url }}{{ end }}
+          {{ end }}
+
+  # Warning alerts
+  - name: 'warning-alerts'
+    email_configs:
+      - to: 'warnings@hopngo.com'
+        subject: '[HopNGo Warning] {{ .GroupLabels.alertname }}'
+        body: |
+          ⚠️ WARNING ALERT
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ if .Labels.runbook_url }}Runbook: {{ .Labels.runbook_url }}{{ end }}
+          {{ end }}
+
+  # Team-specific receivers
+  - name: 'platform-team'
+    email_configs:
+      - to: 'platform-team@hopngo.com'
+        subject: '[Platform Team] {{ .GroupLabels.alertname }}'
+        body: |
+          Platform Team Alert
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ if .Labels.runbook_url }}Runbook: {{ .Labels.runbook_url }}{{ end }}
+          {{ end }}
+
+  - name: 'booking-team'
+    email_configs:
+      - to: 'booking-team@hopngo.com'
+        subject: '[Booking Team] {{ .GroupLabels.alertname }}'
+        body: |
+          Booking Team Alert
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ if .Labels.runbook_url }}Runbook: {{ .Labels.runbook_url }}{{ end }}
+          {{ end }}
+
+  - name: 'market-team'
+    email_configs:
+      - to: 'market-team@hopngo.com'
+        subject: '[Market Team] {{ .GroupLabels.alertname }}'
+        body: |
+          Market Team Alert
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ if .Labels.runbook_url }}Runbook: {{ .Labels.runbook_url }}{{ end }}
+          {{ end }}
+
+  - name: 'auth-team'
+    email_configs:
+      - to: 'auth-team@hopngo.com'
+        subject: '[Auth Team] {{ .GroupLabels.alertname }}'
+        body: |
+          Auth Team Alert
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ if .Labels.runbook_url }}Runbook: {{ .Labels.runbook_url }}{{ end }}
+          {{ end }}

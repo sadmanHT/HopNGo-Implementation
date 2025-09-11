@@ -78,7 +78,7 @@ public class RefundService {
         
         // Process refund with payment provider
         try {
-            PaymentProvider provider = paymentProviderService.getProvider(payment.getProvider());
+            PaymentProvider provider = paymentProviderService.getProvider(payment.getProvider().name());
             RefundResponse response = provider.processRefund(
                 payment.getProviderPaymentId(),
                 refundAmount,
@@ -129,7 +129,7 @@ public class RefundService {
             try {
                 logger.info("Retrying failed refund: {}", refund.getId());
                 
-                PaymentProvider provider = paymentProviderService.getProvider(refund.getPayment().getProvider());
+                PaymentProvider provider = paymentProviderService.getProvider(refund.getPayment().getProvider().name());
                 RefundResponse response = provider.processRefund(
                     refund.getPayment().getProviderPaymentId(),
                     refund.getAmount(),

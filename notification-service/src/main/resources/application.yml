@@ -163,13 +163,21 @@ springdoc:
 # Logging
 logging:
   level:
-    com.hopngo.notification: DEBUG
-    org.springframework.cloud.stream: DEBUG
-    org.springframework.amqp: DEBUG
-    org.springframework.mail: DEBUG
+    com.hopngo.notification: INFO
+    org.springframework.amqp: INFO
+    org.springframework.retry: DEBUG
+    com.rabbitmq.client: WARN
+    org.springframework.amqp.rabbit.connection: INFO
+    org.springframework.amqp.rabbit.listener: INFO
+    com.fasterxml.jackson: WARN
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] [%X{traceId:-},%X{spanId:-}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] [%X{traceId:-},%X{spanId:-}] - %msg%n"
+  file:
+    name: logs/notification-service.log
+    max-size: 100MB
+    max-history: 30
+    total-size-cap: 1GB
 
 # Application Configuration
 notification:
@@ -188,3 +196,29 @@ notification:
     enabled: true
     retry-attempts: 3
     retry-delay: 5000
+  retry:
+    max-attempts: 5
+    initial-delay: 60000
+    max-delay: 3600000
+    multiplier: 2.0
+    batch-size: 50
+  batch:
+    size: 100
+    timeout: 30000
+  emergency:
+    enabled: true
+    channels: [EMAIL, SMS, PUSH]
+    priority: HIGH
+  monitoring:
+    enabled: true
+    failure-rate-threshold: 10.0
+    rabbitmq-error-threshold: 100
+    serialization-error-threshold: 50
+    statistics-interval: 300000
+    cleanup-interval: 86400000
+  alerting:
+    enabled: true
+    email-recipients: ["admin@hopngo.com"]
+    slack-webhook-url: ""
+    high-error-rate-threshold: 5.0
+    connection-failure-threshold: 5

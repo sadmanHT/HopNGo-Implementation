@@ -1,10 +1,10 @@
 package com.hopngo.tripplanning.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.Type;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -28,7 +28,7 @@ public class ItineraryVersion {
     @Column(name = "version", nullable = false)
     private Integer version;
 
-    @Type(JsonType.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "plan", nullable = false, columnDefinition = "jsonb")
     private JsonNode plan;
 

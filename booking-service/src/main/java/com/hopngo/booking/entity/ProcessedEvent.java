@@ -34,4 +34,12 @@ public class ProcessedEvent extends Auditable {
         this.eventType = eventType;
         this.processedAt = LocalDateTime.now();
     }
+    
+    // Manual getters/setters for Lombok fallback
+    public String getMessageId() { return messageId; }
+    public String getEventType() { return eventType; }
+    public LocalDateTime getProcessedAt() { return processedAt; }
+    public void setMessageId(String messageId) { this.messageId = messageId; }
+    public void setEventType(String eventType) { this.eventType = eventType; }
+    public void setProcessedAt(LocalDateTime processedAt) { this.processedAt = processedAt; }
 }

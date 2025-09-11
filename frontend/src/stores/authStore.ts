@@ -5,9 +5,12 @@ interface User {
   id: string;
   email: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   avatar?: string;
   role: 'user' | 'admin';
   verified: boolean;
+  isVerified?: boolean;
 }
 
 interface AuthState {

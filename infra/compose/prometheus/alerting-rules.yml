@@ -1,0 +1,377 @@
+groups:
+  # SLO Burn Rate Alerts
+  - name: slo_burn_rate_alerts
+    rules:
+      # Gateway Availability SLO Alerts
+      - alert: GatewayAvailabilitySLOBurnRateHigh
+        expr: |
+          (
+            sli:gateway_availability_error_budget_burn_rate2h > 14.4
+            and
+            sli:gateway_availability_error_budget_burn_rate24h > 6
+          )
+          or
+          (
+            sli:gateway_availability_error_budget_burn_rate2h > 6
+            and
+            sli:gateway_availability_error_budget_burn_rate24h > 3
+          )
+        for: 2m
+        labels:
+          severity: critical
+          service: gateway
+          sli_type: availability
+          team: platform
+        annotations:
+          summary: "Gateway availability SLO burn rate is too high"
+          description: |
+            Gateway availability is burning through error budget too quickly.
+            Current 2h burn rate: {{ $value | humanize }}x
+            Current availability: {{ with query "sli:gateway_availability_rate30m" }}{{ . | first | value | humanize }}%{{ end }}
+            SLO: 99.9% availability
+          runbook_url: "https://runbooks.hopngo.com/gateway-availability"
+
+      - alert: GatewayAvailabilitySLOBurnRateMedium
+        expr: |
+          (
+            sli:gateway_availability_error_budget_burn_rate2h > 3
+            and
+            sli:gateway_availability_error_budget_burn_rate24h > 1
+          )
+        for: 15m
+        labels:
+          severity: warning
+          service: gateway
+          sli_type: availability
+          team: platform
+        annotations:
+          summary: "Gateway availability SLO burn rate is elevated"
+          description: |
+            Gateway availability is burning through error budget at a concerning rate.
+            Current 2h burn rate: {{ $value | humanize }}x
+            Current availability: {{ with query "sli:gateway_availability_rate30m" }}{{ . | first | value | humanize }}%{{ end }}
+            SLO: 99.9% availability
+          runbook_url: "https://runbooks.hopngo.com/gateway-availability"
+
+      # Booking Search Latency SLO Alerts
+      - alert: BookingSearchLatencySLOBurnRateHigh
+        expr: |
+          (
+            sli:booking_search_latency_error_budget_burn_rate2h > 14.4
+            and
+            sli:booking_search_latency_error_budget_burn_rate24h > 6
+          )
+          or
+          (
+            sli:booking_search_latency_error_budget_burn_rate2h > 6
+            and
+            sli:booking_search_latency_error_budget_burn_rate24h > 3
+          )
+        for: 2m
+        labels:
+          severity: critical
+          service: booking-service
+          endpoint: search
+          sli_type: latency
+          team: booking
+        annotations:
+          summary: "Booking search latency SLO burn rate is too high"
+          description: |
+            Booking search P95 latency is exceeding SLO targets.
+            Current P95 latency: {{ with query "sli:booking_search_latency_p95_30m" }}{{ . | first | value | humanize }}ms{{ end }}
+            SLO: P95 < 400ms
+          runbook_url: "https://runbooks.hopngo.com/booking-search-latency"
+
+      - alert: BookingSearchLatencySLOBurnRateMedium
+        expr: |
+          (
+            sli:booking_search_latency_error_budget_burn_rate2h > 3
+            and
+            sli:booking_search_latency_error_budget_burn_rate24h > 1
+          )
+        for: 15m
+        labels:
+          severity: warning
+          service: booking-service
+          endpoint: search
+          sli_type: latency
+          team: booking
+        annotations:
+          summary: "Booking search latency SLO burn rate is elevated"
+          description: |
+            Booking search P95 latency is approaching SLO limits.
+            Current P95 latency: {{ with query "sli:booking_search_latency_p95_30m" }}{{ . | first | value | humanize }}ms{{ end }}
+            SLO: P95 < 400ms
+          runbook_url: "https://runbooks.hopngo.com/booking-search-latency"
+
+      # Market Checkout Error Rate SLO Alerts
+      - alert: MarketCheckoutErrorRateSLOBurnRateHigh
+        expr: |
+          (
+            sli:market_checkout_error_budget_burn_rate2h > 14.4
+            and
+            sli:market_checkout_error_budget_burn_rate24h > 6
+          )
+          or
+          (
+            sli:market_checkout_error_budget_burn_rate2h > 6
+            and
+            sli:market_checkout_error_budget_burn_rate24h > 3
+          )
+        for: 2m
+        labels:
+          severity: critical
+          service: market-service
+          endpoint: checkout
+          sli_type: error_rate
+          team: market
+        annotations:
+          summary: "Market checkout error rate SLO burn rate is too high"
+          description: |
+            Market checkout error rate is exceeding SLO targets.
+            Current error rate: {{ with query "sli:market_checkout_error_rate30m" }}{{ . | first | value | humanize }}%{{ end }}
+            SLO: < 1% error rate
+          runbook_url: "https://runbooks.hopngo.com/market-checkout-errors"
+
+  # Threshold-based Alerts
+  - name: threshold_alerts
+    rules:
+      # Queue Lag Alerts
+      - alert: RabbitMQQueueLagHigh
+        expr: sli:rabbitmq_queue_lag > 1000
+        for: 5m
+        labels:
+          severity: critical
+          service: rabbitmq
+          sli_type: queue_lag
+          team: platform
+        annotations:
+          summary: "RabbitMQ queue {{ $labels.queue }} has high message lag"
+          description: |
+            Queue {{ $labels.queue }} has {{ $value }} messages waiting to be processed.
+            This indicates a processing bottleneck or consumer issues.
+          runbook_url: "https://runbooks.hopngo.com/rabbitmq-queue-lag"
+
+      - alert: RabbitMQQueueLagMedium
+        expr: sli:rabbitmq_queue_lag > 500
+        for: 10m
+        labels:
+          severity: warning
+          service: rabbitmq
+          sli_type: queue_lag
+          team: platform
+        annotations:
+          summary: "RabbitMQ queue {{ $labels.queue }} has elevated message lag"
+          description: |
+            Queue {{ $labels.queue }} has {{ $value }} messages waiting to be processed.
+            Monitor for potential processing delays.
+          runbook_url: "https://runbooks.hopngo.com/rabbitmq-queue-lag"
+
+      # Database Connection Saturation
+      - alert: PostgreSQLConnectionSaturationHigh
+        expr: sli:postgres_connection_saturation > 80
+        for: 5m
+        labels:
+          severity: critical
+          service: postgres
+          sli_type: connection_saturation
+          team: platform
+        annotations:
+          summary: "PostgreSQL connection pool is {{ $value | humanize }}% saturated"
+          description: |
+            PostgreSQL instance {{ $labels.instance }} is using {{ $value | humanize }}% of available connections.
+            This may lead to connection timeouts and service degradation.
+          runbook_url: "https://runbooks.hopngo.com/postgres-connections"
+
+      - alert: PostgreSQLConnectionSaturationMedium
+        expr: sli:postgres_connection_saturation > 60
+        for: 10m
+        labels:
+          severity: warning
+          service: postgres
+          sli_type: connection_saturation
+          team: platform
+        annotations:
+          summary: "PostgreSQL connection pool is {{ $value | humanize }}% saturated"
+          description: |
+            PostgreSQL instance {{ $labels.instance }} is using {{ $value | humanize }}% of available connections.
+            Consider scaling or optimizing connection usage.
+          runbook_url: "https://runbooks.hopngo.com/postgres-connections"
+
+      # JVM Heap Utilization
+      - alert: JVMHeapUtilizationHigh
+        expr: sli:jvm_heap_utilization > 85
+        for: 5m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+          sli_type: heap_utilization
+          team: platform
+        annotations:
+          summary: "JVM heap utilization is {{ $value | humanize }}% on {{ $labels.job }}"
+          description: |
+            Service {{ $labels.job }} on {{ $labels.instance }} is using {{ $value | humanize }}% of heap memory.
+            This may lead to OutOfMemoryError and service instability.
+          runbook_url: "https://runbooks.hopngo.com/jvm-heap-utilization"
+
+      - alert: JVMHeapUtilizationMedium
+        expr: sli:jvm_heap_utilization > 70
+        for: 10m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          sli_type: heap_utilization
+          team: platform
+        annotations:
+          summary: "JVM heap utilization is {{ $value | humanize }}% on {{ $labels.job }}"
+          description: |
+            Service {{ $labels.job }} on {{ $labels.instance }} is using {{ $value | humanize }}% of heap memory.
+            Monitor for potential memory pressure.
+          runbook_url: "https://runbooks.hopngo.com/jvm-heap-utilization"
+
+      # Auth Login Error Rate
+      - alert: AuthLoginErrorRateHigh
+        expr: sli:auth_login_error_rate30m > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: auth-service
+          endpoint: login
+          sli_type: error_rate
+          team: auth
+        annotations:
+          summary: "Auth login error rate is {{ $value | humanize }}%"
+          description: |
+            Authentication service login endpoint has {{ $value | humanize }}% error rate over the last 30 minutes.
+            This may indicate authentication system issues or attacks.
+          runbook_url: "https://runbooks.hopngo.com/auth-login-errors"
+
+      - alert: AuthLoginErrorRateMedium
+        expr: sli:auth_login_error_rate30m > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: auth-service
+          endpoint: login
+          sli_type: error_rate
+          team: auth
+        annotations:
+          summary: "Auth login error rate is {{ $value | humanize }}%"
+          description: |
+            Authentication service login endpoint has {{ $value | humanize }}% error rate over the last 30 minutes.
+            Monitor for potential authentication issues.
+          runbook_url: "https://runbooks.hopngo.com/auth-login-errors"
+
+  # Service Health Alerts
+  - name: service_health_alerts
+    rules:
+      # Service Down
+      - alert: ServiceDown
+        expr: up{job=~"gateway|booking-service|market-service|auth-service|analytics-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+          team: platform
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: |
+            Service {{ $labels.job }} on {{ $labels.instance }} has been down for more than 1 minute.
+            Immediate attention required.
+          runbook_url: "https://runbooks.hopngo.com/service-down"
+
+      # High Response Time
+      - alert: ServiceHighResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job=~"gateway|booking-service|market-service|auth-service"}[5m])) by (job, le)
+          ) * 1000 > 2000
+        for: 10m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          team: platform
+        annotations:
+          summary: "Service {{ $labels.job }} has high response time"
+          description: |
+            Service {{ $labels.job }} P95 response time is {{ $value | humanize }}ms over the last 5 minutes.
+            This may indicate performance degradation.
+          runbook_url: "https://runbooks.hopngo.com/high-response-time"
+
+      # High Error Rate
+      - alert: ServiceHighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{job=~"gateway|booking-service|market-service|auth-service", code=~"5.."}[5m])) by (job)
+            /
+            sum(rate(http_requests_total{job=~"gateway|booking-service|market-service|auth-service"}[5m])) by (job)
+          ) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+          team: platform
+        annotations:
+          summary: "Service {{ $labels.job }} has high error rate"
+          description: |
+            Service {{ $labels.job }} has {{ $value | humanize }}% error rate over the last 5 minutes.
+            This indicates service instability.
+          runbook_url: "https://runbooks.hopngo.com/high-error-rate"
+
+  # Infrastructure Alerts
+  - name: infrastructure_alerts
+    rules:
+      # Disk Space
+      - alert: DiskSpaceLow
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/"} 
+            / 
+            node_filesystem_size_bytes{mountpoint="/"}
+          ) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Disk space is low on {{ $labels.instance }}"
+          description: |
+            Disk space on {{ $labels.instance }} is {{ $value | humanize }}% full.
+            Immediate cleanup or scaling required.
+          runbook_url: "https://runbooks.hopngo.com/disk-space-low"
+
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: |
+          (
+            100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+          ) > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: |
+            CPU usage on {{ $labels.instance }} is {{ $value | humanize }}%.
+            Consider scaling or investigating high load.
+          runbook_url: "https://runbooks.hopngo.com/high-cpu-usage"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) 
+            / 
+            node_memory_MemTotal_bytes
+          ) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: |
+            Memory usage on {{ $labels.instance }} is {{ $value | humanize }}%.
+            Consider scaling or investigating memory leaks.
+          runbook_url: "https://runbooks.hopngo.com/high-memory-usage"

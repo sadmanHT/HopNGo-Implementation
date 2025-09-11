@@ -14,9 +14,9 @@ interface UseWebPushReturn {
   
   // Methods
   requestPermission: () => Promise<NotificationPermission>;
-  subscribe: () => Promise<void>;
-  unsubscribe: () => Promise<void>;
-  showTestNotification: () => Promise<void>;
+  subscribe: (userId: string) => Promise<void>;
+  unsubscribe: (userId: string) => Promise<void>;
+  showTestNotification: (userId: string) => Promise<void>;
   registerWithBackend: (apiClient: any, userId: string) => Promise<void>;
   unregisterFromBackend: (apiClient: any, userId: string) => Promise<void>;
 }
@@ -40,7 +40,7 @@ export function useWebPush(): UseWebPushReturn {
         
         if (supported) {
           // Initialize web push service
-          await webPushService.init(VAPID_PUBLIC_KEY);
+          await webPushService.init();
           
           // Check current permission
           setPermission(Notification.permission);
@@ -146,6 +146,18 @@ export function useWebPush(): UseWebPushReturn {
 
 
 
+  // Register with backend (placeholder implementation)
+  const registerWithBackend = useCallback(async (apiClient: any, userId: string): Promise<void> => {
+    // Implementation would use apiClient to register with backend
+    console.log('Register with backend:', userId);
+  }, []);
+
+  // Unregister from backend (placeholder implementation)
+  const unregisterFromBackend = useCallback(async (apiClient: any, userId: string): Promise<void> => {
+    // Implementation would use apiClient to unregister from backend
+    console.log('Unregister from backend:', userId);
+  }, []);
+
   return {
     // State
     isSupported,
@@ -159,6 +171,8 @@ export function useWebPush(): UseWebPushReturn {
     subscribe,
     unsubscribe,
     showTestNotification,
+    registerWithBackend,
+    unregisterFromBackend,
   };
 }
 

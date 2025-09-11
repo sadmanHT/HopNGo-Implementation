@@ -6,17 +6,30 @@ import com.hopngo.notification.channel.NotificationChannel;
 import com.hopngo.notification.dto.BookingEvent;
 import com.hopngo.notification.dto.ChatEvent;
 import com.hopngo.notification.dto.PaymentEvent;
+import com.hopngo.notification.dto.PushNotificationRequest;
 import com.hopngo.notification.entity.Notification;
 import com.hopngo.notification.entity.NotificationStatus;
 import com.hopngo.notification.entity.NotificationType;
 import com.hopngo.notification.repository.NotificationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.AmqpHeaders;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.support.ListenerExecutionFailedException;
+import org.springframework.amqp.support.AmqpRejectAndDontRequeueException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.rabbitmq.client.Channel;
+import javax.validation.ValidationException;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -41,7 +54,77 @@ public class NotificationService {
     @Autowired
     private WebPushService webPushService;
     
-    // Booking event handlers
+    @Autowired(required = false)
+    private FirebaseMessagingService firebaseMessagingService;
+    
+    // Booking event handlers with enhanced error handling
+    @Async
+    @RabbitListener(
+        queues = "booking.notifications",
+        errorHandler = "rabbitListenerErrorHandler"
+    )
+    public void handleBookingEvent(BookingEvent bookingEvent, 
+                                 @Header Map<String, Object> headers,
+                                 Channel channel,
+                                 @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
+        
+        logger.info("Received booking event: {} with delivery tag: {}", bookingEvent, deliveryTag);
+        
+        try {
+            validateBookingEvent(bookingEvent);
+            
+            String subject = "Booking Confirmation - " + bookingEvent.getBookingId();
+            String message = String.format(
+                "Your booking has been confirmed!\n\n" +
+                "Booking ID: %s\n" +
+                "User: %s\n" +
+                "Amount: $%.2f\n" +
+                "Status: %s\n" +
+                "Created: %s",
+                bookingEvent.getBookingId(),
+                bookingEvent.getUserId(),
+                bookingEvent.getAmount(),
+                bookingEvent.getStatus(),
+                bookingEvent.getCreatedAt()
+            );
+            
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("bookingId", bookingEvent.getBookingId());
+            variables.put("userId", bookingEvent.getUserId());
+            variables.put("amount", bookingEvent.getAmount());
+            variables.put("status", bookingEvent.getStatus());
+            variables.put("createdAt", bookingEvent.getCreatedAt());
+            variables.put("deliveryTag", deliveryTag);
+            variables.put("retryCount", headers.getOrDefault("x-retry-count", 0));
+            
+            Notification notification = createNotification(
+                bookingEvent.getUserId(),
+                bookingEvent.getUserEmail(),
+                bookingEvent.getUserPhone(),
+                NotificationType.BOOKING_CONFIRMATION,
+                "EMAIL",
+                "booking-confirmation",
+                subject,
+                message,
+                variables,
+                bookingEvent.getBookingId(),
+                "booking.confirmation"
+            );
+            
+            processNotification(notification);
+            logger.info("Successfully processed booking notification for booking: {}", bookingEvent.getBookingId());
+            
+        } catch (ValidationException e) {
+            logger.error("Validation failed for booking event: {} - {}", bookingEvent.getBookingId(), e.getMessage());
+            // Don't retry validation errors - send to DLQ immediately
+            throw new AmqpRejectAndDontRequeueException("Validation failed", e);
+        } catch (Exception e) {
+            logger.error("Failed to process booking notification for booking: {} (attempt: {})", 
+                        bookingEvent.getBookingId(), headers.getOrDefault("x-retry-count", 0), e);
+            throw e; // Will be retried by RabbitMQ
+        }
+    }
+    
     @Async
     public void sendBookingConfirmedNotification(BookingEvent event) {
         Map<String, Object> variables = createBookingVariables(event);
@@ -135,6 +218,73 @@ public class NotificationService {
         );
         
         processNotification(notification);
+    }
+    
+    // Payment event handlers with enhanced error handling
+    @Async
+    @RabbitListener(
+        queues = "payment.notifications",
+        errorHandler = "rabbitListenerErrorHandler"
+    )
+    public void handlePaymentEvent(PaymentEvent paymentEvent,
+                                 @Header Map<String, Object> headers,
+                                 Channel channel,
+                                 @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
+        
+        logger.info("Received payment event: {} with delivery tag: {}", paymentEvent, deliveryTag);
+        
+        try {
+            validatePaymentEvent(paymentEvent);
+            
+            String subject = "Payment " + paymentEvent.getStatus() + " - " + paymentEvent.getPaymentId();
+            String message = String.format(
+                "Payment Update:\n\n" +
+                "Payment ID: %s\n" +
+                "Amount: $%.2f\n" +
+                "Status: %s\n" +
+                "Method: %s\n" +
+                "Processed: %s",
+                paymentEvent.getPaymentId(),
+                paymentEvent.getAmount(),
+                paymentEvent.getStatus(),
+                paymentEvent.getPaymentMethod(),
+                paymentEvent.getProcessedAt()
+            );
+            
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("paymentId", paymentEvent.getPaymentId());
+            variables.put("amount", paymentEvent.getAmount());
+            variables.put("status", paymentEvent.getStatus());
+            variables.put("paymentMethod", paymentEvent.getPaymentMethod());
+            variables.put("processedAt", paymentEvent.getProcessedAt());
+            variables.put("deliveryTag", deliveryTag);
+            variables.put("retryCount", headers.getOrDefault("x-retry-count", 0));
+            
+            Notification notification = createNotification(
+                paymentEvent.getUserId(),
+                paymentEvent.getUserEmail(),
+                paymentEvent.getUserPhone(),
+                NotificationType.PAYMENT_CONFIRMATION,
+                "EMAIL",
+                "payment-confirmation",
+                subject,
+                message,
+                variables,
+                paymentEvent.getPaymentId(),
+                "payment.confirmation"
+            );
+            
+            processNotification(notification);
+            logger.info("Successfully processed payment notification for payment: {}", paymentEvent.getPaymentId());
+            
+        } catch (ValidationException e) {
+            logger.error("Validation failed for payment event: {} - {}", paymentEvent.getPaymentId(), e.getMessage());
+            throw new AmqpRejectAndDontRequeueException("Validation failed", e);
+        } catch (Exception e) {
+            logger.error("Failed to process payment notification for payment: {} (attempt: {})", 
+                        paymentEvent.getPaymentId(), headers.getOrDefault("x-retry-count", 0), e);
+            throw e;
+        }
     }
     
     // Payment event handlers
@@ -262,6 +412,71 @@ public class NotificationService {
         );
         
         processNotification(notification);
+    }
+    
+    // Chat event handlers with enhanced error handling
+    @Async
+    @RabbitListener(
+        queues = "chat.notifications",
+        errorHandler = "rabbitListenerErrorHandler"
+    )
+    public void handleChatEvent(ChatEvent chatEvent,
+                              @Header Map<String, Object> headers,
+                              Channel channel,
+                              @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
+        
+        logger.info("Received chat event: {} with delivery tag: {}", chatEvent, deliveryTag);
+        
+        try {
+            validateChatEvent(chatEvent);
+            
+            String subject = "New Message from " + chatEvent.getSenderName();
+            String message = String.format(
+                "You have a new message!\n\n" +
+                "From: %s\n" +
+                "Message: %s\n" +
+                "Chat ID: %s\n" +
+                "Sent: %s",
+                chatEvent.getSenderName(),
+                chatEvent.getMessage(),
+                chatEvent.getChatId(),
+                chatEvent.getTimestamp()
+            );
+            
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("chatId", chatEvent.getChatId());
+            variables.put("senderId", chatEvent.getSenderId());
+            variables.put("senderName", chatEvent.getSenderName());
+            variables.put("message", chatEvent.getMessage());
+            variables.put("timestamp", chatEvent.getTimestamp());
+            variables.put("deliveryTag", deliveryTag);
+            variables.put("retryCount", headers.getOrDefault("x-retry-count", 0));
+            
+            Notification notification = createNotification(
+                chatEvent.getRecipientId(),
+                chatEvent.getRecipientEmail(),
+                null,
+                NotificationType.CHAT_MESSAGE,
+                "EMAIL",
+                "chat-message",
+                subject,
+                message,
+                variables,
+                chatEvent.getChatId(),
+                "chat.message"
+            );
+            
+            processNotification(notification);
+            logger.info("Successfully processed chat notification for chat: {}", chatEvent.getChatId());
+            
+        } catch (ValidationException e) {
+            logger.error("Validation failed for chat event: {} - {}", chatEvent.getChatId(), e.getMessage());
+            throw new AmqpRejectAndDontRequeueException("Validation failed", e);
+        } catch (Exception e) {
+            logger.error("Failed to process chat notification for chat: {} (attempt: {})", 
+                        chatEvent.getChatId(), headers.getOrDefault("x-retry-count", 0), e);
+            throw e;
+        }
     }
     
     // Chat event handlers
@@ -413,6 +628,34 @@ public class NotificationService {
         processNotification(notification);
     }
     
+    public void sendMultiChannelNotification(String recipientId, String recipientEmail, String subject, String message, Map<String, String> pushTokens) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("message", message);
+        variables.put("timestamp", LocalDateTime.now().toString());
+        
+        // Send email notification
+        Notification notification = createNotification(
+            recipientId,
+            recipientEmail,
+            null,
+            NotificationType.SYSTEM_NOTIFICATION,
+            "EMAIL",
+            "multi-channel-notification",
+            subject,
+            message,
+            variables,
+            "multi-" + System.currentTimeMillis(),
+            "multi.channel"
+        );
+        
+        processNotification(notification);
+        
+        // Send push notifications if tokens are provided and FCM is available
+        if (pushTokens != null && !pushTokens.isEmpty() && firebaseMessagingService != null) {
+            sendPushNotifications(recipientId, subject, message, pushTokens);
+        }
+    }
+    
     public void sendEmail(String recipientEmail, String subject, String content) {
         Map<String, Object> variables = new HashMap<>();
         variables.put("content", content);
@@ -465,6 +708,11 @@ public class NotificationService {
         return notificationRepository.save(notification);
     }
     
+    @Retryable(
+        value = {Exception.class},
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 1000, multiplier = 2.0, maxDelay = 10000)
+    )
     private void processNotification(Notification notification) {
         try {
             notification.setStatus(NotificationStatus.PROCESSING);
@@ -473,14 +721,14 @@ public class NotificationService {
             
             NotificationChannel channel = findChannel(notification.getChannel());
             if (channel == null) {
-                throw new Exception("No channel found for: " + notification.getChannel());
+                throw new RuntimeException("No channel found for: " + notification.getChannel());
             }
             
             if (!channel.isAvailable()) {
-                throw new Exception("Channel is not available: " + notification.getChannel());
+                throw new RuntimeException("Channel is not available: " + notification.getChannel());
             }
             
-            channel.send(notification);
+            sendNotificationWithRetry(notification, channel);
             
             notification.setStatus(NotificationStatus.SENT);
             notification.setSentAt(LocalDateTime.now());
@@ -490,22 +738,117 @@ public class NotificationService {
             logger.info("Notification sent successfully: {}", notification.getId());
             
         } catch (Exception e) {
-            logger.error("Failed to send notification: {}", notification.getId(), e);
-            
-            notification.setStatus(NotificationStatus.FAILED);
-            notification.setErrorMessage(e.getMessage());
-            notification.setUpdatedAt(LocalDateTime.now());
-            
-            // Check if we should retry
-            NotificationChannel channel = findChannel(notification.getChannel());
-            if (channel != null && notification.getRetryCount() < channel.getMaxRetries()) {
-                notification.setNextRetryAt(LocalDateTime.now().plusSeconds(channel.getRetryDelayMs() / 1000));
-                notification.setRetryCount(notification.getRetryCount() + 1);
-                notification.setStatus(NotificationStatus.RETRY);
-            }
-            
-            notificationRepository.save(notification);
+            logger.error("Failed to send notification after retries: {}", notification.getId(), e);
+            throw e; // Re-throw to trigger @Recover method
         }
+    }
+    
+    @Retryable(
+        value = {Exception.class},
+        maxAttempts = 5,
+        backoff = @Backoff(delay = 2000, multiplier = 1.5, maxDelay = 30000)
+    )
+    private void sendNotificationWithRetry(Notification notification, NotificationChannel channel) throws Exception {
+        try {
+            channel.send(notification);
+            logger.debug("Notification sent via channel: {} for notification: {}", channel.getClass().getSimpleName(), notification.getId());
+        } catch (Exception e) {
+            logger.warn("Attempt failed for notification: {} via channel: {}, error: {}", 
+                notification.getId(), channel.getClass().getSimpleName(), e.getMessage());
+            throw e;
+        }
+    }
+    
+    private void sendPushNotifications(String recipientId, String subject, String message, Map<String, String> pushTokens) {
+        for (Map.Entry<String, String> entry : pushTokens.entrySet()) {
+            String platform = entry.getKey(); // "android" or "ios"
+            String token = entry.getValue();
+            
+            try {
+                PushNotificationRequest pushRequest = PushNotificationRequest.builder()
+                    .token(token)
+                    .title(subject)
+                    .body(message)
+                    .priority("high")
+                    .data(Map.of(
+                        "userId", recipientId,
+                        "timestamp", LocalDateTime.now().toString()
+                    ))
+                    .build();
+                    
+                firebaseMessagingService.sendNotification(pushRequest);
+                logger.info("Push notification sent successfully to {} device for user: {}", platform, recipientId);
+            } catch (Exception e) {
+                logger.error("Failed to send push notification to {} device for user: {}", platform, recipientId, e);
+                // Don't throw exception here to avoid failing the entire notification process
+            }
+        }
+    }
+    
+    // Validation methods for event processing
+    private void validateBookingEvent(BookingEvent event) {
+        if (event == null) {
+            throw new ValidationException("Booking event cannot be null");
+        }
+        if (event.getBookingId() == null || event.getBookingId().trim().isEmpty()) {
+            throw new ValidationException("Booking ID cannot be null or empty");
+        }
+        if (event.getUserId() == null || event.getUserId().trim().isEmpty()) {
+            throw new ValidationException("User ID cannot be null or empty");
+        }
+        if (event.getUserEmail() == null || event.getUserEmail().trim().isEmpty()) {
+            throw new ValidationException("User email cannot be null or empty");
+        }
+    }
+    
+    private void validateChatEvent(ChatEvent event) {
+        if (event == null) {
+            throw new ValidationException("Chat event cannot be null");
+        }
+        if (event.getChatId() == null || event.getChatId().trim().isEmpty()) {
+            throw new ValidationException("Chat ID cannot be null or empty");
+        }
+        if (event.getRecipientId() == null || event.getRecipientId().trim().isEmpty()) {
+            throw new ValidationException("Recipient ID cannot be null or empty");
+        }
+        if (event.getMessage() == null || event.getMessage().trim().isEmpty()) {
+            throw new ValidationException("Message cannot be null or empty");
+        }
+    }
+    
+    private void validatePaymentEvent(PaymentEvent event) {
+        if (event == null) {
+            throw new ValidationException("Payment event cannot be null");
+        }
+        if (event.getPaymentId() == null || event.getPaymentId().trim().isEmpty()) {
+            throw new ValidationException("Payment ID cannot be null or empty");
+        }
+        if (event.getUserId() == null || event.getUserId().trim().isEmpty()) {
+            throw new ValidationException("User ID cannot be null or empty");
+        }
+        if (event.getAmount() == null || event.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ValidationException("Payment amount must be greater than zero");
+        }
+    }
+    
+    @Recover
+    private void recoverFromNotificationFailure(Exception ex, Notification notification) {
+        logger.error("All retry attempts exhausted for notification: {}, marking as failed", notification.getId(), ex);
+        
+        notification.setStatus(NotificationStatus.FAILED);
+        notification.setErrorMessage(ex.getMessage());
+        notification.setUpdatedAt(LocalDateTime.now());
+        
+        // Schedule for later retry if within retry limits
+        if (notification.getRetryCount() < 10) { // Max 10 total retries across all attempts
+            notification.setNextRetryAt(LocalDateTime.now().plusMinutes(30)); // Retry in 30 minutes
+            notification.setRetryCount(notification.getRetryCount() + 1);
+            notification.setStatus(NotificationStatus.RETRY);
+            logger.info("Scheduling notification {} for retry attempt {} in 30 minutes", 
+                notification.getId(), notification.getRetryCount());
+        }
+        
+        notificationRepository.save(notification);
     }
     
     private NotificationChannel findChannel(String channelName) {

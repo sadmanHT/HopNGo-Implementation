@@ -39,6 +39,15 @@ public class RouteRequest {
         this.mode = mode;
     }
     
+    public RouteRequest(String from, String to, String mode, boolean alternatives, boolean steps, String geometries) {
+        this.from = from;
+        this.to = to;
+        this.mode = mode;
+        this.alternatives = alternatives;
+        this.steps = steps;
+        this.geometries = geometries;
+    }
+    
     // Getters and Setters
     public String getFrom() {
         return from;

@@ -50,7 +50,7 @@ interface Comment {
 
 export default function SharedItineraryPage() {
   const params = useParams();
-  const token = params.token as string;
+  const token = params?.token as string;
   
   const [itinerary, setItinerary] = useState<SharedItinerary | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -212,7 +212,7 @@ export default function SharedItineraryPage() {
             <CardTitle>Itinerary Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <ItineraryTimeline itinerary={itinerary} />
+            <ItineraryTimeline plan={itinerary.plan || {}} />
           </CardContent>
         </Card>
 

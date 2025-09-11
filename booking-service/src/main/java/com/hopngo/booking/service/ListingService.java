@@ -10,7 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import java.util.Collections;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,18 +33,21 @@ public class ListingService {
     private final VendorService vendorService;
     private final OutboxService outboxService;
     private final SearchIndexingService searchIndexingService;
+    private final AiEmbeddingService aiEmbeddingService;
     
     @Autowired
     public ListingService(ListingRepository listingRepository, 
                          InventoryRepository inventoryRepository,
                          VendorService vendorService,
                          OutboxService outboxService,
-                         @Autowired(required = false) SearchIndexingService searchIndexingService) {
+                         @Autowired(required = false) SearchIndexingService searchIndexingService,
+                         AiEmbeddingService aiEmbeddingService) {
         this.listingRepository = listingRepository;
         this.inventoryRepository = inventoryRepository;
         this.vendorService = vendorService;
         this.outboxService = outboxService;
         this.searchIndexingService = searchIndexingService;
+        this.aiEmbeddingService = aiEmbeddingService;
     }
     
     @CacheEvict(value = {"listings", "geoListings", "vendorListings"}, allEntries = true)
@@ -71,6 +76,15 @@ public class ListingService {
         
         Listing savedListing = listingRepository.save(listing);
         
+        // Generate and upsert embeddings for search
+        List<String> amenitiesList = amenities != null ? List.of(amenities) : null;
+        Double lat = latitude != null ? latitude.doubleValue() : null;
+        Double lng = longitude != null ? longitude.doubleValue() : null;
+        aiEmbeddingService.processListingEmbedding(
+            savedListing.getId(), title, description, category,
+            amenitiesList, basePrice, currency, lat, lng, userId
+        );
+        
         // Publish listing created event
         outboxService.publishListingCreatedEvent(savedListing);
         
@@ -89,7 +103,7 @@ public class ListingService {
     
     @Transactional(readOnly = true)
     public List<Listing> findByVendorId(UUID vendorId) {
-        return listingRepository.findByVendorId(vendorId);
+        return listingRepository.findByVendorIdAndStatus(vendorId, Listing.ListingStatus.ACTIVE);
     }
     
     @Transactional(readOnly = true)
@@ -114,8 +128,8 @@ public class ListingService {
         
         if (latitude != null && longitude != null && radiusKm != null) {
             // Search with geo-location
-            listings = listingRepository.searchListings(
-                latitude, longitude, radiusKm, category, minPrice, maxPrice, maxGuests, amenities
+            return listingRepository.searchListings(
+                latitude, longitude, radiusKm, category, minPrice, maxPrice, maxGuests, amenities, pageable
             );
         } else {
             // Search without geo-location
@@ -138,7 +152,16 @@ public class ListingService {
                 .collect(Collectors.toList());
         }
         
-        return listings;
+        // Convert List to Page
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), listings.size());
+        
+        if (start > listings.size()) {
+            return new PageImpl<>(Collections.emptyList(), pageable, listings.size());
+        }
+        
+        List<Listing> pageContent = listings.subList(start, end);
+        return new PageImpl<>(pageContent, pageable, listings.size());
     }
     
     private boolean hasAnyAmenity(Listing listing, List<String> requiredAmenities) {

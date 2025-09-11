@@ -31,6 +31,7 @@ export function I18nProvider({
     setCurrentLocale(newLocale);
     
     // Navigate to new locale
+    if (!pathname) return;
     const segments = pathname.split('/');
     segments[1] = newLocale; // Replace locale segment
     const newPath = segments.join('/');

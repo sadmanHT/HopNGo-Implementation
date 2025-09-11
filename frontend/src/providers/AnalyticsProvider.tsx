@@ -13,7 +13,7 @@ export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
 
   useEffect(() => {
     // Track page views on route changes
-    analytics.trackPageView(pathname);
+    analytics.trackPageView(pathname || undefined);
   }, [pathname]);
 
   useEffect(() => {

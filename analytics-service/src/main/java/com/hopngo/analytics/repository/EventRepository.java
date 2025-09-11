@@ -159,4 +159,58 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             @Param("startTime") OffsetDateTime startTime,
             @Param("endTime") OffsetDateTime endTime
     );
+
+    /**
+     * Get user content stats aggregated from events
+     */
+    @Query("SELECT e.userId, " +
+           "SUM(CASE WHEN e.eventType = 'content_created' THEN 1 ELSE 0 END) as contentCreated, " +
+           "SUM(CASE WHEN e.eventType = 'content_liked' THEN 1 ELSE 0 END) as contentLiked, " +
+           "SUM(CASE WHEN e.eventType = 'content_bookmarked' THEN 1 ELSE 0 END) as contentBookmarked, " +
+           "SUM(CASE WHEN e.eventType = 'content_shared' THEN 1 ELSE 0 END) as contentShared, " +
+           "SUM(CASE WHEN e.eventType = 'content_viewed' THEN 1 ELSE 0 END) as contentViewed, " +
+           "SUM(CASE WHEN e.eventType = 'content_commented' THEN 1 ELSE 0 END) as contentCommented " +
+           "FROM Event e WHERE e.userId IS NOT NULL " +
+           "GROUP BY e.userId")
+    List<Object[]> getUserContentStats();
+
+    /**
+     * Get user content stats for a specific user
+     */
+    @Query("SELECT e.userId, " +
+           "SUM(CASE WHEN e.eventType = 'content_created' THEN 1 ELSE 0 END) as contentCreated, " +
+           "SUM(CASE WHEN e.eventType = 'content_liked' THEN 1 ELSE 0 END) as contentLiked, " +
+           "SUM(CASE WHEN e.eventType = 'content_bookmarked' THEN 1 ELSE 0 END) as contentBookmarked, " +
+           "SUM(CASE WHEN e.eventType = 'content_shared' THEN 1 ELSE 0 END) as contentShared, " +
+           "SUM(CASE WHEN e.eventType = 'content_viewed' THEN 1 ELSE 0 END) as contentViewed, " +
+           "SUM(CASE WHEN e.eventType = 'content_commented' THEN 1 ELSE 0 END) as contentCommented " +
+           "FROM Event e WHERE e.userId = :userId " +
+           "GROUP BY e.userId")
+    List<Object[]> getUserContentStatsByUserId(@Param("userId") String userId);
+
+    /**
+     * Get item popularity stats aggregated from events
+     */
+    @Query("SELECT e.itemId, e.itemType, " +
+           "SUM(CASE WHEN e.eventType = 'content_liked' THEN 1 ELSE 0 END) as likes, " +
+           "SUM(CASE WHEN e.eventType = 'content_bookmarked' THEN 1 ELSE 0 END) as bookmarks, " +
+           "SUM(CASE WHEN e.eventType = 'content_viewed' THEN 1 ELSE 0 END) as views, " +
+           "SUM(CASE WHEN e.eventType = 'content_shared' THEN 1 ELSE 0 END) as shares, " +
+           "SUM(CASE WHEN e.eventType = 'content_commented' THEN 1 ELSE 0 END) as comments " +
+           "FROM Event e WHERE e.itemId IS NOT NULL AND e.itemType IS NOT NULL " +
+           "GROUP BY e.itemId, e.itemType")
+    List<Object[]> getItemPopularityStats();
+
+    /**
+     * Get item popularity stats for a specific item
+     */
+    @Query("SELECT e.itemId, e.itemType, " +
+           "SUM(CASE WHEN e.eventType = 'content_liked' THEN 1 ELSE 0 END) as likes, " +
+           "SUM(CASE WHEN e.eventType = 'content_bookmarked' THEN 1 ELSE 0 END) as bookmarks, " +
+           "SUM(CASE WHEN e.eventType = 'content_viewed' THEN 1 ELSE 0 END) as views, " +
+           "SUM(CASE WHEN e.eventType = 'content_shared' THEN 1 ELSE 0 END) as shares, " +
+           "SUM(CASE WHEN e.eventType = 'content_commented' THEN 1 ELSE 0 END) as comments " +
+           "FROM Event e WHERE e.itemId = :itemId AND e.itemType = :itemType " +
+           "GROUP BY e.itemId, e.itemType")
+    List<Object[]> getItemPopularityStatsByItem(@Param("itemId") String itemId, @Param("itemType") String itemType);
 }

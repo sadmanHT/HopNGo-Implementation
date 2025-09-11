@@ -45,6 +45,16 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
     
+    // 2FA TOTP fields
+    @Column(name = "totp_secret")
+    private String totpSecret;
+    
+    @Column(name = "is_2fa_enabled", nullable = false)
+    private Boolean is2faEnabled = false;
+    
+    @Column(name = "backup_codes", columnDefinition = "TEXT")
+    private String backupCodes; // JSON array of backup codes
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -91,6 +101,10 @@ public class User {
     
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+    
+    public void setPassword(String password) {
+        this.passwordHash = password;
     }
     
     public String getFirstName() {
@@ -141,6 +155,30 @@ public class User {
         this.updatedAt = updatedAt;
     }
     
+    public String getTotpSecret() {
+        return totpSecret;
+    }
+    
+    public void setTotpSecret(String totpSecret) {
+        this.totpSecret = totpSecret;
+    }
+    
+    public Boolean getIs2faEnabled() {
+        return is2faEnabled;
+    }
+    
+    public void setIs2faEnabled(Boolean is2faEnabled) {
+        this.is2faEnabled = is2faEnabled;
+    }
+    
+    public String getBackupCodes() {
+        return backupCodes;
+    }
+    
+    public void setBackupCodes(String backupCodes) {
+        this.backupCodes = backupCodes;
+    }
+    
     // Helper methods
     public String getFullName() {
         return firstName + " " + lastName;
@@ -148,6 +186,10 @@ public class User {
     
     public boolean isAdmin() {
         return Role.ADMIN.equals(this.role);
+    }
+    
+    public boolean is2faEnabled() {
+        return Boolean.TRUE.equals(this.is2faEnabled);
     }
     
     // equals, hashCode, toString

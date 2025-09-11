@@ -1,0 +1,425 @@
+groups:
+  # Gateway Service SLIs
+  - name: gateway_sli
+    interval: 30s
+    rules:
+      # Availability SLI - HTTP 2xx rate
+      - record: sli:gateway_availability_rate5m
+        expr: |
+          (
+            sum(rate(http_requests_total{job="gateway", code=~"2.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="gateway"}[5m]))
+          ) * 100
+        labels:
+          service: gateway
+          sli_type: availability
+
+      - record: sli:gateway_availability_rate30m
+        expr: |
+          (
+            sum(rate(http_requests_total{job="gateway", code=~"2.."}[30m]))
+            /
+            sum(rate(http_requests_total{job="gateway"}[30m]))
+          ) * 100
+        labels:
+          service: gateway
+          sli_type: availability
+
+      - record: sli:gateway_availability_rate1h
+        expr: |
+          (
+            sum(rate(http_requests_total{job="gateway", code=~"2.."}[1h]))
+            /
+            sum(rate(http_requests_total{job="gateway"}[1h]))
+          ) * 100
+        labels:
+          service: gateway
+          sli_type: availability
+
+      - record: sli:gateway_availability_rate6h
+        expr: |
+          (
+            sum(rate(http_requests_total{job="gateway", code=~"2.."}[6h]))
+            /
+            sum(rate(http_requests_total{job="gateway"}[6h]))
+          ) * 100
+        labels:
+          service: gateway
+          sli_type: availability
+
+      - record: sli:gateway_availability_rate24h
+        expr: |
+          (
+            sum(rate(http_requests_total{job="gateway", code=~"2.."}[24h]))
+            /
+            sum(rate(http_requests_total{job="gateway"}[24h]))
+          ) * 100
+        labels:
+          service: gateway
+          sli_type: availability
+
+  # Booking Service SLIs
+  - name: booking_sli
+    interval: 30s
+    rules:
+      # Search endpoint P95 latency
+      - record: sli:booking_search_latency_p95_5m
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="booking-service", uri=~".*/bookings/search.*"}[5m])) by (le)
+          ) * 1000
+        labels:
+          service: booking-service
+          endpoint: search
+          sli_type: latency
+          percentile: p95
+
+      - record: sli:booking_search_latency_p95_30m
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="booking-service", uri=~".*/bookings/search.*"}[30m])) by (le)
+          ) * 1000
+        labels:
+          service: booking-service
+          endpoint: search
+          sli_type: latency
+          percentile: p95
+
+      - record: sli:booking_search_latency_p95_1h
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="booking-service", uri=~".*/bookings/search.*"}[1h])) by (le)
+          ) * 1000
+        labels:
+          service: booking-service
+          endpoint: search
+          sli_type: latency
+          percentile: p95
+
+      - record: sli:booking_search_latency_p95_6h
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="booking-service", uri=~".*/bookings/search.*"}[6h])) by (le)
+          ) * 1000
+        labels:
+          service: booking-service
+          endpoint: search
+          sli_type: latency
+          percentile: p95
+
+      # Booking availability
+      - record: sli:booking_availability_rate5m
+        expr: |
+          (
+            sum(rate(http_requests_total{job="booking-service", code=~"2.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="booking-service"}[5m]))
+          ) * 100
+        labels:
+          service: booking-service
+          sli_type: availability
+
+      - record: sli:booking_availability_rate30m
+        expr: |
+          (
+            sum(rate(http_requests_total{job="booking-service", code=~"2.."}[30m]))
+            /
+            sum(rate(http_requests_total{job="booking-service"}[30m]))
+          ) * 100
+        labels:
+          service: booking-service
+          sli_type: availability
+
+  # Market Service SLIs
+  - name: market_sli
+    interval: 30s
+    rules:
+      # Checkout endpoint P95 latency
+      - record: sli:market_checkout_latency_p95_5m
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="market-service", uri=~".*/market/checkout.*"}[5m])) by (le)
+          ) * 1000
+        labels:
+          service: market-service
+          endpoint: checkout
+          sli_type: latency
+          percentile: p95
+
+      - record: sli:market_checkout_latency_p95_30m
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="market-service", uri=~".*/market/checkout.*"}[30m])) by (le)
+          ) * 1000
+        labels:
+          service: market-service
+          endpoint: checkout
+          sli_type: latency
+          percentile: p95
+
+      - record: sli:market_checkout_latency_p95_1h
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="market-service", uri=~".*/market/checkout.*"}[1h])) by (le)
+          ) * 1000
+        labels:
+          service: market-service
+          endpoint: checkout
+          sli_type: latency
+          percentile: p95
+
+      # Checkout error rate
+      - record: sli:market_checkout_error_rate5m
+        expr: |
+          (
+            sum(rate(http_requests_total{job="market-service", uri=~".*/market/checkout.*", code=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="market-service", uri=~".*/market/checkout.*"}[5m]))
+          ) * 100
+        labels:
+          service: market-service
+          endpoint: checkout
+          sli_type: error_rate
+
+      - record: sli:market_checkout_error_rate30m
+        expr: |
+          (
+            sum(rate(http_requests_total{job="market-service", uri=~".*/market/checkout.*", code=~"5.."}[30m]))
+            /
+            sum(rate(http_requests_total{job="market-service", uri=~".*/market/checkout.*"}[30m]))
+          ) * 100
+        labels:
+          service: market-service
+          endpoint: checkout
+          sli_type: error_rate
+
+  # Auth Service SLIs
+  - name: auth_sli
+    interval: 30s
+    rules:
+      # Login error rate
+      - record: sli:auth_login_error_rate5m
+        expr: |
+          (
+            sum(rate(http_requests_total{job="auth-service", uri=~".*/auth/login.*", code=~"[45].."}[5m]))
+            /
+            sum(rate(http_requests_total{job="auth-service", uri=~".*/auth/login.*"}[5m]))
+          ) * 100
+        labels:
+          service: auth-service
+          endpoint: login
+          sli_type: error_rate
+
+      - record: sli:auth_login_error_rate30m
+        expr: |
+          (
+            sum(rate(http_requests_total{job="auth-service", uri=~".*/auth/login.*", code=~"[45].."}[30m]))
+            /
+            sum(rate(http_requests_total{job="auth-service", uri=~".*/auth/login.*"}[30m]))
+          ) * 100
+        labels:
+          service: auth-service
+          endpoint: login
+          sli_type: error_rate
+
+      - record: sli:auth_login_error_rate1h
+        expr: |
+          (
+            sum(rate(http_requests_total{job="auth-service", uri=~".*/auth/login.*", code=~"[45].."}[1h]))
+            /
+            sum(rate(http_requests_total{job="auth-service", uri=~".*/auth/login.*"}[1h]))
+          ) * 100
+        labels:
+          service: auth-service
+          endpoint: login
+          sli_type: error_rate
+
+      # Auth service availability
+      - record: sli:auth_availability_rate5m
+        expr: |
+          (
+            sum(rate(http_requests_total{job="auth-service", code=~"2.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="auth-service"}[5m]))
+          ) * 100
+        labels:
+          service: auth-service
+          sli_type: availability
+
+      - record: sli:auth_availability_rate30m
+        expr: |
+          (
+            sum(rate(http_requests_total{job="auth-service", code=~"2.."}[30m]))
+            /
+            sum(rate(http_requests_total{job="auth-service"}[30m]))
+          ) * 100
+        labels:
+          service: auth-service
+          sli_type: availability
+
+  # RabbitMQ Queue SLIs
+  - name: rabbitmq_sli
+    interval: 30s
+    rules:
+      # Queue lag (messages ready)
+      - record: sli:rabbitmq_queue_lag
+        expr: |
+          sum by (queue) (rabbitmq_queue_messages_ready{job="rabbitmq"})
+        labels:
+          sli_type: queue_lag
+
+      # Queue processing rate
+      - record: sli:rabbitmq_queue_processing_rate5m
+        expr: |
+          sum by (queue) (rate(rabbitmq_queue_messages_delivered_total{job="rabbitmq"}[5m]))
+        labels:
+          sli_type: queue_processing_rate
+
+      # Queue consumer utilization
+      - record: sli:rabbitmq_queue_consumer_utilization
+        expr: |
+          sum by (queue) (rabbitmq_queue_consumer_utilisation{job="rabbitmq"})
+        labels:
+          sli_type: consumer_utilization
+
+  # Database SLIs
+  - name: database_sli
+    interval: 30s
+    rules:
+      # PostgreSQL connection saturation
+      - record: sli:postgres_connection_saturation
+        expr: |
+          (
+            sum by (instance) (pg_stat_database_numbackends{job="postgres"})
+            /
+            sum by (instance) (pg_settings_max_connections{job="postgres"})
+          ) * 100
+        labels:
+          sli_type: connection_saturation
+
+      # Database query latency P95
+      - record: sli:postgres_query_latency_p95_5m
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(pg_stat_statements_mean_time_seconds_bucket{job="postgres"}[5m])) by (le)
+          ) * 1000
+        labels:
+          sli_type: query_latency
+          percentile: p95
+
+  # JVM SLIs
+  - name: jvm_sli
+    interval: 30s
+    rules:
+      # JVM Heap utilization
+      - record: sli:jvm_heap_utilization
+        expr: |
+          (
+            sum by (job, instance) (jvm_memory_used_bytes{area="heap"})
+            /
+            sum by (job, instance) (jvm_memory_max_bytes{area="heap"})
+          ) * 100
+        labels:
+          sli_type: heap_utilization
+
+      # JVM GC time percentage
+      - record: sli:jvm_gc_time_percentage5m
+        expr: |
+          (
+            sum by (job, instance) (rate(jvm_gc_collection_seconds_sum[5m]))
+            /
+            sum by (job, instance) (rate(jvm_gc_collection_seconds_count[5m]))
+          ) * 100
+        labels:
+          sli_type: gc_time_percentage
+
+      # JVM thread utilization
+      - record: sli:jvm_thread_utilization
+        expr: |
+          (
+            sum by (job, instance) (jvm_threads_current)
+            /
+            sum by (job, instance) (jvm_threads_peak)
+          ) * 100
+        labels:
+          sli_type: thread_utilization
+
+  # Error Budget Burn Rate Calculations
+  - name: error_budget_burn_rate
+    interval: 30s
+    rules:
+      # Gateway availability error budget burn rate
+      - record: sli:gateway_availability_error_budget_burn_rate2h
+        expr: |
+          (
+            1 - (sli:gateway_availability_rate30m / 100)
+          ) / (
+            1 - 0.999  # 99.9% SLO
+          )
+        labels:
+          service: gateway
+          sli_type: availability
+          burn_rate_window: 2h
+
+      - record: sli:gateway_availability_error_budget_burn_rate24h
+        expr: |
+          (
+            1 - (sli:gateway_availability_rate6h / 100)
+          ) / (
+            1 - 0.999  # 99.9% SLO
+          )
+        labels:
+          service: gateway
+          sli_type: availability
+          burn_rate_window: 24h
+
+      # Booking search latency error budget burn rate
+      - record: sli:booking_search_latency_error_budget_burn_rate2h
+        expr: |
+          (
+            clamp_min(sli:booking_search_latency_p95_30m - 400, 0) / 400
+          )
+        labels:
+          service: booking-service
+          endpoint: search
+          sli_type: latency
+          burn_rate_window: 2h
+
+      - record: sli:booking_search_latency_error_budget_burn_rate24h
+        expr: |
+          (
+            clamp_min(sli:booking_search_latency_p95_6h - 400, 0) / 400
+          )
+        labels:
+          service: booking-service
+          endpoint: search
+          sli_type: latency
+          burn_rate_window: 24h
+
+      # Market checkout error rate burn rate
+      - record: sli:market_checkout_error_budget_burn_rate2h
+        expr: |
+          (
+            sli:market_checkout_error_rate30m / 100
+          ) / (
+            0.01  # 1% error rate SLO
+          )
+        labels:
+          service: market-service
+          endpoint: checkout
+          sli_type: error_rate
+          burn_rate_window: 2h
+
+      - record: sli:market_checkout_error_budget_burn_rate24h
+        expr: |
+          (
+            sli:market_checkout_error_rate30m / 100
+          ) / (
+            0.01  # 1% error rate SLO
+          )
+        labels:
+          service: market-service
+          endpoint: checkout
+          sli_type: error_rate
+          burn_rate_window: 24h

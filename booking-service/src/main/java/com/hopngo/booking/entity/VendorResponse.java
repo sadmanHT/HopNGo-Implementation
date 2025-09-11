@@ -41,6 +41,10 @@ public class VendorResponse extends Auditable {
         return this.vendorUserId.equals(vendorUserId);
     }
     
+    public boolean isOwnedBy(String vendorUserId) {
+        return this.vendorUserId.equals(vendorUserId);
+    }
+    
     // Getters and Setters
     public UUID getId() {
         return id;

@@ -2,12 +2,14 @@ package com.hopngo.market.service.payment;
 
 import com.hopngo.market.entity.Order;
 import com.hopngo.market.dto.PaymentIntentResponse;
+import com.hopngo.market.dto.RefundResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -87,6 +89,21 @@ public class MockPaymentProvider implements PaymentProvider {
         }
         
         return isValid;
+    }
+    
+    @Override
+    public RefundResponse processRefund(String paymentId, BigDecimal refundAmount, String currency, String reason) {
+        logger.info("Processing mock refund for payment: {}, amount: {} {}, reason: {}", 
+                paymentId, refundAmount, currency, reason);
+        
+        // Generate mock refund ID
+        String refundId = "re_mock_" + UUID.randomUUID().toString().substring(0, 8);
+        
+        // For mock provider, always simulate successful refund
+        // In production, you might want to sometimes simulate failures for testing
+        logger.info("Mock refund successful: {}", refundId);
+        
+        return RefundResponse.success(refundId, refundAmount, currency);
     }
     
     @Override

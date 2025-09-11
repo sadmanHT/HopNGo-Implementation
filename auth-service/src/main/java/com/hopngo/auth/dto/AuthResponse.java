@@ -6,6 +6,7 @@ public class AuthResponse {
     private String refreshToken;
     private String tokenType = "Bearer";
     private UserDto user;
+    private boolean requires2FA = false; // Flag for 2FA requirement
     
     // Constructors
     public AuthResponse() {}
@@ -14,6 +15,13 @@ public class AuthResponse {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.user = user;
+    }
+    
+    public AuthResponse(String accessToken, String refreshToken, UserDto user, boolean requires2FA) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.user = user;
+        this.requires2FA = requires2FA;
     }
     
     // Getters and Setters
@@ -47,6 +55,14 @@ public class AuthResponse {
     
     public void setUser(UserDto user) {
         this.user = user;
+    }
+    
+    public boolean isRequires2FA() {
+        return requires2FA;
+    }
+    
+    public void setRequires2FA(boolean requires2FA) {
+        this.requires2FA = requires2FA;
     }
     
     @Override

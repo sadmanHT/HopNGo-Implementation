@@ -1,6 +1,7 @@
 -- Sample Feature Flags
 INSERT INTO feature_flags (id, name, description, enabled, created_at, updated_at) VALUES
 ('visual-search', 'visual-search', 'Enable visual search functionality using image uploads', true, NOW(), NOW()),
+('visual_search_v2', 'visual_search_v2', 'Enable enhanced visual search with drag-drop and improved UI', true, NOW(), NOW()),
 ('advanced-filters', 'advanced-filters', 'Show advanced filtering options in search', true, NOW(), NOW()),
 ('dark-mode', 'dark-mode', 'Enable dark mode theme toggle', false, NOW(), NOW()),
 ('real-time-chat', 'real-time-chat', 'Enable real-time messaging features', true, NOW(), NOW()),

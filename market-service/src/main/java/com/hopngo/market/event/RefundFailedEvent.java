@@ -26,7 +26,7 @@ public record RefundFailedEvent(
             refund.getPayment().getId(),
             refund.getAmount(),
             refund.getCurrency(),
-            refund.getPayment().getProvider(),
+            refund.getPayment().getProvider().name(),
             refund.getFailureReason(),
             refund.getProcessedAt()
         );

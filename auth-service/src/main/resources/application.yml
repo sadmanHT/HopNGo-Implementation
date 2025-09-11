@@ -4,6 +4,19 @@ server:
 spring:
   application:
     name: auth-service
+  
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:0}
+    timeout: 2000ms
+    jedis:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
   datasource:
     url: jdbc:h2:mem:testdb
     username: sa
@@ -29,30 +42,70 @@ spring:
 
 # JWT Configuration
 jwt:
-  private-key-path: classpath:keys/private_key.pem
-  public-key-path: classpath:keys/public_key.pem
-  expiration: 3600000  # 1 hour in milliseconds
+  secret: ${JWT_SECRET:hopngo-jwt-secret-key-change-in-production}
+  expiration: 86400000 # 24 hours in milliseconds
+  private-key-path: ${JWT_PRIVATE_KEY_PATH:classpath:keys/private_key.pem}
+  public-key-path: ${JWT_PUBLIC_KEY_PATH:classpath:keys/public_key.pem}
+  rsa:
+    private-key: ${JWT_RSA_PRIVATE_KEY:}
+    public-key: ${JWT_RSA_PUBLIC_KEY:}
   refresh-expiration: 604800000  # 7 days in milliseconds
   issuer: hopngo-auth-service
+
+# OAuth2 Configuration
+oauth2:
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:your-google-client-id}
+    client-secret: ${GOOGLE_CLIENT_SECRET:your-google-client-secret}
+    user-info-uri: https://www.googleapis.com/oauth2/v2/userinfo
 
 spring:
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    username: ${MAIL_USERNAME:your-email@gmail.com}
+    password: ${MAIL_PASSWORD:your-app-password}
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
+  
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:your-google-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:your-google-client-secret}
+            scope:
+              - openid
+              - profile
+              - email
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v2/userinfo
+            user-name-attribute: email
 
 app:
   mail:
     from: ${MAIL_FROM:noreply@hopngo.com}
   frontend:
     url: ${FRONTEND_URL:http://localhost:3000}
+  
+  password-reset:
+    secret: ${PASSWORD_RESET_SECRET:change-this-in-production-very-long-secret-key}
+    expiration-hours: ${PASSWORD_RESET_EXPIRATION_HOURS:1}
+  
+  security:
+    max-failed-attempts: ${MAX_FAILED_ATTEMPTS:5}
+    lockout-duration-minutes: ${LOCKOUT_DURATION_MINUTES:15}
+    failed-attempts-window-minutes: ${FAILED_ATTEMPTS_WINDOW_MINUTES:15}
+    ip-max-failed-attempts: ${IP_MAX_FAILED_ATTEMPTS:10}
+    ip-lockout-duration-minutes: ${IP_LOCKOUT_DURATION_MINUTES:60}
 
 # Management endpoints
 management:

@@ -28,9 +28,6 @@ public class ReviewFlagService {
     @Autowired
     private ReviewFlagMapper reviewFlagMapper;
     
-    @Autowired
-    private OutboxService outboxService;
-    
     public ReviewFlagService(ReviewFlagRepository reviewFlagRepository,
                             ReviewRepository reviewRepository,
                             OutboxService outboxService) {
@@ -55,7 +52,7 @@ public class ReviewFlagService {
         }
         
         // Create review flag
-        ReviewFlag reviewFlag = new ReviewFlag(review, reporterUserId, request.getReason());
+        ReviewFlag reviewFlag = new ReviewFlag(review, reporterUserId, request.reason());
         ReviewFlag savedFlag = reviewFlagRepository.save(reviewFlag);
         
         // Publish review flagged event
@@ -118,11 +115,11 @@ public class ReviewFlagService {
             .orElseThrow(() -> new IllegalArgumentException("Review flag not found: " + flagId));
         
         // Validate that the status is valid for resolution
-        if (request.getNewStatus() == ReviewFlagStatus.OPEN) {
+        if (request.status() == ReviewFlagStatus.OPEN) {
             throw new IllegalArgumentException("Cannot resolve flag to OPEN status");
         }
         
-        flag.resolve(resolverUserId, request.getDecisionNote(), request.getNewStatus());
+        flag.resolve(resolverUserId, request.decisionNote(), request.status());
         ReviewFlag resolvedFlag = reviewFlagRepository.save(flag);
         
         // Publish review flag resolved event

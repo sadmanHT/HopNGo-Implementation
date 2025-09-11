@@ -40,6 +40,9 @@ public class PostService {
     @Autowired
     private AiModerationService aiModerationService;
     
+    @Autowired
+    private AiEmbeddingService aiEmbeddingService;
+    
     // SearchIndexingService removed due to missing dependencies
     
     @CacheEvict(value = {"socialFeed", "userPosts"}, allEntries = true)
@@ -88,7 +91,13 @@ public class PostService {
         
         Post savedPost = postRepository.save(post);
         
-        // Search indexing removed due to missing dependencies
+        // Generate and upsert embeddings for search
+        Double lat = location != null ? location.getLat() : null;
+        Double lng = location != null ? location.getLng() : null;
+        aiEmbeddingService.processPostEmbedding(
+            savedPost.getId(), request.getText(), request.getTags(), 
+            userId, lat, lng
+        );
         
         return convertToPostResponse(savedPost, userId);
     }

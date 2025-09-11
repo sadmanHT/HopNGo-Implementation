@@ -2,6 +2,9 @@ package com.hopngo.ai.controller;
 
 import com.hopngo.ai.dto.*;
 import com.hopngo.ai.service.ModerationService;
+import com.hopngo.ai.service.ExternalAiService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,10 +26,14 @@ import java.util.*;
 @Tag(name = "AI Service", description = "AI-powered services for travel planning and search")
 public class AiController {
     
+    private static final Logger logger = LoggerFactory.getLogger(AiController.class);
     private final Random random = new Random(42); // Seedable random for deterministic responses
     
     @Autowired
     private ModerationService moderationService;
+    
+    @Autowired
+    private ExternalAiService externalAiService;
     
     @PostMapping("/itinerary")
     @Operation(summary = "Generate travel itinerary", description = "Creates a structured travel itinerary based on destinations, budget, and interests")
@@ -74,33 +81,26 @@ public class AiController {
             @Valid @RequestBody ImageSearchRequest request,
             @RequestHeader("X-User-Id") String userId) {
         
-        List<ImageSearchResponse.SearchResult> results = new ArrayList<>();
-        
-        // Generate mock results
-        String[] types = {"place", "post", "listing"};
-        String[] locations = {"Paris, France", "Tokyo, Japan", "New York, USA", "London, UK", "Sydney, Australia"};
-        
-        for (int i = 0; i < Math.min(request.getMaxResults(), 10); i++) {
-            String type = types[i % types.length];
-            String location = locations[i % locations.length];
-            double score = 0.95 - (i * 0.05); // Decreasing relevance
+        try {
+            // Use external AI service for image search
+            ImageSearchResponse response = externalAiService.searchByImage(
+                request.getImageFile(), 
+                request.getQuery(), 
+                userId
+            ).get(2, java.util.concurrent.TimeUnit.SECONDS);
             
-            results.add(new ImageSearchResponse.SearchResult(
-                type,
-                UUID.randomUUID().toString(),
-                score,
-                "Beautiful " + type + " in " + location,
-                "A stunning example of " + type + " that matches your image",
-                "https://example.com/image" + i + ".jpg",
-                location
-            ));
+            // Clear session data to ensure statelessness
+            externalAiService.clearSessionData(userId);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (java.util.concurrent.TimeoutException e) {
+            logger.error("Timeout in image search for user: {}", userId, e);
+            return ResponseEntity.status(408).build(); // Request Timeout
+        } catch (Exception e) {
+            logger.error("Error in image search for user: {}", userId, e);
+            return ResponseEntity.status(500).build();
         }
-        
-        ImageSearchResponse response = new ImageSearchResponse(
-            results, results.size(), "150ms"
-        );
-        
-        return ResponseEntity.ok(response);
     }
     
     @PostMapping("/image-search/upload")
@@ -161,27 +161,23 @@ public class AiController {
             @Valid @RequestBody ChatbotRequest request,
             @RequestHeader("X-User-Id") String userId) {
         
-        String conversationId = request.getConversationId() != null ? 
-            request.getConversationId() : UUID.randomUUID().toString();
-        
-        // Generate contextual mock response
-        String response = generateMockChatResponse(request.getMessage(), request.getLocation());
-        
-        List<String> suggestions = Arrays.asList(
-            "Tell me about local restaurants",
-            "What are the top attractions here?",
-            "How's the weather looking?",
-            "Any cultural events happening?"
-        );
-        
-        String context = request.getLocation() != null ? 
-            "Currently discussing " + request.getLocation() : "General travel advice";
-        
-        ChatbotResponse chatResponse = new ChatbotResponse(
-            response, conversationId, suggestions, context, false
-        );
-        
-        return ResponseEntity.ok(chatResponse);
+        try {
+            // Use external AI service for chatbot response
+            ChatbotResponse response = externalAiService.getChatbotResponse(request, userId)
+                .get(2, java.util.concurrent.TimeUnit.SECONDS);
+            
+            // Clear session data to ensure statelessness
+            externalAiService.clearSessionData(userId);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (java.util.concurrent.TimeoutException e) {
+            logger.error("Timeout in chatbot for user: {}", userId, e);
+            return ResponseEntity.status(408).build(); // Request Timeout
+        } catch (Exception e) {
+            logger.error("Error in chatbot for user: {}", userId, e);
+            return ResponseEntity.badRequest().build();
+        }
     }
     
     @GetMapping("/weather")

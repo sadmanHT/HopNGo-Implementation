@@ -11,6 +11,8 @@ public class ChatbotRequest {
     private String itineraryId;
     private String profile;
     private String conversationId;
+    private String travelPreferences;
+    private String currentItinerary;
     
     // Constructors
     public ChatbotRequest() {}
@@ -62,5 +64,21 @@ public class ChatbotRequest {
     
     public void setConversationId(String conversationId) {
         this.conversationId = conversationId;
+    }
+    
+    public String getTravelPreferences() {
+        return travelPreferences;
+    }
+    
+    public void setTravelPreferences(String travelPreferences) {
+        this.travelPreferences = travelPreferences;
+    }
+    
+    public String getCurrentItinerary() {
+        return currentItinerary;
+    }
+    
+    public void setCurrentItinerary(String currentItinerary) {
+        this.currentItinerary = currentItinerary;
     }
 }

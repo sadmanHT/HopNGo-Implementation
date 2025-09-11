@@ -4,11 +4,27 @@ server:
 spring:
   application:
     name: ai-service
+  profiles:
+    active: dev
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  h2:
+    console:
+      enabled: true
   
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
       timeout: 2000ms
       lettuce:
         pool:
@@ -17,10 +33,14 @@ spring:
           min-idle: 0
   
   cache:
-    type: redis
+    type: none  # Disabled for testing without Redis
     redis:
       time-to-live: 300000  # 5 minutes
       cache-null-values: false
+    cache-names:
+      - user-similarity
+      - item-similarity
+      - home-recommendations
 
 management:
   endpoints:
@@ -60,6 +80,83 @@ routing:
   mapbox:
     token: ${MAPBOX_TOKEN:}
   use-mapbox: ${USE_MAPBOX:false}
+
+# AI Configuration
+ai:
+  # OpenAI Configuration
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    base-url: https://api.openai.com/v1
+    timeout: 30s
+    max-retries: 3
+    models:
+      chat: gpt-3.5-turbo
+      embedding: text-embedding-ada-002
+      vision: gpt-4-vision-preview
+  
+  # Google Vision API Configuration (alternative)
+  google:
+    vision:
+      api-key: ${GOOGLE_VISION_API_KEY:}
+      project-id: ${GOOGLE_PROJECT_ID:}
+      timeout: 20s
+  
+  # Image Search Configuration
+  image-search:
+    provider: openai  # openai, google
+    similarity-threshold: 0.7
+    max-results: 20
+    cache-ttl: 3600  # 1 hour in seconds
+  
+  # Chatbot Configuration
+  chatbot:
+    max-context-length: 4000
+    temperature: 0.7
+    max-tokens: 500
+    cache-ttl: 1800  # 30 minutes
+    system-prompt: |
+      You are a helpful travel assistant for HopNGo. Use the provided location and itinerary context to give personalized travel recommendations.
+      Keep responses concise and relevant to the user's travel plans.
+  
+  # Performance Configuration
+  performance:
+    max-concurrent-requests: 50
+    request-timeout: 30s
+    circuit-breaker:
+      failure-rate-threshold: 50
+      wait-duration-in-open-state: 30s
+      sliding-window-size: 10
+  
+  cache:
+    image-search-ttl: 3600  # 1 hour
+    chatbot-ttl: 1800       # 30 minutes
+    faq-ttl: 7200           # 2 hours
+  
+  # Embedding Configuration (legacy)
+  embedding:
+    dimensions: 768
+    use-cloud: true
+    cloud-api-key: ${AI_EMBEDDING_API_KEY:${OPENAI_API_KEY:}}
+    cloud-provider: openai
+    batch-size: 50  # Maximum batch size for processing
+    timeout-ms: 30000  # Request timeout
+  
+  # Qdrant Vector Database Configuration
+  qdrant:
+    host: localhost
+    port: 6334  # gRPC port
+    http-port: 6333  # HTTP port
+    api-key: ${QDRANT_API_KEY:}  # Optional API key
+    timeout-ms: 10000
+    collections:
+      posts:
+        name: posts_vec
+        dimension: 768
+        distance: cosine
+      listings:
+        name: listings_vec
+        dimension: 768
+        distance: cosine
 
 springdoc:
   api-docs:

@@ -50,4 +50,34 @@ public class EventPublisher {
             logger.error("Failed to publish content.moderation event for {} with ID: {}", contentType, contentId, e);
         }
     }
+    
+    public void publishPostImpressionEvent(String postId, String userId) {
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("eventType", "post_impression");
+        eventData.put("postId", postId);
+        eventData.put("userId", userId);
+        eventData.put("timestamp", Instant.now().toEpochMilli());
+        
+        try {
+            streamBridge.send("analytics-out-0", eventData);
+            logger.debug("Published post impression event for post: {} by user: {}", postId, userId);
+        } catch (Exception e) {
+            logger.error("Failed to publish post impression event for post: {} by user: {}", postId, userId, e);
+        }
+    }
+    
+    public void publishPostDetailViewEvent(String postId, String userId) {
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("eventType", "post_detail_view");
+        eventData.put("postId", postId);
+        eventData.put("userId", userId);
+        eventData.put("timestamp", Instant.now().toEpochMilli());
+        
+        try {
+            streamBridge.send("analytics-out-0", eventData);
+            logger.debug("Published post detail view event for post: {} by user: {}", postId, userId);
+        } catch (Exception e) {
+            logger.error("Failed to publish post detail view event for post: {} by user: {}", postId, userId, e);
+        }
+    }
 }

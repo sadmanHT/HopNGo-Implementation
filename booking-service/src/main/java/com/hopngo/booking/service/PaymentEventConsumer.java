@@ -4,7 +4,8 @@ import com.hopngo.booking.dto.PaymentEventDto;
 import com.hopngo.booking.entity.Booking;
 import com.hopngo.booking.entity.BookingStatus;
 import com.hopngo.booking.repository.BookingRepository;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
@@ -15,9 +16,10 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-@Slf4j
 @Service
 public class PaymentEventConsumer {
+    
+    private static final Logger log = LoggerFactory.getLogger(PaymentEventConsumer.class);
     
     private final BookingRepository bookingRepository;
     private final OutboxService outboxService;

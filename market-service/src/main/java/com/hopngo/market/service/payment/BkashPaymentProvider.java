@@ -14,6 +14,10 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.BufferedReader;
@@ -87,7 +91,7 @@ public class BkashPaymentProvider implements PaymentProvider {
                     return new PaymentIntentResponse(
                              paymentId, // clientSecret
                              paymentId, // paymentIntentId
-                             order.getTotalAmount(),
+                             order.getTotalAmount().multiply(BigDecimal.valueOf(100)).longValue(), // Convert to minor units
                              config.getCurrency(),
                              "requires_action",
                              "BKASH"
@@ -169,12 +173,12 @@ public class BkashPaymentProvider implements PaymentProvider {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(accessToken);
-            headers.set("X-APP-Key", paymentProperties.getBkash().getAppKey());
+            headers.set("X-APP-Key", paymentProperties.getProviders().getBkash().getAppKey());
             
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(refundRequest, headers);
             
             // In sandbox mode, simulate bKash refund API call
-            String refundUrl = paymentProperties.getBkash().getBaseUrl() + "/tokenized/checkout/payment/refund";
+            String refundUrl = paymentProperties.getProviders().getBkash().getBaseUrl() + "/tokenized/checkout/payment/refund";
             
             // Simulate successful refund response
             String refundTrxId = "REF" + System.currentTimeMillis();

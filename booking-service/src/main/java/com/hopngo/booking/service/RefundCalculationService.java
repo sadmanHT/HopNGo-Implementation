@@ -41,9 +41,9 @@ public class RefundCalculationService {
         
         // Partial refund period
         if (policies.getCutoffHours() != null && hoursUntilCheckIn >= policies.getCutoffHours()) {
-            if (policies.getPartialPct() != null && policies.getPartialPct() > 0) {
+            if (policies.getPartialPct() != null && policies.getPartialPct().compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal refundAmount = totalAmount
-                    .multiply(BigDecimal.valueOf(policies.getPartialPct()))
+                    .multiply(policies.getPartialPct())
                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
                 
                 return new RefundCalculationResult(

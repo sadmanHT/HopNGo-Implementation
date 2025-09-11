@@ -1,0 +1,315 @@
+name: Synthetic Monitoring
+
+on:
+  schedule:
+    # Run every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      check_type:
+        description: 'Type of checks to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - health
+          - api
+          - performance
+          - database
+          - external
+      environment:
+        description: 'Environment to check'
+        required: false
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+          - development
+
+env:
+  TIMEOUT: 10
+  RETRIES: 3
+  SUCCESS_RATE_THRESHOLD: 95
+
+jobs:
+  synthetic-checks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: 
+          - ${{ github.event.inputs.environment || 'production' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up environment variables
+        run: |
+          case "${{ matrix.environment }}" in
+            "production")
+              echo "HOPNGO_BASE_URL=https://api.hopngo.com" >> $GITHUB_ENV
+              echo "PUSHGATEWAY_URL=https://pushgateway.hopngo.com" >> $GITHUB_ENV
+              ;;
+            "staging")
+              echo "HOPNGO_BASE_URL=https://staging-api.hopngo.com" >> $GITHUB_ENV
+              echo "PUSHGATEWAY_URL=https://staging-pushgateway.hopngo.com" >> $GITHUB_ENV
+              ;;
+            "development")
+              echo "HOPNGO_BASE_URL=https://dev-api.hopngo.com" >> $GITHUB_ENV
+              echo "PUSHGATEWAY_URL=https://dev-pushgateway.hopngo.com" >> $GITHUB_ENV
+              ;;
+          esac
+          
+          # Set Slack webhook from secrets
+          echo "SLACK_WEBHOOK=${{ secrets.SLACK_WEBHOOK_MONITORING }}" >> $GITHUB_ENV
+          echo "EMAIL_ALERT=alerts@hopngo.com" >> $GITHUB_ENV
+          echo "LOG_FILE=/tmp/synthetic-checks-${{ matrix.environment }}.log" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc curl jq mailutils
+
+      - name: Make synthetic checks script executable
+        run: chmod +x scripts/synthetic-checks.sh
+
+      - name: Run synthetic checks
+        id: checks
+        run: |
+          set +e  # Don't exit on error, we want to capture the exit code
+          ./scripts/synthetic-checks.sh ${{ github.event.inputs.check_type || 'all' }}
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          set -e
+
+      - name: Upload logs as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-checks-logs-${{ matrix.environment }}
+          path: /tmp/synthetic-checks-*.log
+          retention-days: 7
+
+      - name: Parse results for summary
+        if: always()
+        id: results
+        run: |
+          if [ -f "/tmp/synthetic-checks-${{ matrix.environment }}.log" ]; then
+            TOTAL=$(grep "Total checks:" "/tmp/synthetic-checks-${{ matrix.environment }}.log" | tail -1 | awk '{print $4}' || echo "0")
+            PASSED=$(grep "Passed:" "/tmp/synthetic-checks-${{ matrix.environment }}.log" | tail -1 | awk '{print $2}' || echo "0")
+            FAILED=$(grep "Failed:" "/tmp/synthetic-checks-${{ matrix.environment }}.log" | tail -1 | awk '{print $2}' || echo "0")
+            SUCCESS_RATE=$(grep "Success rate:" "/tmp/synthetic-checks-${{ matrix.environment }}.log" | tail -1 | awk '{print $3}' | sed 's/%//' || echo "0")
+            DURATION=$(grep "Duration:" "/tmp/synthetic-checks-${{ matrix.environment }}.log" | tail -1 | awk '{print $2}' | sed 's/s//' || echo "0")
+            
+            echo "total=$TOTAL" >> $GITHUB_OUTPUT
+            echo "passed=$PASSED" >> $GITHUB_OUTPUT
+            echo "failed=$FAILED" >> $GITHUB_OUTPUT
+            echo "success_rate=$SUCCESS_RATE" >> $GITHUB_OUTPUT
+            echo "duration=$DURATION" >> $GITHUB_OUTPUT
+          else
+            echo "total=0" >> $GITHUB_OUTPUT
+            echo "passed=0" >> $GITHUB_OUTPUT
+            echo "failed=1" >> $GITHUB_OUTPUT
+            echo "success_rate=0" >> $GITHUB_OUTPUT
+            echo "duration=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub issue on failure
+        if: steps.checks.outputs.exit_code != '0' && matrix.environment == 'production'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `🚨 Synthetic Monitoring Failure - ${new Date().toISOString().split('T')[0]}`;
+            const body = `
+            ## Synthetic Monitoring Alert
+            
+            **Environment:** ${{ matrix.environment }}
+            **Check Type:** ${{ github.event.inputs.check_type || 'all' }}
+            **Timestamp:** ${new Date().toISOString()}
+            
+            ### Results Summary
+            - **Total Checks:** ${{ steps.results.outputs.total }}
+            - **Passed:** ${{ steps.results.outputs.passed }}
+            - **Failed:** ${{ steps.results.outputs.failed }}
+            - **Success Rate:** ${{ steps.results.outputs.success_rate }}%
+            - **Duration:** ${{ steps.results.outputs.duration }}s
+            
+            ### Action Required
+            - [ ] Investigate failed endpoints
+            - [ ] Check service health dashboards
+            - [ ] Review recent deployments
+            - [ ] Verify infrastructure status
+            
+            ### Links
+            - [Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            - [Grafana Dashboard](https://grafana.hopngo.com/d/hopngo-slo-overview)
+            - [Logs Artifact](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            
+            ---
+            *This issue was automatically created by the synthetic monitoring workflow.*
+            `;
+            
+            // Check if there's already an open issue for today
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['synthetic-monitoring', 'alert'],
+              state: 'open'
+            });
+            
+            const today = new Date().toISOString().split('T')[0];
+            const existingIssue = issues.find(issue => issue.title.includes(today));
+            
+            if (!existingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['synthetic-monitoring', 'alert', 'P1']
+              });
+            } else {
+              // Update existing issue with new information
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                body: `### Additional Failure - ${new Date().toISOString()}
+                
+                **Check Type:** ${{ github.event.inputs.check_type || 'all' }}
+                **Results:** ${{ steps.results.outputs.passed }}/${{ steps.results.outputs.total }} passed (${{ steps.results.outputs.success_rate }}%)
+                **Duration:** ${{ steps.results.outputs.duration }}s
+                
+                [Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`
+              });
+            }
+
+      - name: Send Slack notification on failure
+        if: steps.checks.outputs.exit_code != '0' && env.SLACK_WEBHOOK != ''
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"🚨 Synthetic Monitoring Alert\",
+              \"blocks\": [
+                {
+                  \"type\": \"header\",
+                  \"text\": {
+                    \"type\": \"plain_text\",
+                    \"text\": \"🚨 Synthetic Monitoring Failure\"
+                  }
+                },
+                {
+                  \"type\": \"section\",
+                  \"fields\": [
+                    {
+                      \"type\": \"mrkdwn\",
+                      \"text\": \"*Environment:*\\n${{ matrix.environment }}\"
+                    },
+                    {
+                      \"type\": \"mrkdwn\",
+                      \"text\": \"*Check Type:*\\n${{ github.event.inputs.check_type || 'all' }}\"
+                    },
+                    {
+                      \"type\": \"mrkdwn\",
+                      \"text\": \"*Success Rate:*\\n${{ steps.results.outputs.success_rate }}%\"
+                    },
+                    {
+                      \"type\": \"mrkdwn\",
+                      \"text\": \"*Failed Checks:*\\n${{ steps.results.outputs.failed }}/${{ steps.results.outputs.total }}\"
+                    }
+                  ]
+                },
+                {
+                  \"type\": \"actions\",
+                  \"elements\": [
+                    {
+                      \"type\": \"button\",
+                      \"text\": {
+                        \"type\": \"plain_text\",
+                        \"text\": \"View Workflow\"
+                      },
+                      \"url\": \"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+                    },
+                    {
+                      \"type\": \"button\",
+                      \"text\": {
+                        \"type\": \"plain_text\",
+                        \"text\": \"View Dashboard\"
+                      },
+                      \"url\": \"https://grafana.hopngo.com/d/hopngo-slo-overview\"
+                    }
+                  ]
+                }
+              ]
+            }" \
+            "$SLACK_WEBHOOK"
+
+      - name: Update status badge
+        if: always() && matrix.environment == 'production'
+        run: |
+          # Create a simple status badge based on results
+          if [ "${{ steps.checks.outputs.exit_code }}" = "0" ]; then
+            STATUS="passing"
+            COLOR="brightgreen"
+          else
+            STATUS="failing"
+            COLOR="red"
+          fi
+          
+          # This could be used to update a status badge service
+          echo "Status: $STATUS (${{ steps.results.outputs.success_rate }}% success rate)"
+
+  # Job to run quick health checks more frequently
+  quick-health-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up environment
+        run: |
+          echo "HOPNGO_BASE_URL=https://api.hopngo.com" >> $GITHUB_ENV
+          echo "TIMEOUT=5" >> $GITHUB_ENV
+          echo "RETRIES=2" >> $GITHUB_ENV
+          echo "SLACK_WEBHOOK=${{ secrets.SLACK_WEBHOOK_MONITORING }}" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc curl
+
+      - name: Make script executable
+        run: chmod +x scripts/synthetic-checks.sh
+
+      - name: Run quick health checks
+        run: ./scripts/synthetic-checks.sh health
+
+  # Summary job to collect results from all environments
+  summary:
+    runs-on: ubuntu-latest
+    needs: [synthetic-checks]
+    if: always()
+    
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Synthetic Monitoring Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.synthetic-checks.result }}" = "success" ]; then
+            echo "✅ **Status:** All checks passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Some checks failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [Grafana Dashboard](https://grafana.hopngo.com/d/hopngo-slo-overview)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Alertmanager](https://alertmanager.hopngo.com)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Prometheus](https://prometheus.hopngo.com)" >> $GITHUB_STEP_SUMMARY

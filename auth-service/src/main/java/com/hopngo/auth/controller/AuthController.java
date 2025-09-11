@@ -62,10 +62,11 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Invalid credentials"),
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         try {
             logger.info("Login attempt for email: {}", request.getEmail());
-            AuthResponse response = authService.login(request);
+            String ipAddress = getClientIpAddress(httpRequest);
+            AuthResponse response = authService.login(request, ipAddress);
             logger.info("User logged in successfully: {}", request.getEmail());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -246,5 +247,22 @@ public class AuthController {
             return authHeader.substring(7);
         }
         return null;
+    }
+    
+    /**
+     * Extract client IP address from request
+     */
+    private String getClientIpAddress(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isEmpty()) {
+            return xRealIp;
+        }
+        
+        return request.getRemoteAddr();
     }
 }

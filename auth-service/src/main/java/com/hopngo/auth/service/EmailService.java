@@ -22,6 +22,21 @@ public class EmailService {
     @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
     
+    public void sendEmail(String to, String subject, String text) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(text);
+            mailSender.send(message);
+            
+            logger.info("Email sent successfully to: {}", to);
+        } catch (Exception e) {
+            logger.error("Failed to send email to: {}", to, e);
+        }
+    }
+    
     public void sendKycApprovalEmail(String userEmail, String userName) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();

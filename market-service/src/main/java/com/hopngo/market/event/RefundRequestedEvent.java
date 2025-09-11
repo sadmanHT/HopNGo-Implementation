@@ -28,7 +28,7 @@ public record RefundRequestedEvent(
             refund.getAmount(),
             refund.getCurrency(),
             refund.getReason(),
-            refund.getPayment().getProvider(),
+            refund.getPayment().getProvider().name(),
             refund.getPayment().getProviderPaymentId(),
             refund.getCreatedAt()
         );

@@ -54,4 +54,10 @@ public class PaymentEventDto {
     public boolean isFailed() {
         return "payment.failed".equals(eventType);
     }
+    
+    // Manual getters for Lombok fallback
+    public String getEventType() { return eventType; }
+    public UUID getBookingId() { return bookingId; }
+    public BigDecimal getAmount() { return amount; }
+    public String getReason() { return reason; }
 }

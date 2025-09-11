@@ -1,3 +1,4 @@
+import React from 'react';
 import { lazy, ComponentType, Suspense } from 'react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
@@ -8,50 +9,32 @@ export function createLazyComponent<T extends ComponentType<any>>(
 ) {
   const LazyComponent = lazy(importFunc);
   
+  const withSuspense = (props: any) => {
+    const FallbackComponent = fallback;
+    return React.createElement(
+      React.Suspense,
+      { fallback: React.createElement(FallbackComponent, null) },
+      React.createElement(LazyComponent, props)
+    );
+  };
+
   return {
     Component: LazyComponent,
-    withSuspense: (props: any) => (
-      <Suspense fallback={<fallback />}>
-        <LazyComponent {...props} />
-      </Suspense>
-    ),
+    withSuspense,
+    preload: importFunc,
   };
 }
 
 // Pre-configured lazy components for common heavy routes
 export const LazyComponents = {
   // Booking related components
-  BookingForm: createLazyComponent(
-    () => import('@/components/booking/BookingForm')
-  ),
-  BookingHistory: createLazyComponent(
-    () => import('@/components/booking/BookingHistory')
+  BookingSearchExperiment: createLazyComponent(
+    () => import('@/components/bookings/BookingSearchExperiment').then(module => ({ default: module.BookingSearchExperiment }))
   ),
   
-  // Social feed components
-  SocialFeed: createLazyComponent(
-    () => import('@/components/social/SocialFeed')
-  ),
-  PostEditor: createLazyComponent(
-    () => import('@/components/social/PostEditor')
-  ),
-  
-  // Map and location components
-  MapView: createLazyComponent(
-    () => import('@/components/map/MapView')
-  ),
-  LocationPicker: createLazyComponent(
-    () => import('@/components/map/LocationPicker')
-  ),
-  
-  // Chat components
-  ChatInterface: createLazyComponent(
-    () => import('@/components/chat/ChatInterface')
-  ),
-  
-  // Admin dashboard
-  AdminDashboard: createLazyComponent(
-    () => import('@/components/admin/AdminDashboard')
+  // UI components
+  LoadingSpinner: createLazyComponent(
+    () => import('@/components/ui/loading-spinner').then(module => ({ default: module.LoadingSpinner }))
   ),
 };
 
@@ -60,7 +43,7 @@ export function preloadComponent(componentName: keyof typeof LazyComponents) {
   const component = LazyComponents[componentName];
   if (component) {
     // Trigger the import to start loading
-    component.Component.preload?.();
+    component.preload();
   }
 }
 

@@ -11,6 +11,7 @@ import { bookingsApi, CreateBookingRequest } from '@/lib/api/bookings';
 import { useAuthStore } from '@/lib/state';
 import analytics from '@/lib/analytics';
 import { CalendarDays, DollarSign, MapPin, ArrowLeft } from 'lucide-react';
+import { BookingErrorMessage } from '@/components/common/ErrorMessage';
 
 interface CheckoutState {
   step: 'form' | 'processing' | 'status';
@@ -263,8 +264,11 @@ export default function CheckoutPage() {
 
               {/* Error Message */}
               {state.error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-sm text-red-800">{state.error}</p>
+                <div className="mb-6">
+                  <BookingErrorMessage 
+                    message={state.error}
+                    onRetry={() => setState(prev => ({ ...prev, error: undefined }))}
+                  />
                 </div>
               )}
 

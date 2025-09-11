@@ -37,9 +37,10 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Component {...pageProps} />
-      <Toaster />
-      <ReactQueryDevtools initialIsOpen={false} />
+      <Toaster>
+        <Component {...pageProps} />
+        <ReactQueryDevtools initialIsOpen={false} />
+      </Toaster>
     </QueryClientProvider>
   );
 }

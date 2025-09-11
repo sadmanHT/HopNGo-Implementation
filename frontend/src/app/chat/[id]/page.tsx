@@ -102,7 +102,7 @@ function TypingIndicator({ typingUsers }: { typingUsers: string[] }) {
 export default function ChatConversationPage() {
   const router = useRouter();
   const params = useParams();
-  const conversationId = params.id as string;
+  const conversationId = params?.id as string;
   
   const { user, token } = useAuthStore();
   const {

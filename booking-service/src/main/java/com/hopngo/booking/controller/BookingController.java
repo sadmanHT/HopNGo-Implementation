@@ -40,6 +40,7 @@ public class BookingController {
     private final BookingService bookingService;
     private final ReviewService reviewService;
     private final RefundCalculationService refundCalculationService;
+    private final OutboxService outboxService;
     private final VendorMapper vendorMapper;
     private final ListingMapper listingMapper;
     private final BookingMapper bookingMapper;
@@ -51,6 +52,7 @@ public class BookingController {
                            BookingService bookingService,
                            ReviewService reviewService,
                            RefundCalculationService refundCalculationService,
+                           OutboxService outboxService,
                            VendorMapper vendorMapper,
                            ListingMapper listingMapper,
                            BookingMapper bookingMapper,
@@ -60,6 +62,7 @@ public class BookingController {
         this.bookingService = bookingService;
         this.reviewService = reviewService;
         this.refundCalculationService = refundCalculationService;
+        this.outboxService = outboxService;
         this.vendorMapper = vendorMapper;
         this.listingMapper = listingMapper;
         this.bookingMapper = bookingMapper;
@@ -87,7 +90,7 @@ public class BookingController {
             vendor.getAddress(), vendor.getLatitude(), vendor.getLongitude()
         );
         
-        VendorResponse response = vendorMapper.toResponse(vendor);
+        VendorDto response = vendorMapper.toResponse(vendor);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
@@ -121,7 +124,7 @@ public class BookingController {
             vendor.getAddress(), vendor.getLatitude(), vendor.getLongitude()
         );
         
-        VendorResponse response = vendorMapper.toResponse(vendor);
+        VendorDto response = vendorMapper.toResponse(vendor);
         return ResponseEntity.ok(response);
     }
     
@@ -164,7 +167,8 @@ public class BookingController {
             @RequestParam(required = false) Integer maxGuests,
             @RequestParam(required = false) List<String> amenities,
             @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size (max 50)") @RequestParam(defaultValue = "20") int size) {
+            @Parameter(description = "Page size (max 50)") @RequestParam(defaultValue = "20") int size,
+            @RequestHeader(value = "X-User-ID", required = false) String userId) {
         
         PaginationValidator.ValidatedPagination pagination = PaginationValidator.validate(page, size);
         
@@ -173,6 +177,25 @@ public class BookingController {
             pagination.getPage(), pagination.getSize()
         );
         
+        // Emit impression events for analytics (throttled to avoid volume explosion)
+        if (userId != null && !listings.isEmpty()) {
+            // Only emit impression events for first 10 listings to avoid excessive events
+            listings.getContent().stream()
+                .limit(10)
+                .forEach(listing -> {
+                    try {
+                        outboxService.publishListingImpressionEvent(
+                            listing.getId().toString(),
+                            listing.getVendor().getId().toString(),
+                            userId
+                        );
+                    } catch (Exception e) {
+                        // Log error but don't fail the request
+                        System.err.println("Failed to emit impression event: " + e.getMessage());
+                    }
+                });
+        }
+        
         Page<ListingResponse> responses = listings.map(listingMapper::toResponse);
         
         return ResponseEntity.ok(responses);
@@ -180,10 +203,32 @@ public class BookingController {
     
     @GetMapping("/listings/{listingId}")
     @Operation(summary = "Get listing details")
-    public ResponseEntity<ListingResponse> getListingDetails(@PathVariable UUID listingId) {
+    public ResponseEntity<ListingResponse> getListingDetails(
+            @PathVariable UUID listingId,
+            @RequestHeader(value = "X-User-ID", required = false) String userId) {
+        
         Optional<Listing> listing = listingService.findById(listingId);
-        return listing.map(l -> ResponseEntity.ok(listingMapper.toResponse(l)))
-                     .orElse(ResponseEntity.notFound().build());
+        if (listing.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        Listing l = listing.get();
+        
+        // Emit detail view event for analytics
+        if (userId != null) {
+            try {
+                outboxService.publishListingDetailViewEvent(
+                    l.getId().toString(),
+                    l.getVendor().getId().toString(),
+                    userId
+                );
+            } catch (Exception e) {
+                // Log error but don't fail the request
+                System.err.println("Failed to emit detail view event: " + e.getMessage());
+            }
+        }
+        
+        return ResponseEntity.ok(listingMapper.toResponse(l));
     }
     
     @GetMapping("/listings/me")
@@ -372,7 +417,7 @@ public class BookingController {
         CancellationResponse response = new CancellationResponse(
             cancelledBooking.getId(),
             cancelledBooking.getBookingReference(),
-            cancelledBooking.getStatus(),
+            cancelledBooking.getStatus().name(),
             refundResult.getRefundAmount(),
             refundResult.getRefundType(),
             request.reason(),

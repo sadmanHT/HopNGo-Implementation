@@ -6,6 +6,8 @@ import com.hopngo.social.service.PostService;
 import com.hopngo.social.service.CommentService;
 import com.hopngo.social.service.HeatmapService;
 import com.hopngo.social.service.HeatmapCacheService;
+import com.hopngo.social.service.RecommendationService;
+import com.hopngo.social.service.EventPublisher;
 import com.hopngo.social.util.PaginationValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,6 +42,12 @@ public class SocialController {
     @Autowired
     private HeatmapCacheService heatmapCacheService;
     
+    @Autowired
+    private RecommendationService recommendationService;
+    
+    @Autowired
+    private EventPublisher eventPublisher;
+    
     @PostMapping("/posts")
     @Operation(summary = "Create a new post", description = "Create a new social media post with text, media, tags, and location")
     public ResponseEntity<PostResponse> createPost(
@@ -55,12 +63,24 @@ public class SocialController {
     @Operation(summary = "Get post by ID", description = "Retrieve a specific post by its ID")
     public ResponseEntity<PostResponse> getPost(
             @PathVariable String id,
+            @RequestHeader(value = "X-User-ID", required = false) String headerUserId,
             HttpServletRequest httpRequest) {
         
         String userId = AuthFilter.getCurrentUserId(httpRequest);
         Optional<PostResponse> post = postService.getPostById(id, userId);
         
         if (post.isPresent()) {
+            // Emit post detail view event for analytics
+            try {
+                String analyticsUserId = headerUserId != null ? headerUserId : userId;
+                if (analyticsUserId != null) {
+                    eventPublisher.publishPostDetailViewEvent(id, analyticsUserId);
+                }
+            } catch (Exception e) {
+                // Log error but don't fail the request
+                System.err.println("Failed to emit post detail view event: " + e.getMessage());
+            }
+            
             return ResponseEntity.ok(post.get());
         } else {
             return ResponseEntity.notFound().build();
@@ -72,11 +92,28 @@ public class SocialController {
     public ResponseEntity<Page<PostResponse>> getFeed(
             @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size (max 50)") @RequestParam(defaultValue = "20") int size,
+            @RequestHeader(value = "X-User-ID", required = false) String headerUserId,
             HttpServletRequest httpRequest) {
         
         PaginationValidator.ValidatedPagination pagination = PaginationValidator.validate(page, size);
         String userId = AuthFilter.getCurrentUserId(httpRequest);
         Page<PostResponse> feed = postService.getFeed(pagination.getPage(), pagination.getSize(), userId);
+        
+        // Emit impression events for the first 10 posts in feed for analytics
+        try {
+            String analyticsUserId = headerUserId != null ? headerUserId : userId;
+            if (analyticsUserId != null && feed.hasContent()) {
+                List<PostResponse> posts = feed.getContent();
+                int impressionLimit = Math.min(10, posts.size());
+                for (int i = 0; i < impressionLimit; i++) {
+                    eventPublisher.publishPostImpressionEvent(posts.get(i).getId(), analyticsUserId);
+                }
+            }
+        } catch (Exception e) {
+            // Log error but don't fail the request
+            System.err.println("Failed to emit post impression events: " + e.getMessage());
+        }
+        
         return ResponseEntity.ok(feed);
     }
     
@@ -222,11 +259,28 @@ public class SocialController {
             @PathVariable String userId,
             @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size (max 50)") @RequestParam(defaultValue = "20") int size,
+            @RequestHeader(value = "X-User-ID", required = false) String headerUserId,
             HttpServletRequest httpRequest) {
         
         PaginationValidator.ValidatedPagination pagination = PaginationValidator.validate(page, size);
         String currentUserId = AuthFilter.getCurrentUserId(httpRequest);
         Page<PostResponse> posts = postService.getUserPosts(userId, pagination.getPage(), pagination.getSize(), currentUserId);
+        
+        // Emit impression events for the first 10 posts for analytics
+        try {
+            String analyticsUserId = headerUserId != null ? headerUserId : currentUserId;
+            if (analyticsUserId != null && posts.hasContent()) {
+                List<PostResponse> postList = posts.getContent();
+                int impressionLimit = Math.min(10, postList.size());
+                for (int i = 0; i < impressionLimit; i++) {
+                    eventPublisher.publishPostImpressionEvent(postList.get(i).getId(), analyticsUserId);
+                }
+            }
+        } catch (Exception e) {
+            // Log error but don't fail the request
+            System.err.println("Failed to emit post impression events: " + e.getMessage());
+        }
+        
         return ResponseEntity.ok(posts);
     }
     
@@ -308,5 +362,22 @@ public class SocialController {
                     .body(Map.of("error", "Failed to update post visibility"));
             }
         }
+    }
+    
+    @GetMapping("/recommendations/users")
+    @Operation(summary = "Get user recommendations", description = "Get recommended users to follow based on AI similarity")
+    public ResponseEntity<RecommendationService.UserRecommendationsResponse> getUserRecommendations(
+            @Parameter(description = "Number of recommendations (max 50)") @RequestParam(defaultValue = "10") int limit,
+            HttpServletRequest httpRequest) {
+        
+        if (limit > 50) {
+            limit = 50;
+        }
+        
+        String userId = AuthFilter.getCurrentUserId(httpRequest);
+        RecommendationService.UserRecommendationsResponse recommendations = 
+            recommendationService.getUserRecommendations(userId, limit);
+        
+        return ResponseEntity.ok(recommendations);
     }
 }

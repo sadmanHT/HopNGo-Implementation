@@ -245,14 +245,20 @@ export const useFeatureFlag = (key: string) => {
   return { isEnabled, payload, loading, error };
 };
 
-export const useExperiment = (experimentKey: string, userId: string) => {
-  const variant = useFlagsStore(state => state.getUserVariant(experimentKey, userId));
-  const payload = useFlagsStore(state => state.getVariantPayload(experimentKey, userId));
+export const useExperiment = (experimentKey: string, userId?: string) => {
+  const variant = useFlagsStore(state => state.getUserVariant(experimentKey, userId || ''));
+  const payload = useFlagsStore(state => state.getVariantPayload(experimentKey, userId || ''));
   const assignUser = useFlagsStore(state => state.assignUserToExperiment);
   const loading = useFlagsStore(state => state.experimentsLoading || state.assignmentsLoading);
   const error = useFlagsStore(state => state.experimentsError || state.assignmentsError);
   
-  return { variant, payload, assignUser, loading, error };
+  // Simple trackEvent function for experiment tracking
+  const trackEvent = (eventName: string, properties?: Record<string, any>) => {
+    // In a real implementation, this would send to analytics service
+    console.log(`Experiment Event: ${eventName}`, { experimentKey, variant, ...properties });
+  };
+  
+  return { variant, payload, assignUser, loading, error, trackEvent };
 };
 
 // Initialize function to be called on app startup

@@ -434,4 +434,70 @@ public class OutboxService {
     public int cleanupProcessedEvents(LocalDateTime cutoffDate) {
         return outboxEventRepository.deleteProcessedEventsOlderThan(cutoffDate);
     }
+
+    // Analytics Events for Provider Metrics
+    
+    /**
+     * Publish listing impression event for analytics
+     * Throttled to avoid volume explosion
+     */
+    public void publishListingImpressionEvent(String listingId, String providerId, String userId) {
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("listingId", listingId);
+        eventData.put("providerId", providerId);
+        eventData.put("userId", userId);
+        eventData.put("eventType", "impression");
+        eventData.put("timestamp", LocalDateTime.now().toString());
+        
+        OutboxEvent event = new OutboxEvent(
+            "Analytics", 
+            listingId, 
+            "listing.impression", 
+            eventData
+        );
+        
+        outboxEventRepository.save(event);
+    }
+    
+    /**
+     * Publish listing detail view event for analytics
+     */
+    public void publishListingDetailViewEvent(String listingId, String providerId, String userId) {
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("listingId", listingId);
+        eventData.put("providerId", providerId);
+        eventData.put("userId", userId);
+        eventData.put("eventType", "detail_view");
+        eventData.put("timestamp", LocalDateTime.now().toString());
+        
+        OutboxEvent event = new OutboxEvent(
+            "Analytics", 
+            listingId, 
+            "listing.detail_view", 
+            eventData
+        );
+        
+        outboxEventRepository.save(event);
+    }
+    
+    /**
+     * Publish add to cart event for analytics
+     */
+    public void publishAddToCartEvent(String listingId, String providerId, String userId) {
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("listingId", listingId);
+        eventData.put("providerId", providerId);
+        eventData.put("userId", userId);
+        eventData.put("eventType", "add_to_cart");
+        eventData.put("timestamp", LocalDateTime.now().toString());
+        
+        OutboxEvent event = new OutboxEvent(
+            "Analytics", 
+            listingId, 
+            "listing.add_to_cart", 
+            eventData
+        );
+        
+        outboxEventRepository.save(event);
+    }
 }

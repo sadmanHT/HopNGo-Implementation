@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useFeatureFlag } from '@/lib/flags';
 import { VisualSearch } from './VisualSearch';
+import { VisualSearchDrawer } from './VisualSearchDrawer';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,8 +42,9 @@ export function SearchBar({
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   
-  // Feature flag for visual search
-  const isVisualSearchEnabled = useFeatureFlag('visual-search');
+  // Feature flags for visual search
+  const { isEnabled: isVisualSearchEnabled } = useFeatureFlag('visual-search');
+  const { isEnabled: isVisualSearchV2Enabled } = useFeatureFlag('visual_search_v2');
   
   const {
     query,
@@ -189,8 +191,13 @@ export function SearchBar({
         </div>
         
         <div className="flex items-center space-x-2 ml-2">
-          {/* Visual Search Button */}
-          {isVisualSearchEnabled && (
+          {/* Visual Search Drawer (V2) */}
+          {isVisualSearchV2Enabled && (
+            <VisualSearchDrawer />
+          )}
+          
+          {/* Legacy Visual Search Button */}
+          {isVisualSearchEnabled && !isVisualSearchV2Enabled && (
             <Dialog open={showVisualSearch} onOpenChange={setShowVisualSearch}>
               <DialogTrigger asChild>
                 <Button 

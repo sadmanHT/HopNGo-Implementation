@@ -14,6 +14,12 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -86,7 +92,7 @@ public class NagadPaymentProvider implements PaymentProvider {
                             return new PaymentIntentResponse(
                                     paymentReferenceId, // clientSecret
                                     paymentReferenceId, // paymentIntentId
-                                    order.getTotalAmount(),
+                                    order.getTotalAmount().multiply(BigDecimal.valueOf(100)).longValue(), // Convert to minor units
                                     "BDT",
                                     "requires_action",
                                     "NAGAD"
@@ -160,7 +166,7 @@ public class NagadPaymentProvider implements PaymentProvider {
         logger.info("Processing Nagad refund for payment: {}, amount: {} {}", paymentId, refundAmount, currency);
         
         try {
-            PaymentProviderConfiguration.PaymentProperties.NagadConfig config = paymentProperties.getNagad();
+            PaymentProviderConfiguration.PaymentProperties.NagadConfig config = paymentProperties.getProviders().getNagad();
             
             // Create refund request
             Map<String, Object> refundRequest = new HashMap<>();
@@ -170,7 +176,7 @@ public class NagadPaymentProvider implements PaymentProvider {
             refundRequest.put("reason", reason);
             
             String requestData = objectMapper.writeValueAsString(refundRequest);
-            String signature = createSignature(requestData, config.getPrivateKey());
+            String signature = createSignature(requestData, config.getMerchantPrivateKey());
             
             HttpHeaders headers = createHeaders(config);
             headers.set("X-KM-Api-Version", "v-0.2.0");

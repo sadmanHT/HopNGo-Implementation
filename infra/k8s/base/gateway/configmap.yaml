@@ -17,6 +17,7 @@ data:
   market-service.url: "http://market-service:8084"
   chat-service.url: "http://chat-service:8085"
   notification-service.url: "http://notification-service:8089"
+  support-service.url: "http://support-service:8093"
   trip-planning-service.url: "http://trip-planning-service:8087"
   ai-service.url: "http://ai-service:8088"
   emergency-service.url: "http://emergency-service:8086"
@@ -67,6 +68,10 @@ data:
               uri: http://emergency-service:8086
               predicates:
                 - Path=/api/v1/emergency/**
+            - id: support-service
+              uri: http://support-service:8093
+              predicates:
+                - Path=/api/v1/support/**
           globalcors:
             cors-configurations:
               '[/**]':

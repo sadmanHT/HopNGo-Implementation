@@ -1,5 +1,6 @@
 package com.hopngo.config.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.hopngo.config.dto.FeatureFlagDto;
 import com.hopngo.config.dto.FeatureFlagEvaluationRequest;
 import com.hopngo.config.dto.FeatureFlagEvaluationResponse;
@@ -53,18 +54,31 @@ public class FeatureFlagEvaluationService {
         }
         
         // Check if user is in target users list (if specified)
-        if (flag.getPayload() != null && flag.getPayload().has("targetUsers")) {
-            List<String> targetUsers = flag.getPayload().get("targetUsers").findValuesAsText("userId");
-            if (!targetUsers.isEmpty() && targetUsers.contains(userId)) {
-                logger.debug("User '{}' is in target users for flag '{}'", userId, flagKey);
-                return true;
+        if (flag.getPayload() != null && flag.getPayload().containsKey("targetUsers")) {
+            Object targetUsersObj = flag.getPayload().get("targetUsers");
+            if (targetUsersObj instanceof List<?>) {
+                @SuppressWarnings("unchecked")
+                List<String> targetUsers = (List<String>) targetUsersObj;
+                if (!targetUsers.isEmpty() && targetUsers.contains(userId)) {
+                    logger.debug("User '{}' is in target users for flag '{}'", userId, flagKey);
+                    return true;
+                }
             }
         }
         
         // Check rollout percentage
         int rolloutPercentage = 100; // Default to 100%
-        if (flag.getPayload() != null && flag.getPayload().has("rolloutPercentage")) {
-            rolloutPercentage = flag.getPayload().get("rolloutPercentage").asInt(100);
+        if (flag.getPayload() != null && flag.getPayload().containsKey("rolloutPercentage")) {
+            Object rolloutObj = flag.getPayload().get("rolloutPercentage");
+            if (rolloutObj instanceof Number) {
+                rolloutPercentage = ((Number) rolloutObj).intValue();
+            } else if (rolloutObj instanceof String) {
+                try {
+                    rolloutPercentage = Integer.parseInt((String) rolloutObj);
+                } catch (NumberFormatException e) {
+                    logger.warn("Invalid rollout percentage format: {}", rolloutObj);
+                }
+            }
         }
         
         if (rolloutPercentage == 0) {

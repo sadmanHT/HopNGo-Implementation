@@ -57,14 +57,20 @@ public class Notification {
     @Column(name = "sent_at")
     private LocalDateTime sentAt;
     
-    @Column(name = "retry_count")
+    @Column(name = "retry_count", nullable = false)
     private Integer retryCount = 0;
     
     @Column(name = "max_retries")
     private Integer maxRetries = 3;
     
+    @Column(name = "last_attempt_at")
+    private LocalDateTime lastAttemptAt;
+    
     @Column(name = "next_retry_at")
     private LocalDateTime nextRetryAt;
+    
+    @Column(name = "device_token")
+    private String deviceToken;
     
     @Column(name = "external_id")
     private String externalId;

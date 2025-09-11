@@ -158,6 +158,10 @@ public class Payment {
         return providerTransactionId;
     }
     
+    public String getProviderPaymentId() {
+        return getProviderTransactionId();
+    }
+    
     public void setProviderTransactionId(String providerTransactionId) {
         this.providerTransactionId = providerTransactionId;
     }

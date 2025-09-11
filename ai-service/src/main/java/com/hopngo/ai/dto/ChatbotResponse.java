@@ -9,6 +9,8 @@ public class ChatbotResponse {
     private List<String> suggestions;
     private String context;
     private boolean requiresFollowUp;
+    private double confidence;
+    private String processingTime;
     
     // Constructors
     public ChatbotResponse() {}
@@ -61,5 +63,21 @@ public class ChatbotResponse {
     
     public void setRequiresFollowUp(boolean requiresFollowUp) {
         this.requiresFollowUp = requiresFollowUp;
+    }
+    
+    public double getConfidence() {
+        return confidence;
+    }
+    
+    public void setConfidence(double confidence) {
+        this.confidence = confidence;
+    }
+    
+    public String getProcessingTime() {
+        return processingTime;
+    }
+    
+    public void setProcessingTime(String processingTime) {
+        this.processingTime = processingTime;
     }
 }

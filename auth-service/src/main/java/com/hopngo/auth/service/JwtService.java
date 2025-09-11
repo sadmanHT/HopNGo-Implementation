@@ -31,11 +31,17 @@ public class JwtService {
     
     private static final Logger logger = LoggerFactory.getLogger(JwtService.class);
     
-    @Value("${jwt.private-key-path}")
+    @Value("${jwt.private-key-path:}")
     private String privateKeyPath;
     
-    @Value("${jwt.public-key-path}")
+    @Value("${jwt.public-key-path:}")
     private String publicKeyPath;
+    
+    @Value("${jwt.rsa.private-key:}")
+    private String privateKeyEnv;
+    
+    @Value("${jwt.rsa.public-key:}")
+    private String publicKeyEnv;
     
     @Value("${jwt.expiration}")
     private long jwtExpiration;
@@ -63,56 +69,117 @@ public class JwtService {
     }
     
     private void loadKeys() throws Exception {
-        // Load private key
+        // Priority 1: Load from environment variables (production)
+        if (privateKeyEnv != null && !privateKeyEnv.trim().isEmpty() && 
+            publicKeyEnv != null && !publicKeyEnv.trim().isEmpty()) {
+            
+            logger.info("Loading RSA keys from environment variables");
+            loadKeysFromEnvironment();
+            return;
+        }
+        
+        // Priority 2: Load from files (legacy support)
+        if (privateKeyPath != null && !privateKeyPath.trim().isEmpty() && 
+            publicKeyPath != null && !publicKeyPath.trim().isEmpty()) {
+            
+            logger.info("Loading RSA keys from files");
+            loadKeysFromFiles();
+            return;
+        }
+        
+        // Priority 3: Generate temporary keys for development
+        logger.warn("No RSA keys configured. Generating temporary keys for development. " +
+                   "Set JWT_RSA_PRIVATE_KEY and JWT_RSA_PUBLIC_KEY environment variables in production!");
+        generateTemporaryKeys();
+    }
+    
+    private void loadKeysFromEnvironment() throws Exception {
+        // Clean and decode private key
+        String cleanPrivateKey = cleanKeyContent(privateKeyEnv);
+        if (cleanPrivateKey.isEmpty()) {
+            throw new RuntimeException("Private key environment variable is empty or invalid");
+        }
+        
+        byte[] privateKeyBytes = Base64.getDecoder().decode(cleanPrivateKey);
+        PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        this.privateKey = keyFactory.generatePrivate(privateKeySpec);
+        
+        // Clean and decode public key
+        String cleanPublicKey = cleanKeyContent(publicKeyEnv);
+        if (cleanPublicKey.isEmpty()) {
+            throw new RuntimeException("Public key environment variable is empty or invalid");
+        }
+        
+        byte[] publicKeyBytes = Base64.getDecoder().decode(cleanPublicKey);
+        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
+        this.publicKey = keyFactory.generatePublic(publicKeySpec);
+        
+        logger.info("Successfully loaded RSA keys from environment variables");
+    }
+    
+    private void loadKeysFromFiles() throws Exception {
+        // Load private key from file
         Resource privateKeyResource = resourceLoader.getResource(privateKeyPath);
         if (!privateKeyResource.exists()) {
             throw new RuntimeException("Private key file not found: " + privateKeyPath);
         }
         
-        String privateKeyContent = new String(privateKeyResource.getInputStream().readAllBytes())
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .replace("# TODO: Replace with actual RSA private key", "")
-                .replace("# This is a placeholder - in production, use K8s Secrets", "")
-                .replace("# Generate with: openssl genrsa -out private_key.pem 2048", "")
-                .replace("PLACEHOLDER_RSA_PRIVATE_KEY_CONTENT", "")
-                .replaceAll("\\s", "");
+        String privateKeyContent = new String(privateKeyResource.getInputStream().readAllBytes());
+        String cleanPrivateKey = cleanKeyContent(privateKeyContent);
         
-        // For now, create a temporary key since we have placeholders
-        if (privateKeyContent.isEmpty() || privateKeyContent.equals("PLACEHOLDER_RSA_PRIVATE_KEY_CONTENT")) {
-            logger.warn("Using temporary RSA key pair for development. Replace with actual keys in production!");
-            // Generate a temporary key pair for development
-            var keyPair = Keys.keyPairFor(SignatureAlgorithm.RS256);
-            this.privateKey = keyPair.getPrivate();
-            this.publicKey = keyPair.getPublic();
+        if (cleanPrivateKey.isEmpty() || isPlaceholder(cleanPrivateKey)) {
+            generateTemporaryKeys();
             return;
         }
         
-        byte[] privateKeyBytes = Base64.getDecoder().decode(privateKeyContent);
+        byte[] privateKeyBytes = Base64.getDecoder().decode(cleanPrivateKey);
         PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         this.privateKey = keyFactory.generatePrivate(privateKeySpec);
         
-        // Load public key
+        // Load public key from file
         Resource publicKeyResource = resourceLoader.getResource(publicKeyPath);
         if (!publicKeyResource.exists()) {
             throw new RuntimeException("Public key file not found: " + publicKeyPath);
         }
         
-        String publicKeyContent = new String(publicKeyResource.getInputStream().readAllBytes())
-                .replace("-----BEGIN PUBLIC KEY-----", "")
-                .replace("-----END PUBLIC KEY-----", "")
-                .replace("# TODO: Replace with actual RSA public key", "")
-                .replace("# This is a placeholder - in production, use K8s Secrets", "")
-                .replace("# Extract from private key: openssl rsa -in private_key.pem -pubout -out public_key.pem", "")
-                .replace("PLACEHOLDER_RSA_PUBLIC_KEY_CONTENT", "")
-                .replaceAll("\\s", "");
+        String publicKeyContent = new String(publicKeyResource.getInputStream().readAllBytes());
+        String cleanPublicKey = cleanKeyContent(publicKeyContent);
         
-        if (!publicKeyContent.isEmpty() && !publicKeyContent.equals("PLACEHOLDER_RSA_PUBLIC_KEY_CONTENT")) {
-            byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyContent);
+        if (!cleanPublicKey.isEmpty() && !isPlaceholder(cleanPublicKey)) {
+            byte[] publicKeyBytes = Base64.getDecoder().decode(cleanPublicKey);
             X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
             this.publicKey = keyFactory.generatePublic(publicKeySpec);
         }
+        
+        logger.info("Successfully loaded RSA keys from files");
+    }
+    
+    private void generateTemporaryKeys() {
+        logger.warn("Generating temporary RSA key pair for development. " +
+                   "This should NOT be used in production!");
+        var keyPair = Keys.keyPairFor(SignatureAlgorithm.RS256);
+        this.privateKey = keyPair.getPrivate();
+        this.publicKey = keyPair.getPublic();
+    }
+    
+    private String cleanKeyContent(String keyContent) {
+        return keyContent
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replace("-----BEGIN PUBLIC KEY-----", "")
+                .replace("-----END PUBLIC KEY-----", "")
+                .replace("# TODO: Replace with actual RSA private key", "")
+                .replace("# TODO: Replace with actual RSA public key", "")
+                .replace("# This is a placeholder - in production, use K8s Secrets", "")
+                .replace("# Generate with: openssl genrsa -out private_key.pem 2048", "")
+                .replace("# Extract from private key: openssl rsa -in private_key.pem -pubout -out public_key.pem", "")
+                .replaceAll("\\s", "");
+    }
+    
+    private boolean isPlaceholder(String content) {
+        return content.contains("PLACEHOLDER") || content.isEmpty();
     }
     
     /**
