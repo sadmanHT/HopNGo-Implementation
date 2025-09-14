@@ -1,8 +1,10 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { invoiceService } from '../services/invoiceService';
 import InvoiceList from '../components/invoices/InvoiceList';
 import InvoiceFilters from '../components/invoices/InvoiceFilters';
 import InvoiceSummary from '../components/invoices/InvoiceSummary';
+import { useAuthStore } from '../lib/state';
 
 interface Invoice {
   id: string;
@@ -58,6 +60,7 @@ import ErrorMessage from '../components/common/ErrorMessage';
 import { toast } from 'react-toastify';
 
 const InvoicesPage: React.FC = () => {
+  const { user } = useAuthStore();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [summary, setSummary] = useState<InvoiceSummaryData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -66,7 +69,7 @@ const InvoicesPage: React.FC = () => {
     search: '',
     status: '',
     type: '',
-    currency: '',
+    currency: 'BDT',
     minAmount: '',
     maxAmount: '',
     startDate: '',
@@ -92,13 +95,15 @@ const InvoicesPage: React.FC = () => {
       setLoading(true);
       setError(null);
       
+      if (!user?.id) return;
+      
       const params = {
         userId: user.id,
         page: pagination.page,
         size: pagination.size,
         ...(filters.status && { status: filters.status }),
-        ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
-        ...(filters.dateTo && { dateTo: filters.dateTo })
+        ...(filters.startDate && { startDate: filters.startDate }),
+        ...(filters.endDate && { endDate: filters.endDate })
       };
       
       const response = await invoiceService.getUserInvoices(params);
@@ -120,6 +125,8 @@ const InvoicesPage: React.FC = () => {
 
   const loadSummary = async () => {
     try {
+      if (!user?.id) return;
+      
       const summaryData = await invoiceService.getInvoiceSummary({
         userId: user.id,
         currency: filters.currency
@@ -201,7 +208,7 @@ const InvoicesPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <LoadingSpinner size="large" />
+          <LoadingSpinner size="lg" />
         </div>
       </div>
     );
@@ -228,7 +235,7 @@ const InvoicesPage: React.FC = () => {
         {/* Invoice Summary */}
         {summary && (
           <div className="mb-8">
-            <InvoiceSummary summary={summary} currency={filters.currency} />
+            <InvoiceSummary summary={summary} loading={loading} />
           </div>
         )}
 
@@ -267,13 +274,13 @@ const InvoicesPage: React.FC = () => {
               No invoices found
             </h3>
             <p className="mt-2 text-gray-500">
-              {filters.status || filters.dateFrom || filters.dateTo
+              {filters.status || filters.startDate || filters.endDate
                 ? 'No invoices match your current filters. Try adjusting your search criteria.'
                 : 'You don\'t have any invoices yet. Invoices will appear here after you make bookings or purchases.'}
             </p>
-            {(filters.status || filters.dateFrom || filters.dateTo) && (
+            {(filters.status || filters.startDate || filters.endDate) && (
               <button
-                onClick={() => setFilters({ status: '', dateFrom: '', dateTo: '', currency: 'BDT' })}
+                onClick={() => setFilters({ search: '', status: '', type: '', currency: 'BDT', minAmount: '', maxAmount: '', startDate: '', endDate: '' })}
                 className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Clear filters

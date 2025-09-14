@@ -16,7 +16,7 @@ public class ModerationService {
     
     private static final Logger logger = LoggerFactory.getLogger(ModerationService.class);
     
-    @Autowired
+    @Autowired(required = false)
     private ImageHashService imageHashService;
     
     @Value("${moderation.thresholds.toxicity:0.7}")
@@ -95,7 +95,7 @@ public class ModerationService {
         double harassment = calculateHarassmentScore(content);
         
         // Check for duplicate images and adjust spam score if duplicates found
-        if (request.getMediaUrls() != null && !request.getMediaUrls().isEmpty()) {
+        if (request.getMediaUrls() != null && !request.getMediaUrls().isEmpty() && imageHashService != null) {
             List<String> duplicates = imageHashService.checkForDuplicates(request.getMediaUrls());
             if (!duplicates.isEmpty()) {
                 // Increase spam score for duplicate content
@@ -291,12 +291,13 @@ public class ModerationService {
         ));
         
         // Add duplicate detection results
-        if (request.getMediaUrls() != null && !request.getMediaUrls().isEmpty()) {
+        if (request.getMediaUrls() != null && !request.getMediaUrls().isEmpty() && imageHashService != null) {
             List<String> duplicates = imageHashService.checkForDuplicates(request.getMediaUrls());
             metadata.put("duplicateImages", duplicates);
             metadata.put("hasDuplicates", !duplicates.isEmpty());
             metadata.put("duplicateCount", duplicates.size());
         } else {
+            // When imageHashService is not available, set default values
             metadata.put("duplicateImages", Collections.emptyList());
             metadata.put("hasDuplicates", false);
             metadata.put("duplicateCount", 0);

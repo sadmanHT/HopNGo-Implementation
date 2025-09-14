@@ -100,6 +100,8 @@ public class AuthController {
         }
     }
     
+
+    
     @GetMapping("/me")
     @Operation(summary = "Get current user", description = "Get current authenticated user information")
     @SecurityRequirement(name = "bearerAuth")

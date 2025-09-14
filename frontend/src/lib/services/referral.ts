@@ -1,4 +1,4 @@
-import { ApiResponse } from '@/lib/types';
+import { ApiResponse } from '@/lib/api/types';
 
 export interface Referral {
   id: string;
@@ -98,7 +98,8 @@ class ReferralService {
       console.error('Error creating referral:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        data: null as any,
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -129,7 +130,8 @@ class ReferralService {
       console.error('Error tracking referral click:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        data: null as any,
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -161,7 +163,8 @@ class ReferralService {
       console.error('Error processing conversion:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        data: null as any,
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -186,7 +189,8 @@ class ReferralService {
       console.error('Error validating referral code:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        data: null as any,
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -211,7 +215,8 @@ class ReferralService {
       console.error('Error fetching referral stats:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        data: null as any,
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -236,7 +241,8 @@ class ReferralService {
       console.error('Error fetching user referrals:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        data: null as any,
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -268,7 +274,8 @@ class ReferralService {
       console.error('Error subscribing via referral:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        data: null as any,
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }

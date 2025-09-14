@@ -37,13 +37,13 @@ public class Itinerary {
     @Column(nullable = false)
     private Integer budget;
 
-    @Column(columnDefinition = "jsonb")
+    @Column(columnDefinition = "TEXT")
     private String origins;
 
-    @Column(columnDefinition = "jsonb")
+    @Column(columnDefinition = "TEXT")
     private String destinations;
 
-    @Column(columnDefinition = "jsonb")
+    @Column(columnDefinition = "TEXT")
     private String plan;
 
     @CreationTimestamp

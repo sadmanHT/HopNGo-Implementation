@@ -8,6 +8,7 @@ import org.passay.dictionary.WordLists;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,7 +16,7 @@ import java.util.List;
 public class PasswordValidationService {
     
     private final Zxcvbn zxcvbn;
-    private final PasswordValidator passwordValidator;
+    private PasswordValidator passwordValidator;
     
     @Value("${app.password.min-length:8}")
     private int minLength;
@@ -37,7 +38,18 @@ public class PasswordValidationService {
     
     public PasswordValidationService() {
         this.zxcvbn = new Zxcvbn();
-        this.passwordValidator = createPasswordValidator();
+    }
+    
+    // @PostConstruct
+    // private void init() {
+    //     this.passwordValidator = createPasswordValidator();
+    // }
+    
+    private PasswordValidator getPasswordValidator() {
+        if (this.passwordValidator == null) {
+            this.passwordValidator = createPasswordValidator();
+        }
+        return this.passwordValidator;
     }
     
     /**
@@ -47,9 +59,9 @@ public class PasswordValidationService {
         List<String> errors = new ArrayList<>();
         
         // Basic validation using Passay
-        RuleResult passayResult = passwordValidator.validate(new PasswordData(password));
-        if (!passayResult.isValid()) {
-            for (String message : passwordValidator.getMessages(passayResult)) {
+        RuleResult result = getPasswordValidator().validate(new PasswordData(password));
+        if (!result.isValid()) {
+            for (String message : getPasswordValidator().getMessages(result)) {
                 errors.add(message);
             }
         }

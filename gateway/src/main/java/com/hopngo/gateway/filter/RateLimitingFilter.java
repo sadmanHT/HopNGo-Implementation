@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -37,8 +38,14 @@ public class RateLimitingFilter implements GlobalFilter, Ordered {
     @Value("${rate-limiting.enabled:true}")
     private boolean rateLimitingEnabled;
     
-    @Value("${rate-limiting.whitelist-ips:127.0.0.1,::1}")
+    @Value("${rate-limiting.whitelist-ips:127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}")
     private String whitelistIps;
+    
+    @Value("${rate-limiting.enable-ip-blocking:true}")
+    private boolean enableIpBlocking;
+    
+    @Value("${rate-limiting.block-threshold:100}")
+    private int blockThreshold;
     
     // Critical endpoints that need stricter rate limiting
     private static final String[] CRITICAL_ENDPOINTS = {
@@ -46,7 +53,9 @@ public class RateLimitingFilter implements GlobalFilter, Ordered {
         "/api/v1/auth/register",
         "/api/v1/auth/reset-password",
         "/api/v1/auth/verify-2fa",
-        "/api/v1/admin"
+        "/api/v1/auth/refresh",
+        "/api/v1/admin",
+        "/actuator"
     };
     
     public RateLimitingFilter(RedisTemplate<String, String> redisTemplate) {
@@ -68,8 +77,18 @@ public class RateLimitingFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
         }
         
+        // Check if IP is blocked
+        if (enableIpBlocking && isIpBlocked(clientIp)) {
+            log.warn("Blocked IP {} attempted to access {}", clientIp, path);
+            return handleIpBlocked(exchange);
+        }
+        
         // Check rate limits
         if (isRateLimited(clientIp, path)) {
+            // Increment violation count for potential IP blocking
+            if (enableIpBlocking) {
+                incrementViolationCount(clientIp);
+            }
             return handleRateLimitExceeded(exchange);
         }
         
@@ -122,9 +141,10 @@ public class RateLimitingFilter implements GlobalFilter, Ordered {
             
             return currentCount >= limit;
         } catch (Exception e) {
-            log.error("Error checking rate limit for key: {}", key, e);
-            // Fail open - allow request if Redis is unavailable
-            return false;
+            log.error("Error checking rate limit for key: {}, Redis may be unavailable", key, e);
+            // For critical endpoints, fail closed when Redis is unavailable
+            // For non-critical endpoints, fail open
+            return key.contains("critical") || key.contains("auth") || key.contains("admin");
         }
     }
     
@@ -205,6 +225,55 @@ public class RateLimitingFilter implements GlobalFilter, Ordered {
         
         return request.getRemoteAddress() != null ? 
                 request.getRemoteAddress().getAddress().getHostAddress() : "unknown";
+    }
+    
+    private boolean isIpBlocked(String clientIp) {
+        try {
+            String blockKey = "ip_blocked:" + clientIp;
+            return redisTemplate.hasKey(blockKey);
+        } catch (Exception e) {
+            log.error("Error checking IP block status for {}", clientIp, e);
+            return false;
+        }
+    }
+    
+    private void incrementViolationCount(String clientIp) {
+        try {
+            String violationKey = "violations:" + clientIp;
+            String currentCountStr = redisTemplate.opsForValue().get(violationKey);
+            int currentCount = currentCountStr != null ? Integer.parseInt(currentCountStr) : 0;
+            
+            currentCount++;
+            redisTemplate.opsForValue().set(violationKey, String.valueOf(currentCount), Duration.ofHours(1));
+            
+            // Block IP if threshold exceeded
+            if (currentCount >= blockThreshold) {
+                blockIp(clientIp);
+                log.warn("IP {} blocked due to {} violations", clientIp, currentCount);
+            }
+        } catch (Exception e) {
+            log.error("Error incrementing violation count for {}", clientIp, e);
+        }
+    }
+    
+    private void blockIp(String clientIp) {
+        try {
+            String blockKey = "ip_blocked:" + clientIp;
+            redisTemplate.opsForValue().set(blockKey, "blocked", Duration.ofHours(24));
+        } catch (Exception e) {
+            log.error("Error blocking IP {}", clientIp, e);
+        }
+    }
+    
+    private Mono<Void> handleIpBlocked(ServerWebExchange exchange) {
+        ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(HttpStatus.FORBIDDEN);
+        response.getHeaders().add("Content-Type", "application/json");
+        
+        String errorMessage = "{\"error\":\"IP Blocked\",\"message\":\"Your IP address has been temporarily blocked due to suspicious activity.\"}";
+        DataBuffer buffer = response.bufferFactory().wrap(errorMessage.getBytes());
+        
+        return response.writeWith(Mono.just(buffer));
     }
     
     private Mono<Void> handleRateLimitExceeded(ServerWebExchange exchange) {

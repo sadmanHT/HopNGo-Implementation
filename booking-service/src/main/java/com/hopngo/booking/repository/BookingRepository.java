@@ -17,22 +17,27 @@ import java.util.UUID;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, UUID> {
     
-    List<Booking> findByUserId(String userId);
+    @Query("SELECT b FROM Booking b JOIN FETCH b.listing JOIN FETCH b.vendor WHERE b.userId = :userId")
+    List<Booking> findByUserId(@Param("userId") String userId);
     
-    List<Booking> findByUserIdAndStatus(String userId, BookingStatus status);
+    @Query("SELECT b FROM Booking b JOIN FETCH b.listing JOIN FETCH b.vendor WHERE b.userId = :userId AND b.status = :status")
+    List<Booking> findByUserIdAndStatus(@Param("userId") String userId, @Param("status") BookingStatus status);
     
-    List<Booking> findByListingId(UUID listingId);
+    @Query("SELECT b FROM Booking b JOIN FETCH b.listing JOIN FETCH b.vendor WHERE b.listing.id = :listingId")
+    List<Booking> findByListingId(@Param("listingId") UUID listingId);
     
-    List<Booking> findByVendorId(UUID vendorId);
+    @Query("SELECT b FROM Booking b JOIN FETCH b.listing JOIN FETCH b.vendor WHERE b.vendor.id = :vendorId")
+    List<Booking> findByVendorId(@Param("vendorId") UUID vendorId);
     
-    List<Booking> findByVendorIdAndStatus(UUID vendorId, BookingStatus status);
+    @Query("SELECT b FROM Booking b JOIN FETCH b.listing JOIN FETCH b.vendor WHERE b.vendor.id = :vendorId AND b.status = :status")
+    List<Booking> findByVendorIdAndStatus(@Param("vendorId") UUID vendorId, @Param("status") BookingStatus status);
     
-    @Query("SELECT b FROM Booking b WHERE b.vendor.userId = :vendorUserId")
+    @Query("SELECT b FROM Booking b JOIN FETCH b.listing JOIN FETCH b.vendor WHERE b.vendor.userId = :vendorUserId")
     List<Booking> findByVendorUserId(@Param("vendorUserId") String vendorUserId);
     
     Optional<Booking> findByBookingReference(String bookingReference);
     
-    @Query("SELECT b FROM Booking b WHERE b.userId = :userId AND " +
+    @Query("SELECT b FROM Booking b JOIN FETCH b.listing JOIN FETCH b.vendor WHERE b.userId = :userId AND " +
            "b.status IN ('CONFIRMED', 'COMPLETED') AND " +
            "b.endDate < :currentDate AND " +
            "NOT EXISTS (SELECT r FROM Review r WHERE r.booking = b)")
@@ -41,7 +46,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Param("currentDate") LocalDate currentDate
     );
     
-    @Query("SELECT b FROM Booking b WHERE b.listing.id = :listingId AND " +
+    @Query("SELECT b FROM Booking b JOIN FETCH b.listing JOIN FETCH b.vendor WHERE b.listing.id = :listingId AND " +
            "b.status IN ('PENDING', 'CONFIRMED') AND " +
            "((b.startDate BETWEEN :startDate AND :endDate) OR " +
            "(b.endDate BETWEEN :startDate AND :endDate) OR " +
@@ -65,11 +70,11 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Param("endDate") LocalDate endDate
     );
     
-    @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING' AND " +
+    @Query("SELECT b FROM Booking b JOIN FETCH b.listing JOIN FETCH b.vendor WHERE b.status = 'PENDING' AND " +
            "b.createdAt < :cutoffTime")
     List<Booking> findExpiredPendingBookings(@Param("cutoffTime") java.time.LocalDateTime cutoffTime);
     
-    @Query("SELECT b FROM Booking b WHERE b.status = 'CONFIRMED' AND " +
+    @Query("SELECT b FROM Booking b JOIN FETCH b.listing JOIN FETCH b.vendor WHERE b.status = 'CONFIRMED' AND " +
            "b.endDate < :currentDate")
     List<Booking> findCompletedBookings(@Param("currentDate") LocalDate currentDate);
     
@@ -120,7 +125,8 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     
     long countByVendorId(UUID vendorId);
     
-    List<Booking> findByStatus(BookingStatus status);
+    @Query("SELECT b FROM Booking b JOIN FETCH b.listing JOIN FETCH b.vendor WHERE b.status = :status")
+    List<Booking> findByStatus(@Param("status") BookingStatus status);
     
     long countByUserId(String userId);
 }

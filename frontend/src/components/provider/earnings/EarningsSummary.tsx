@@ -36,7 +36,7 @@ const EarningsSummary: React.FC<EarningsSummaryProps> = ({ earnings, loading = f
     return (
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex justify-center">
-          <LoadingSpinner size="medium" />
+          <LoadingSpinner size="md" />
         </div>
       </div>
     );

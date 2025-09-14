@@ -7,6 +7,7 @@ import com.hopngo.tripplanning.dto.TripPlanRequest;
 import com.hopngo.tripplanning.entity.Itinerary;
 import com.hopngo.tripplanning.mapper.ItineraryMapper;
 import com.hopngo.tripplanning.repository.ItineraryRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,14 +29,17 @@ public class ItineraryService {
     private final ItineraryRepository itineraryRepository;
     private final ItineraryMapper itineraryMapper;
     private final AIService aiService;
+    private final ObjectMapper objectMapper;
     private ItinerarySharingService sharingService;
 
     public ItineraryService(ItineraryRepository itineraryRepository,
                            ItineraryMapper itineraryMapper,
-                           AIService aiService) {
+                           AIService aiService,
+                           ObjectMapper objectMapper) {
         this.itineraryRepository = itineraryRepository;
         this.itineraryMapper = itineraryMapper;
         this.aiService = aiService;
+        this.objectMapper = objectMapper;
     }
 
     @Autowired
@@ -120,13 +124,22 @@ public class ItineraryService {
             itinerary.setBudget(request.getBudget());
         }
         if (request.getPlan() != null) {
-            itinerary.setPlan(request.getPlan());
+            try {
+                itinerary.setPlan(objectMapper.writeValueAsString(request.getPlan()));
+            } catch (Exception e) {
+                logger.error("Error serializing plan to JSON", e);
+            }
         }
-        if (request.getOrigins() != null) {
-            itinerary.setOrigins(request.getOrigins());
-        }
+        // Note: ItineraryUpdateRequest doesn't have getOrigins() method
+        // if (request.getOrigins() != null) {
+        //     itinerary.setOrigins(request.getOrigins());
+        // }
         if (request.getDestinations() != null) {
-            itinerary.setDestinations(request.getDestinations());
+            try {
+                itinerary.setDestinations(objectMapper.writeValueAsString(request.getDestinations()));
+            } catch (Exception e) {
+                logger.error("Error serializing destinations to JSON", e);
+            }
         }
         
         // Save updated entity

@@ -212,7 +212,7 @@ const PayoutHistory: React.FC<PayoutHistoryProps> = ({
       <div className="p-6">
         {loading ? (
           <div className="flex justify-center py-8">
-            <LoadingSpinner size="medium" />
+            <LoadingSpinner size="md" />
           </div>
         ) : payouts.length === 0 ? (
           <div className="text-center py-8">
@@ -314,6 +314,7 @@ const PayoutHistory: React.FC<PayoutHistoryProps> = ({
             <Pagination
               currentPage={pagination.page + 1}
               totalPages={pagination.totalPages}
+              totalElements={pagination.totalElements}
               onPageChange={(page) => onPageChange(page - 1)}
             />
           </div>

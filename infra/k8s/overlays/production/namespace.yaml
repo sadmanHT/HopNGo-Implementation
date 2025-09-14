@@ -5,3 +5,7 @@ metadata:
   labels:
     name: hopngo-prod
     environment: production
+    # Pod Security Standards labels
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

@@ -1,0 +1,528 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: hopngo-rabbitmq-node-failure-chaos
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    chaos-type: message-queue-outage
+    target: rabbitmq
+spec:
+  engineState: 'active'
+  auxiliaryAppInfo: ''
+  chaosServiceAccount: litmus-admin
+  
+  appinfo:
+    appns: 'hopngo-prod'
+    applabel: 'app=rabbitmq'
+    appkind: 'statefulset'
+  
+  monitoring: true
+  jobCleanUpPolicy: 'retain'
+  
+  experiments:
+  - name: pod-delete
+    spec:
+      components:
+        env:
+          # RabbitMQ node failure configuration
+          - name: TOTAL_CHAOS_DURATION
+            value: '150' # 2.5 minutes RabbitMQ outage
+          
+          - name: CHAOS_INTERVAL
+            value: '45' # Kill node every 45 seconds
+          
+          - name: FORCE
+            value: 'false' # Graceful shutdown first
+          
+          - name: PODS_AFFECTED_PERC
+            value: '33' # Kill 1/3 of RabbitMQ nodes
+          
+          - name: SEQUENCE
+            value: 'serial' # Kill nodes one by one
+          
+          - name: RAMP_TIME
+            value: '30'
+          
+          - name: INSTANCE_ID
+            value: 'rabbitmq-node-failure'
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "400m"
+      
+      probe:
+      - name: "rabbitmq-cluster-health-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 10
+          retry: 3
+          interval: 15
+          probePollingInterval: 3
+        httpProbe/inputs:
+          url: "http://rabbitmq-management:15672/api/cluster-name"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+          headers:
+            Authorization: "Basic Z3Vlc3Q6Z3Vlc3Q=" # guest:guest base64
+      
+      - name: "message-queue-failover-check"
+        type: "cmdProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 15
+          retry: 2
+          interval: 20
+          probePollingInterval: 5
+        cmdProbe/inputs:
+          command: "rabbitmqctl"
+          args:
+            - "cluster_status"
+          source:
+            image: "rabbitmq:3.11-management"
+            inheritInputs: true
+          comparator:
+            type: "string"
+            criteria: "contains"
+            value: "running_nodes"
+      
+      - name: "booking-service-message-retry-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 12
+          retry: 3
+          interval: 25
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://booking-service:8080/actuator/metrics/rabbitmq.published"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+        # Monitor message publishing metrics during outage
+      
+      - name: "notification-service-queue-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 10
+          retry: 2
+          interval: 20
+          probePollingInterval: 4
+        httpProbe/inputs:
+          url: "http://notification-service:8080/actuator/health/rabbit"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "contains"
+              responseCode: "200"
+
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: hopngo-rabbitmq-network-partition-chaos
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    chaos-type: network-partition
+    target: rabbitmq
+spec:
+  engineState: 'active'
+  auxiliaryAppInfo: ''
+  chaosServiceAccount: litmus-admin
+  
+  appinfo:
+    appns: 'hopngo-prod'
+    applabel: 'app=rabbitmq'
+    appkind: 'statefulset'
+  
+  monitoring: true
+  jobCleanUpPolicy: 'retain'
+  
+  experiments:
+  - name: pod-network-partition
+    spec:
+      components:
+        env:
+          # Network partition configuration
+          - name: TOTAL_CHAOS_DURATION
+            value: '120' # 2 minutes network partition
+          
+          - name: NETWORK_INTERFACE
+            value: 'eth0'
+          
+          - name: DESTINATION_IPS
+            value: '' # Partition from all other nodes
+          
+          - name: DESTINATION_HOSTS
+            value: 'rabbitmq-0.rabbitmq-headless,rabbitmq-1.rabbitmq-headless'
+          
+          - name: CONTAINER_RUNTIME
+            value: 'containerd'
+          
+          - name: SOCKET_PATH
+            value: '/run/containerd/containerd.sock'
+          
+          - name: PODS_AFFECTED_PERC
+            value: '50' # Partition half of the cluster
+          
+          - name: TARGET_CONTAINER
+            value: 'rabbitmq'
+          
+          - name: RAMP_TIME
+            value: '20'
+          
+          - name: INSTANCE_ID
+            value: 'rabbitmq-network-partition'
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "400m"
+      
+      probe:
+      - name: "rabbitmq-split-brain-detection"
+        type: "cmdProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 15
+          retry: 2
+          interval: 20
+          probePollingInterval: 5
+        cmdProbe/inputs:
+          command: "rabbitmqctl"
+          args:
+            - "cluster_status"
+            - "--formatter"
+            - "json"
+          source:
+            image: "rabbitmq:3.11-management"
+            inheritInputs: true
+          comparator:
+            type: "string"
+            criteria: "contains"
+            value: "partitions"
+      
+      - name: "message-delivery-during-partition"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 20
+          retry: 3
+          interval: 30
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://market-service:8080/api/test/publish-message"
+          insecureSkipTLS: false
+          method:
+            post:
+              criteria: "=="
+              responseCode: "202"
+          body: '{"message": "test-partition-resilience", "queue": "market.orders"}'
+          headers:
+            Content-Type: "application/json"
+      
+      - name: "consumer-reconnection-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 15
+          retry: 2
+          interval: 25
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://booking-service:8080/actuator/metrics/rabbitmq.connections"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: hopngo-rabbitmq-disk-pressure-chaos
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    chaos-type: disk-pressure
+    target: rabbitmq
+spec:
+  engineState: 'active'
+  auxiliaryAppInfo: ''
+  chaosServiceAccount: litmus-admin
+  
+  appinfo:
+    appns: 'hopngo-prod'
+    applabel: 'app=rabbitmq'
+    appkind: 'statefulset'
+  
+  monitoring: true
+  jobCleanUpPolicy: 'retain'
+  
+  experiments:
+  - name: disk-fill
+    spec:
+      components:
+        env:
+          # Disk pressure configuration
+          - name: TOTAL_CHAOS_DURATION
+            value: '180' # 3 minutes disk pressure
+          
+          - name: FILL_PERCENTAGE
+            value: '85' # Fill disk to 85% capacity
+          
+          - name: EPHEMERAL_STORAGE_MEBIBYTES
+            value: '2048' # 2GB of data to write
+          
+          - name: DATA_BLOCK_SIZE
+            value: '256' # 256KB blocks
+          
+          - name: CONTAINER_RUNTIME
+            value: 'containerd'
+          
+          - name: SOCKET_PATH
+            value: '/run/containerd/containerd.sock'
+          
+          - name: TARGET_CONTAINER
+            value: 'rabbitmq'
+          
+          - name: PODS_AFFECTED_PERC
+            value: '50'
+          
+          - name: RAMP_TIME
+            value: '30'
+          
+          - name: INSTANCE_ID
+            value: 'rabbitmq-disk-pressure'
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "400m"
+      
+      probe:
+      - name: "rabbitmq-disk-alarm-check"
+        type: "cmdProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 10
+          retry: 2
+          interval: 15
+          probePollingInterval: 3
+        cmdProbe/inputs:
+          command: "rabbitmqctl"
+          args:
+            - "list_alarms"
+          source:
+            image: "rabbitmq:3.11-management"
+            inheritInputs: true
+          comparator:
+            type: "string"
+            criteria: "contains"
+            value: "disk_free_limit"
+      
+      - name: "message-persistence-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 15
+          retry: 3
+          interval: 20
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://rabbitmq-management:15672/api/queues/%2F/booking.notifications"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+          headers:
+            Authorization: "Basic Z3Vlc3Q6Z3Vlc3Q="
+      
+      - name: "queue-flow-control-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 12
+          retry: 2
+          interval: 18
+          probePollingInterval: 4
+        httpProbe/inputs:
+          url: "http://rabbitmq-management:15672/api/nodes"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+          headers:
+            Authorization: "Basic Z3Vlc3Q6Z3Vlc3Q="
+      
+      - name: "application-backpressure-handling"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 20
+          retry: 2
+          interval: 30
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://notification-service:8080/actuator/metrics/rabbitmq.rejected"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+        # Monitor rejected messages due to backpressure
+
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: hopngo-message-queue-consumer-chaos
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    chaos-type: consumer-failure
+    target: message-consumers
+spec:
+  engineState: 'active'
+  auxiliaryAppInfo: ''
+  chaosServiceAccount: litmus-admin
+  
+  appinfo:
+    appns: 'hopngo-prod'
+    applabel: 'component=message-consumer'
+    appkind: 'deployment'
+  
+  monitoring: true
+  jobCleanUpPolicy: 'retain'
+  
+  experiments:
+  - name: pod-cpu-hog
+    spec:
+      components:
+        env:
+          # CPU exhaustion for message consumers
+          - name: TOTAL_CHAOS_DURATION
+            value: '120' # 2 minutes CPU pressure
+          
+          - name: CPU_CORES
+            value: '2' # Consume 2 CPU cores
+          
+          - name: CPU_LOAD
+            value: '100' # 100% CPU utilization
+          
+          - name: CONTAINER_RUNTIME
+            value: 'containerd'
+          
+          - name: SOCKET_PATH
+            value: '/run/containerd/containerd.sock'
+          
+          - name: PODS_AFFECTED_PERC
+            value: '75' # Affect most consumer pods
+          
+          - name: RAMP_TIME
+            value: '20'
+          
+          - name: INSTANCE_ID
+            value: 'message-consumer-cpu-hog'
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "400m"
+      
+      probe:
+      - name: "message-processing-backlog-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 15
+          retry: 2
+          interval: 20
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://rabbitmq-management:15672/api/queues/%2F/booking.processing"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+          headers:
+            Authorization: "Basic Z3Vlc3Q6Z3Vlc3Q="
+        # Monitor queue depth during consumer stress
+      
+      - name: "dead-letter-queue-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 12
+          retry: 2
+          interval: 25
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://rabbitmq-management:15672/api/queues/%2F/booking.dlq"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+          headers:
+            Authorization: "Basic Z3Vlc3Q6Z3Vlc3Q="
+        # Monitor dead letter queue for failed messages
+      
+      - name: "consumer-auto-scaling-check"
+        type: "k8sProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 10
+          retry: 2
+          interval: 30
+          probePollingInterval: 5
+        k8sProbe/inputs:
+          group: "apps"
+          version: "v1"
+          resource: "deployments"
+          namespace: "hopngo-prod"
+          fieldSelector: "metadata.name=notification-service"
+          operation: "present"
+        # Verify HPA scales up consumers under load
+      
+      - name: "message-retry-mechanism-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 18
+          retry: 3
+          interval: 35
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://notification-service:8080/actuator/metrics/rabbitmq.consumed"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+        # Monitor message consumption metrics during stress

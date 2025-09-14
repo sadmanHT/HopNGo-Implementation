@@ -1,7 +1,8 @@
 import { useTranslation } from '@/lib/i18n';
 import { TripsClient } from './TripsClient';
 
-export default async function TripsPage({ params: { locale } }: { params: { locale: string } }) {
+export default async function TripsPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   const { t } = await useTranslation(locale, 'common');
   
   // Create translations object for client component

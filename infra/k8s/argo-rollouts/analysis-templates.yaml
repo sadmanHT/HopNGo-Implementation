@@ -1,0 +1,308 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: analysis-template
+spec:
+  args:
+  - name: service-name
+  - name: namespace
+    value: hopngo-prod
+  metrics:
+  - name: success-rate
+    successCondition: result[0] >= 0.95
+    failureCondition: result[0] < 0.90
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          sum(rate(http_requests_total{job="{{args.service-name}}",namespace="{{args.namespace}}",status!~"5.."}[5m])) /
+          sum(rate(http_requests_total{job="{{args.service-name}}",namespace="{{args.namespace}}"}[5m]))
+    interval: 30s
+    count: 5
+    failureLimit: 2
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: latency-p99
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: analysis-template
+spec:
+  args:
+  - name: service-name
+  - name: namespace
+    value: hopngo-prod
+  metrics:
+  - name: latency-p99
+    successCondition: result[0] <= 1000
+    failureCondition: result[0] > 2000
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          histogram_quantile(0.99,
+            sum(rate(http_request_duration_seconds_bucket{job="{{args.service-name}}",namespace="{{args.namespace}}"}[5m])) by (le)
+          ) * 1000
+    interval: 30s
+    count: 5
+    failureLimit: 2
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: error-rate
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: analysis-template
+spec:
+  args:
+  - name: service-name
+  - name: namespace
+    value: hopngo-prod
+  metrics:
+  - name: error-rate
+    successCondition: result[0] <= 0.05
+    failureCondition: result[0] > 0.10
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          sum(rate(http_requests_total{job="{{args.service-name}}",namespace="{{args.namespace}}",status=~"5.."}[5m])) /
+          sum(rate(http_requests_total{job="{{args.service-name}}",namespace="{{args.namespace}}"}[5m]))
+    interval: 30s
+    count: 5
+    failureLimit: 2
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: cpu-usage
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: analysis-template
+spec:
+  args:
+  - name: service-name
+  - name: namespace
+    value: hopngo-prod
+  metrics:
+  - name: cpu-usage
+    successCondition: result[0] <= 0.80
+    failureCondition: result[0] > 0.90
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          avg(rate(container_cpu_usage_seconds_total{namespace="{{args.namespace}}",pod=~"{{args.service-name}}-.*"}[5m])) /
+          avg(container_spec_cpu_quota{namespace="{{args.namespace}}",pod=~"{{args.service-name}}-.*"} / container_spec_cpu_period{namespace="{{args.namespace}}",pod=~"{{args.service-name}}-.*"})
+    interval: 30s
+    count: 5
+    failureLimit: 2
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: memory-usage
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: analysis-template
+spec:
+  args:
+  - name: service-name
+  - name: namespace
+    value: hopngo-prod
+  metrics:
+  - name: memory-usage
+    successCondition: result[0] <= 0.85
+    failureCondition: result[0] > 0.95
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          avg(container_memory_usage_bytes{namespace="{{args.namespace}}",pod=~"{{args.service-name}}-.*"}) /
+          avg(container_spec_memory_limit_bytes{namespace="{{args.namespace}}",pod=~"{{args.service-name}}-.*"})
+    interval: 30s
+    count: 5
+    failureLimit: 2
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: business-metrics
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: analysis-template
+spec:
+  args:
+  - name: service-name
+  - name: namespace
+    value: hopngo-prod
+  metrics:
+  - name: booking-success-rate
+    successCondition: result[0] >= 0.98
+    failureCondition: result[0] < 0.95
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          sum(rate(hopngo_bookings_total{status="success",namespace="{{args.namespace}}"}[5m])) /
+          sum(rate(hopngo_bookings_total{namespace="{{args.namespace}}"}[5m]))
+    interval: 60s
+    count: 3
+    failureLimit: 1
+  - name: payment-success-rate
+    successCondition: result[0] >= 0.99
+    failureCondition: result[0] < 0.97
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          sum(rate(hopngo_payments_total{status="success",namespace="{{args.namespace}}"}[5m])) /
+          sum(rate(hopngo_payments_total{namespace="{{args.namespace}}"}[5m]))
+    interval: 60s
+    count: 3
+    failureLimit: 1
+  - name: user-satisfaction-score
+    successCondition: result[0] >= 4.0
+    failureCondition: result[0] < 3.5
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          avg(hopngo_user_rating{namespace="{{args.namespace}}"})
+    interval: 120s
+    count: 2
+    failureLimit: 1
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: frontend-success-rate
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: analysis-template
+spec:
+  args:
+  - name: service-name
+  metrics:
+  - name: frontend-success-rate
+    successCondition: result[0] >= 0.98
+    failureCondition: result[0] < 0.95
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          sum(rate(nginx_ingress_controller_requests{service="{{args.service-name}}",status!~"5.."}[5m])) /
+          sum(rate(nginx_ingress_controller_requests{service="{{args.service-name}}"}[5m]))
+    interval: 30s
+    count: 5
+    failureLimit: 2
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: frontend-load-time
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: analysis-template
+spec:
+  args:
+  - name: service-name
+  metrics:
+  - name: frontend-load-time
+    successCondition: result[0] <= 2000
+    failureCondition: result[0] > 5000
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          histogram_quantile(0.95,
+            sum(rate(nginx_ingress_controller_request_duration_seconds_bucket{service="{{args.service-name}}"}[5m])) by (le)
+          ) * 1000
+    interval: 30s
+    count: 5
+    failureLimit: 2
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: frontend-error-rate
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: analysis-template
+spec:
+  args:
+  - name: service-name
+  metrics:
+  - name: frontend-error-rate
+    successCondition: result[0] <= 0.02
+    failureCondition: result[0] > 0.05
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          sum(rate(nginx_ingress_controller_requests{service="{{args.service-name}}",status=~"5.."}[5m])) /
+          sum(rate(nginx_ingress_controller_requests{service="{{args.service-name}}"}[5m]))
+    interval: 30s
+    count: 5
+    failureLimit: 2
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: comprehensive-health-check
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: analysis-template
+spec:
+  args:
+  - name: service-name
+  - name: namespace
+    value: hopngo-prod
+  metrics:
+  - name: overall-health-score
+    successCondition: result[0] >= 0.95
+    failureCondition: result[0] < 0.90
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          (
+            (sum(rate(http_requests_total{job="{{args.service-name}}",namespace="{{args.namespace}}",status!~"5.."}[5m])) /
+             sum(rate(http_requests_total{job="{{args.service-name}}",namespace="{{args.namespace}}"}[5m]))) * 0.4 +
+            (1 - (histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket{job="{{args.service-name}}",namespace="{{args.namespace}}"}[5m])) by (le)
+            ) / 2)) * 0.3 +
+            (1 - avg(rate(container_cpu_usage_seconds_total{namespace="{{args.namespace}}",pod=~"{{args.service-name}}-.*"}[5m]))) * 0.15 +
+            (1 - avg(container_memory_usage_bytes{namespace="{{args.namespace}}",pod=~"{{args.service-name}}-.*"}) /
+                 avg(container_spec_memory_limit_bytes{namespace="{{args.namespace}}",pod=~"{{args.service-name}}-.*"})) * 0.15
+          )
+    interval: 60s
+    count: 3
+    failureLimit: 1
+  - name: pod-readiness
+    successCondition: result[0] >= 0.95
+    failureCondition: result[0] < 0.80
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          sum(kube_pod_status_ready{namespace="{{args.namespace}}",pod=~"{{args.service-name}}-.*",condition="true"}) /
+          sum(kube_pod_status_ready{namespace="{{args.namespace}}",pod=~"{{args.service-name}}-.*"})
+    interval: 30s
+    count: 5
+    failureLimit: 2

@@ -1,3 +1,4 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { payoutService } from '../../services/payoutService';
 import EarningsSummary from '../../components/provider/earnings/EarningsSummary';
@@ -160,7 +161,7 @@ const EarningsPage: React.FC = () => {
   if (loading && !earnings) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <LoadingSpinner size="large" />
+        <LoadingSpinner size="lg" />
       </div>
     );
   }

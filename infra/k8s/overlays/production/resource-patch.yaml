@@ -1,8 +1,8 @@
 # Production environment resource patches
 # Higher resource requirements for production workloads
 
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: gateway
 spec:
@@ -18,8 +18,8 @@ spec:
             memory: "1Gi"
             cpu: "1000m"
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: auth-service
 spec:
@@ -52,8 +52,8 @@ spec:
             memory: "1Gi"
             cpu: "1000m"
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: booking-service
 spec:

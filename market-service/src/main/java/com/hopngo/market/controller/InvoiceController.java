@@ -2,6 +2,7 @@ package com.hopngo.market.controller;
 
 import com.hopngo.market.entity.Invoice;
 import com.hopngo.market.service.InvoiceService;
+import com.hopngo.market.service.PdfGenerationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -25,6 +26,7 @@ import java.util.UUID;
 public class InvoiceController {
     
     private final InvoiceService invoiceService;
+    private final PdfGenerationService pdfGenerationService;
     
     /**
      * Get invoice by ID with authorization check.
@@ -89,7 +91,7 @@ public class InvoiceController {
             return ResponseEntity.notFound().build();
         }
         
-        byte[] pdfBytes = invoiceService.generateInvoicePdf(invoiceId);
+        byte[] pdfBytes = pdfGenerationService.generateInvoicePdf(invoice);
         
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, 

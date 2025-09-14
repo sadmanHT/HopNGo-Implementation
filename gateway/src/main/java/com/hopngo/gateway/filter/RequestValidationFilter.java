@@ -72,10 +72,23 @@ public class RequestValidationFilter implements GlobalFilter, Ordered {
     private static final List<Pattern> XSS_PATTERNS = Arrays.asList(
         Pattern.compile(".*<script.*", Pattern.CASE_INSENSITIVE),
         Pattern.compile(".*javascript:.*", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*on(load|error|click|mouseover).*", Pattern.CASE_INSENSITIVE),
+        Pattern.compile(".*on(load|error|click|mouseover|focus|blur).*", Pattern.CASE_INSENSITIVE),
         Pattern.compile(".*<iframe.*", Pattern.CASE_INSENSITIVE),
         Pattern.compile(".*<object.*", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*<embed.*", Pattern.CASE_INSENSITIVE)
+        Pattern.compile(".*<embed.*", Pattern.CASE_INSENSITIVE),
+        Pattern.compile(".*<svg.*onload.*", Pattern.CASE_INSENSITIVE),
+        Pattern.compile(".*data:text/html.*", Pattern.CASE_INSENSITIVE),
+        Pattern.compile(".*vbscript:.*", Pattern.CASE_INSENSITIVE)
+    );
+    
+    // Additional security patterns for advanced threats
+    private static final List<Pattern> ADVANCED_THREAT_PATTERNS = Arrays.asList(
+        Pattern.compile(".*\\\\x[0-9a-f]{2}.*", Pattern.CASE_INSENSITIVE), // Hex encoding
+        Pattern.compile(".*%u[0-9a-f]{4}.*", Pattern.CASE_INSENSITIVE), // Unicode encoding
+        Pattern.compile(".*\\\\u[0-9a-f]{4}.*", Pattern.CASE_INSENSITIVE), // Unicode escape
+        Pattern.compile(".*eval\\s*\\(.*", Pattern.CASE_INSENSITIVE), // JavaScript eval
+        Pattern.compile(".*expression\\s*\\(.*", Pattern.CASE_INSENSITIVE), // CSS expression
+        Pattern.compile(".*@import.*", Pattern.CASE_INSENSITIVE) // CSS import
     );
     
     @Override
@@ -132,12 +145,19 @@ public class RequestValidationFilter implements GlobalFilter, Ordered {
         // Validate headers
         request.getHeaders().forEach((name, values) -> {
             for (String value : values) {
-                if (containsXss(value) || containsSqlInjection(value)) {
+                if (containsXss(value) || containsSqlInjection(value) || containsAdvancedThreats(value)) {
                     log.warn("Malicious content detected in header {}: {} from IP: {}", 
                             name, value, getClientIpAddress(request));
                 }
             }
         });
+        
+        // Additional validation for User-Agent header
+        String userAgent = request.getHeaders().getFirst("User-Agent");
+        if (userAgent != null && isSuspiciousUserAgent(userAgent)) {
+            log.warn("Suspicious User-Agent detected: {} from IP: {}", 
+                    userAgent, getClientIpAddress(request));
+        }
         
         return chain.filter(exchange);
     }
@@ -185,6 +205,27 @@ public class RequestValidationFilter implements GlobalFilter, Ordered {
         return Arrays.stream(extensions)
                 .map(String::trim)
                 .anyMatch(lowerPath::endsWith);
+    }
+    
+    private boolean containsAdvancedThreats(String input) {
+        if (input == null) return false;
+        return ADVANCED_THREAT_PATTERNS.stream().anyMatch(pattern -> pattern.matcher(input).matches());
+    }
+    
+    private boolean isSuspiciousUserAgent(String userAgent) {
+        if (userAgent == null) return false;
+        
+        String lowerUserAgent = userAgent.toLowerCase();
+        
+        // Check for common attack tools and suspicious patterns
+        return lowerUserAgent.contains("sqlmap") ||
+               lowerUserAgent.contains("nikto") ||
+               lowerUserAgent.contains("nessus") ||
+               lowerUserAgent.contains("burp") ||
+               lowerUserAgent.contains("owasp") ||
+               lowerUserAgent.contains("scanner") ||
+               lowerUserAgent.length() > 500 || // Unusually long user agent
+               lowerUserAgent.isEmpty(); // Empty user agent
     }
     
     private String urlDecode(String input) {

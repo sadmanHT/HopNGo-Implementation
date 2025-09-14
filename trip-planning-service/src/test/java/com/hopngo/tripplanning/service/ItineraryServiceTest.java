@@ -44,7 +44,7 @@ public class ItineraryServiceTest {
 
     @BeforeEach
     void setUp() {
-        userId = "test-user-123";
+        userId = "550e8400-e29b-41d4-a716-446655440000"; // Valid UUID format
         
         validRequest = new CreateItineraryRequest();
         validRequest.setTitle("Test Trip");

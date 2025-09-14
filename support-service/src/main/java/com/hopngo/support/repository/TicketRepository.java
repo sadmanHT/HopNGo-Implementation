@@ -47,10 +47,33 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     
     Page<Ticket> findByAssignedAgentIdIsNullOrderByCreatedAtDesc(Pageable pageable);
     
+    // Find assigned tickets
+    List<Ticket> findByAssignedAgentIdIsNotNullOrderByCreatedAtDesc();
+    
+    Page<Ticket> findByAssignedAgentIdIsNotNullOrderByCreatedAtDesc(Pageable pageable);
+    
+    // Find all tickets ordered by creation date
+    List<Ticket> findAllByOrderByCreatedAtDesc();
+    
+    Page<Ticket> findAllByOrderByCreatedAtDesc(Pageable pageable);
+    
     // Find tickets by status and priority
     List<Ticket> findByStatusAndPriorityOrderByCreatedAtDesc(TicketStatus status, TicketPriority priority);
     
     Page<Ticket> findByStatusAndPriorityOrderByCreatedAtDesc(TicketStatus status, TicketPriority priority, Pageable pageable);
+    
+    // Find tickets by status and assignment status
+    Page<Ticket> findByStatusAndAssignedAgentIdIsNotNullOrderByCreatedAtDesc(TicketStatus status, Pageable pageable);
+    
+    Page<Ticket> findByStatusAndAssignedAgentIdIsNullOrderByCreatedAtDesc(TicketStatus status, Pageable pageable);
+    
+    // Find tickets by status, priority and assignment status
+    Page<Ticket> findByStatusAndPriorityAndAssignedAgentIdIsNotNullOrderByCreatedAtDesc(TicketStatus status, TicketPriority priority, Pageable pageable);
+    
+    Page<Ticket> findByStatusAndPriorityAndAssignedAgentIdIsNullOrderByCreatedAtDesc(TicketStatus status, TicketPriority priority, Pageable pageable);
+    
+    // Count assigned tickets
+    long countByAssignedAgentIdIsNotNull();
     
     // Find active tickets (OPEN or PENDING)
     @Query("SELECT t FROM Ticket t WHERE t.status IN ('OPEN', 'PENDING') ORDER BY t.priority DESC, t.createdAt ASC")

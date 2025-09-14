@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,7 +41,7 @@ class BookingCancellationServiceTest {
     @BeforeEach
     void setUp() {
         booking = new Booking();
-        booking.setId(1L);
+        booking.setId(UUID.randomUUID());
         booking.setUserId("user123");
         booking.setTotalAmount(new BigDecimal("100.00"));
         booking.setStatus(BookingStatus.CONFIRMED);
@@ -56,8 +57,7 @@ class BookingCancellationServiceTest {
         );
         booking.setCancellationPolicies(policies);
 
-        cancellationRequest = new CancellationRequest();
-        cancellationRequest.setReason("Change of plans");
+        cancellationRequest = new CancellationRequest("Change of plans");
     }
 
     @Test
@@ -94,10 +94,11 @@ class BookingCancellationServiceTest {
 
     @Test
     void testCancelBooking_Success() {
-        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+        UUID bookingId = booking.getId();
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
         when(bookingRepository.save(any(Booking.class))).thenReturn(booking);
 
-        CancellationResponse response = bookingCancellationService.cancelBooking(1L, "user123", cancellationRequest);
+        CancellationResponse response = bookingCancellationService.cancelBooking(bookingId, "user123", cancellationRequest);
 
         assertNotNull(response);
         assertTrue(response.isSuccess());
@@ -114,29 +115,32 @@ class BookingCancellationServiceTest {
 
     @Test
     void testCancelBooking_BookingNotFound() {
-        when(bookingRepository.findById(1L)).thenReturn(Optional.empty());
+        UUID bookingId = UUID.randomUUID();
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () -> 
-            bookingCancellationService.cancelBooking(1L, "user123", cancellationRequest)
+            bookingCancellationService.cancelBooking(bookingId, "user123", cancellationRequest)
         );
     }
 
     @Test
     void testCancelBooking_UnauthorizedUser() {
-        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+        UUID bookingId = booking.getId();
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         assertThrows(RuntimeException.class, () -> 
-            bookingCancellationService.cancelBooking(1L, "otheruser", cancellationRequest)
+            bookingCancellationService.cancelBooking(bookingId, "otheruser", cancellationRequest)
         );
     }
 
     @Test
     void testCancelBooking_AlreadyCancelled() {
+        UUID bookingId = booking.getId();
         booking.setStatus(BookingStatus.CANCELLED);
-        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         assertThrows(RuntimeException.class, () -> 
-            bookingCancellationService.cancelBooking(1L, "user123", cancellationRequest)
+            bookingCancellationService.cancelBooking(bookingId, "user123", cancellationRequest)
         );
     }
 

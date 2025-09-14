@@ -1,3 +1,4 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { payoutService, LedgerSummary, Payout, AdminPayoutFilters } from '../../services/payoutService';
 import FinanceSummary from '../../components/admin/finance/FinanceSummary';
@@ -191,7 +192,7 @@ const FinancePage: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <LoadingSpinner size="large" />
+        <LoadingSpinner size="lg" />
       </div>
     );
   }

@@ -1,13 +1,11 @@
 package com.hopngo.controller;
 
-import com.hopngo.entity.DataExportJob;
-import com.hopngo.entity.DataExportJob.ExportType;
-import com.hopngo.service.DataExportService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,15 +15,26 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import com.hopngo.entity.DataExportJob;
+import com.hopngo.entity.DataExportJob.ExportType;
+import com.hopngo.service.DataExportService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 @RestController
 @RequestMapping("/api/v1/auth/me")
@@ -60,7 +69,7 @@ public class DataExportController {
             response.put("jobId", job.getId());
             response.put("status", job.getStatus());
             response.put("exportType", job.getExportType());
-            response.put("requestedAt", job.getRequestedAt());
+            response.put("requestedAt", job.getCreatedAt());
             response.put("message", "Data export job created successfully. You will be notified when it's ready.");
             
             logger.info("Data export requested by user {} with job ID {}", userId, job.getId());
@@ -108,7 +117,7 @@ public class DataExportController {
             response.put("jobId", job.getId());
             response.put("status", job.getStatus());
             response.put("exportType", job.getExportType());
-            response.put("requestedAt", job.getRequestedAt());
+            response.put("requestedAt", job.getCreatedAt());
             response.put("startedAt", job.getStartedAt());
             response.put("completedAt", job.getCompletedAt());
             response.put("errorMessage", job.getErrorMessage());
@@ -146,7 +155,7 @@ public class DataExportController {
                 jobData.put("jobId", job.getId());
                 jobData.put("status", job.getStatus());
                 jobData.put("exportType", job.getExportType());
-                jobData.put("requestedAt", job.getRequestedAt());
+                jobData.put("requestedAt", job.getCreatedAt());
                 jobData.put("completedAt", job.getCompletedAt());
                 jobData.put("downloadAvailable", job.getStatus() == DataExportJob.ExportStatus.COMPLETED && job.getFilePath() != null);
                 return jobData;

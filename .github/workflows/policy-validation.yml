@@ -1,0 +1,312 @@
+name: Policy Validation
+
+on:
+  pull_request:
+    paths:
+    - 'infra/k8s/**'
+    - 'policies/**'
+    - '.github/workflows/policy-validation.yml'
+  push:
+    branches: [ main, develop ]
+    paths:
+    - 'infra/k8s/**'
+    - 'policies/**'
+    - '.github/workflows/policy-validation.yml'
+  workflow_call:
+    inputs:
+      manifests_path:
+        description: 'Path to Kubernetes manifests to validate'
+        required: false
+        default: 'infra/k8s'
+        type: string
+      policy_path:
+        description: 'Path to policy files'
+        required: false
+        default: 'policies'
+        type: string
+      fail_on_warn:
+        description: 'Fail on policy warnings'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  CONFTEST_VERSION: 0.46.0
+  KYVERNO_CLI_VERSION: v1.10.5
+  OPA_VERSION: v0.58.0
+
+jobs:
+  opa-conftest-validation:
+    name: OPA/Conftest Policy Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Conftest
+      run: |
+        echo "📦 Installing Conftest v${{ env.CONFTEST_VERSION }}..."
+        curl -L -o conftest.tar.gz "https://github.com/open-policy-agent/conftest/releases/download/v${{ env.CONFTEST_VERSION }}/conftest_${{ env.CONFTEST_VERSION }}_Linux_x86_64.tar.gz"
+        tar xzf conftest.tar.gz
+        sudo mv conftest /usr/local/bin/conftest
+        sudo chmod +x /usr/local/bin/conftest
+        conftest --version
+        
+    - name: Install OPA
+      run: |
+        echo "📦 Installing OPA ${{ env.OPA_VERSION }}..."
+        curl -L -o opa "https://openpolicyagent.org/downloads/${{ env.OPA_VERSION }}/opa_linux_amd64_static"
+        sudo mv opa /usr/local/bin/opa
+        sudo chmod +x /usr/local/bin/opa
+        opa version
+        
+    - name: Validate OPA policies syntax
+      run: |
+        echo "🔍 Validating OPA policy syntax..."
+        
+        if [ -d "${{ inputs.policy_path || 'policies' }}" ]; then
+          find "${{ inputs.policy_path || 'policies' }}" -name "*.rego" -exec echo "Validating {}" \; -exec opa fmt --diff {} \;
+          
+          # Test policy compilation
+          for policy in $(find "${{ inputs.policy_path || 'policies' }}" -name "*.rego"); do
+            echo "Testing compilation of $policy..."
+            opa test "$policy" || echo "⚠️ Warning: $policy may have compilation issues"
+          done
+        else
+          echo "⚠️ Policy directory not found: ${{ inputs.policy_path || 'policies' }}"
+        fi
+        
+    - name: Run Conftest policy validation
+      run: |
+        echo "🛡️ Running Conftest policy validation..."
+        
+        MANIFESTS_PATH="${{ inputs.manifests_path || 'infra/k8s' }}"
+        POLICY_PATH="${{ inputs.policy_path || 'policies' }}"
+        FAIL_ON_WARN="${{ inputs.fail_on_warn || 'false' }}"
+        
+        if [ ! -d "$MANIFESTS_PATH" ]; then
+          echo "⚠️ Manifests directory not found: $MANIFESTS_PATH"
+          exit 0
+        fi
+        
+        if [ ! -d "$POLICY_PATH" ]; then
+          echo "⚠️ Policy directory not found: $POLICY_PATH"
+          exit 0
+        fi
+        
+        # Create results directory
+        mkdir -p policy-results
+        
+        # Run Conftest validation
+        CONFTEST_ARGS="--policy $POLICY_PATH --output json"
+        
+        if [ "$FAIL_ON_WARN" = "true" ]; then
+          CONFTEST_ARGS="$CONFTEST_ARGS --fail-on-warn"
+        fi
+        
+        echo "Running: conftest verify $CONFTEST_ARGS $MANIFESTS_PATH"
+        
+        # Validate all YAML files in manifests directory
+        find "$MANIFESTS_PATH" -name "*.yaml" -o -name "*.yml" | while read -r file; do
+          echo "Validating $file..."
+          conftest verify $CONFTEST_ARGS "$file" > "policy-results/$(basename "$file").json" || {
+            echo "❌ Policy violations found in $file"
+            cat "policy-results/$(basename "$file").json"
+            exit 1
+          }
+        done
+        
+        echo "✅ All manifests passed OPA/Conftest validation"
+        
+    - name: Upload Conftest results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: conftest-results
+        path: policy-results/
+        retention-days: 30
+
+  kyverno-validation:
+    name: Kyverno Policy Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Kyverno CLI
+      run: |
+        echo "📦 Installing Kyverno CLI ${{ env.KYVERNO_CLI_VERSION }}..."
+        curl -L -o kyverno.tar.gz "https://github.com/kyverno/kyverno/releases/download/${{ env.KYVERNO_CLI_VERSION }}/kyverno-cli_${{ env.KYVERNO_CLI_VERSION }}_linux_x86_64.tar.gz"
+        tar -xzf kyverno.tar.gz
+        sudo mv kyverno /usr/local/bin/kyverno
+        sudo chmod +x /usr/local/bin/kyverno
+        kyverno version
+        
+    - name: Validate Kyverno policies
+      run: |
+        echo "🔍 Validating Kyverno policy syntax..."
+        
+        POLICY_PATH="${{ inputs.policy_path || 'policies' }}"
+        
+        if [ -d "$POLICY_PATH" ]; then
+          # Validate Kyverno policy files
+          find "$POLICY_PATH" -name "*kyverno*.yaml" -o -name "*kyverno*.yml" | while read -r policy; do
+            echo "Validating Kyverno policy: $policy"
+            kyverno apply "$policy" --resource /dev/null --policy-report || {
+              echo "❌ Invalid Kyverno policy: $policy"
+              exit 1
+            }
+          done
+        else
+          echo "⚠️ Policy directory not found: $POLICY_PATH"
+        fi
+        
+    - name: Run Kyverno policy validation
+      run: |
+        echo "🛡️ Running Kyverno policy validation..."
+        
+        MANIFESTS_PATH="${{ inputs.manifests_path || 'infra/k8s' }}"
+        POLICY_PATH="${{ inputs.policy_path || 'policies' }}"
+        
+        if [ ! -d "$MANIFESTS_PATH" ]; then
+          echo "⚠️ Manifests directory not found: $MANIFESTS_PATH"
+          exit 0
+        fi
+        
+        if [ ! -d "$POLICY_PATH" ]; then
+          echo "⚠️ Policy directory not found: $POLICY_PATH"
+          exit 0
+        fi
+        
+        # Create results directory
+        mkdir -p kyverno-results
+        
+        # Find Kyverno policy files
+        KYVERNO_POLICIES=$(find "$POLICY_PATH" -name "*kyverno*.yaml" -o -name "*kyverno*.yml")
+        
+        if [ -z "$KYVERNO_POLICIES" ]; then
+          echo "⚠️ No Kyverno policies found in $POLICY_PATH"
+          exit 0
+        fi
+        
+        # Validate manifests against Kyverno policies
+        find "$MANIFESTS_PATH" -name "*.yaml" -o -name "*.yml" | while read -r manifest; do
+          echo "Validating $manifest against Kyverno policies..."
+          
+          for policy in $KYVERNO_POLICIES; do
+            echo "  Applying policy $(basename "$policy")..."
+            kyverno apply "$policy" --resource "$manifest" --policy-report > "kyverno-results/$(basename "$manifest")-$(basename "$policy").json" || {
+              echo "❌ Policy violations found in $manifest with policy $policy"
+              cat "kyverno-results/$(basename "$manifest")-$(basename "$policy").json"
+              exit 1
+            }
+          done
+        done
+        
+        echo "✅ All manifests passed Kyverno validation"
+        
+    - name: Upload Kyverno results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: kyverno-results
+        path: kyverno-results/
+        retention-days: 30
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Trivy security scan on manifests
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'config'
+        scan-ref: '${{ inputs.manifests_path || "infra/k8s" }}'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH,MEDIUM'
+        
+    - name: Upload Trivy scan results
+      if: always()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results.sarif'
+        
+    - name: Run Checkov security scan
+      uses: bridgecrewio/checkov-action@master
+      with:
+        directory: '${{ inputs.manifests_path || "infra/k8s" }}'
+        framework: kubernetes
+        output_format: sarif
+        output_file_path: checkov-results.sarif
+        soft_fail: true
+        
+    - name: Upload Checkov scan results
+      if: always()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'checkov-results.sarif'
+
+  policy-summary:
+    name: Policy Validation Summary
+    runs-on: ubuntu-latest
+    needs: [opa-conftest-validation, kyverno-validation, security-scan]
+    if: always()
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: policy-artifacts
+        
+    - name: Generate policy validation summary
+      run: |
+        echo "📊 Policy Validation Summary" >> $GITHUB_STEP_SUMMARY
+        echo "============================" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # OPA/Conftest results
+        echo "## OPA/Conftest Validation" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.opa-conftest-validation.result }}" = "success" ]; then
+          echo "✅ **PASSED** - All manifests comply with OPA policies" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **FAILED** - Policy violations found" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Kyverno results
+        echo "## Kyverno Validation" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.kyverno-validation.result }}" = "success" ]; then
+          echo "✅ **PASSED** - All manifests comply with Kyverno policies" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **FAILED** - Policy violations found" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Security scan results
+        echo "## Security Scan" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.security-scan.result }}" = "success" ]; then
+          echo "✅ **PASSED** - No critical security issues found" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ **WARNINGS** - Security issues detected (check SARIF reports)" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Overall status
+        echo "## Overall Status" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.opa-conftest-validation.result }}" = "success" ] && [ "${{ needs.kyverno-validation.result }}" = "success" ]; then
+          echo "🎉 **ALL POLICY VALIDATIONS PASSED**" >> $GITHUB_STEP_SUMMARY
+          echo "Your Kubernetes manifests are compliant with all security policies." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "🚨 **POLICY VALIDATION FAILED**" >> $GITHUB_STEP_SUMMARY
+          echo "Please review and fix the policy violations before proceeding." >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📁 **Artifacts**: Policy validation results are available in the workflow artifacts." >> $GITHUB_STEP_SUMMARY

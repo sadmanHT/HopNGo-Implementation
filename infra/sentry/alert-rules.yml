@@ -1,0 +1,423 @@
+# Sentry Alert Rules Configuration for HopNGo
+# This file defines alert rules for critical error scenarios
+
+version: "1.0"
+organization: "hopngo"
+project: "hopngo-platform"
+
+# Global alert settings
+global:
+  notification_settings:
+    - type: "email"
+      targets: ["devops@hopngo.com", "oncall@hopngo.com"]
+    - type: "slack"
+      workspace: "hopngo-alerts"
+      channel: "#incidents"
+    - type: "pagerduty"
+      service_key: "${PAGERDUTY_SERVICE_KEY}"
+  
+  environments:
+    production:
+      severity_multiplier: 1.0
+      notification_delay: 0  # Immediate for production
+    staging:
+      severity_multiplier: 0.7
+      notification_delay: 300  # 5 minutes delay
+    development:
+      severity_multiplier: 0.3
+      notification_delay: 900  # 15 minutes delay
+
+# Alert Rules
+alert_rules:
+  # Critical System Errors
+  - name: "Critical System Errors"
+    description: "Alert when critical system errors exceed threshold"
+    conditions:
+      - metric: "error_count"
+        operator: ">"
+        threshold: 10
+        time_window: "5m"
+        filters:
+          - "level:error"
+          - "environment:production"
+          - "error.type:ServiceUnavailableException OR error.type:DatabaseException"
+    
+    severity: "critical"
+    notifications:
+      - "email"
+      - "slack"
+      - "pagerduty"
+    
+    actions:
+      - type: "auto_assign"
+        team: "backend-team"
+      - type: "create_incident"
+        priority: "high"
+
+  # Payment System Failures
+  - name: "Payment System Failures"
+    description: "Alert on payment processing errors"
+    conditions:
+      - metric: "error_count"
+        operator: ">"
+        threshold: 5
+        time_window: "10m"
+        filters:
+          - "level:error"
+          - "environment:production"
+          - "tags.feature:payment"
+          - "error.type:PaymentException OR error.type:PaymentGatewayException"
+    
+    severity: "critical"
+    notifications:
+      - "email"
+      - "slack"
+      - "pagerduty"
+    
+    actions:
+      - type: "auto_assign"
+        team: "payment-team"
+      - type: "escalate"
+        delay: "15m"
+        target: "engineering-manager"
+
+  # High Error Rate
+  - name: "High Error Rate"
+    description: "Alert when overall error rate is high"
+    conditions:
+      - metric: "error_rate"
+        operator: ">"
+        threshold: 0.05  # 5% error rate
+        time_window: "15m"
+        filters:
+          - "environment:production"
+    
+    severity: "warning"
+    notifications:
+      - "slack"
+    
+    actions:
+      - type: "auto_assign"
+        team: "sre-team"
+
+  # User Impact Threshold
+  - name: "High User Impact"
+    description: "Alert when many users are affected by errors"
+    conditions:
+      - metric: "affected_users"
+        operator: ">"
+        threshold: 50
+        time_window: "30m"
+        filters:
+          - "environment:production"
+    
+    severity: "warning"
+    notifications:
+      - "email"
+      - "slack"
+    
+    actions:
+      - type: "auto_assign"
+        team: "product-team"
+      - type: "create_incident"
+        priority: "medium"
+
+  # Authentication Failures
+  - name: "Authentication System Errors"
+    description: "Alert on authentication system failures"
+    conditions:
+      - metric: "error_count"
+        operator: ">"
+        threshold: 20
+        time_window: "10m"
+        filters:
+          - "level:error"
+          - "environment:production"
+          - "tags.service:auth-service"
+          - "error.type:AuthenticationException OR error.type:JwtException"
+    
+    severity: "high"
+    notifications:
+      - "email"
+      - "slack"
+    
+    actions:
+      - type: "auto_assign"
+        team: "security-team"
+
+  # Database Connection Issues
+  - name: "Database Connection Errors"
+    description: "Alert on database connectivity issues"
+    conditions:
+      - metric: "error_count"
+        operator: ">"
+        threshold: 15
+        time_window: "5m"
+        filters:
+          - "level:error"
+          - "environment:production"
+          - "error.type:DatabaseConnectionException OR error.type:ConnectionPoolException"
+    
+    severity: "critical"
+    notifications:
+      - "email"
+      - "slack"
+      - "pagerduty"
+    
+    actions:
+      - type: "auto_assign"
+        team: "infrastructure-team"
+      - type: "run_playbook"
+        playbook: "database-recovery"
+
+  # Frontend JavaScript Errors
+  - name: "Frontend Critical Errors"
+    description: "Alert on critical frontend JavaScript errors"
+    conditions:
+      - metric: "error_count"
+        operator: ">"
+        threshold: 25
+        time_window: "15m"
+        filters:
+          - "level:error"
+          - "environment:production"
+          - "tags.service:frontend"
+          - "platform:javascript"
+    
+    severity: "high"
+    notifications:
+      - "slack"
+    
+    actions:
+      - type: "auto_assign"
+        team: "frontend-team"
+
+  # API Gateway Errors
+  - name: "API Gateway Errors"
+    description: "Alert on API gateway failures"
+    conditions:
+      - metric: "error_count"
+        operator: ">"
+        threshold: 30
+        time_window: "10m"
+        filters:
+          - "level:error"
+          - "environment:production"
+          - "tags.service:api-gateway"
+    
+    severity: "high"
+    notifications:
+      - "email"
+      - "slack"
+    
+    actions:
+      - type: "auto_assign"
+        team: "platform-team"
+
+  # Search Service Degradation
+  - name: "Search Service Errors"
+    description: "Alert on search functionality issues"
+    conditions:
+      - metric: "error_count"
+        operator: ">"
+        threshold: 10
+        time_window: "20m"
+        filters:
+          - "level:error"
+          - "environment:production"
+          - "tags.service:search-service"
+    
+    severity: "medium"
+    notifications:
+      - "slack"
+    
+    actions:
+      - type: "auto_assign"
+        team: "search-team"
+
+  # Booking System Errors
+  - name: "Booking System Errors"
+    description: "Alert on booking process failures"
+    conditions:
+      - metric: "error_count"
+        operator: ">"
+        threshold: 8
+        time_window: "15m"
+        filters:
+          - "level:error"
+          - "environment:production"
+          - "tags.feature:booking"
+    
+    severity: "high"
+    notifications:
+      - "email"
+      - "slack"
+    
+    actions:
+      - type: "auto_assign"
+        team: "booking-team"
+      - type: "create_incident"
+        priority: "high"
+
+# Error Budget Alerts
+error_budget_alerts:
+  - name: "Error Budget Burn Rate - Critical"
+    description: "Critical error budget burn rate"
+    conditions:
+      - metric: "error_budget_burn_rate"
+        operator: ">"
+        threshold: 10  # 10x normal burn rate
+        time_window: "5m"
+        filters:
+          - "environment:production"
+    
+    severity: "critical"
+    notifications:
+      - "email"
+      - "slack"
+      - "pagerduty"
+
+  - name: "Error Budget Burn Rate - Warning"
+    description: "High error budget burn rate"
+    conditions:
+      - metric: "error_budget_burn_rate"
+        operator: ">"
+        threshold: 3  # 3x normal burn rate
+        time_window: "30m"
+        filters:
+          - "environment:production"
+    
+    severity: "warning"
+    notifications:
+      - "slack"
+
+  - name: "Error Budget Exhaustion Warning"
+    description: "Error budget running low"
+    conditions:
+      - metric: "error_budget_remaining"
+        operator: "<"
+        threshold: 0.1  # 10% remaining
+        time_window: "1h"
+        filters:
+          - "environment:production"
+    
+    severity: "warning"
+    notifications:
+      - "email"
+      - "slack"
+
+# Anomaly Detection Rules
+anomaly_detection:
+  - name: "Error Spike Detection"
+    description: "Detect unusual spikes in error rates"
+    algorithm: "statistical"
+    sensitivity: "medium"
+    conditions:
+      - metric: "error_count"
+        baseline_window: "7d"
+        detection_window: "15m"
+        threshold_multiplier: 3.0
+        filters:
+          - "environment:production"
+    
+    severity: "warning"
+    notifications:
+      - "slack"
+
+  - name: "New Error Type Detection"
+    description: "Detect new types of errors"
+    algorithm: "fingerprint"
+    conditions:
+      - metric: "new_error_fingerprint"
+        time_window: "10m"
+        filters:
+          - "environment:production"
+          - "level:error"
+    
+    severity: "medium"
+    notifications:
+      - "slack"
+
+# Notification Templates
+notification_templates:
+  slack:
+    critical: |
+      🚨 *CRITICAL ALERT* 🚨
+      *Alert:* {{alert_name}}
+      *Environment:* {{environment}}
+      *Description:* {{description}}
+      *Threshold:* {{threshold}} (Current: {{current_value}})
+      *Time:* {{timestamp}}
+      
+      *Actions Required:*
+      • Immediate investigation needed
+      • Check runbook: {{runbook_url}}
+      • Sentry: {{sentry_url}}
+      
+      *Assigned Team:* @{{assigned_team}}
+    
+    warning: |
+      ⚠️ *WARNING ALERT* ⚠️
+      *Alert:* {{alert_name}}
+      *Environment:* {{environment}}
+      *Description:* {{description}}
+      *Current Value:* {{current_value}}
+      *Time:* {{timestamp}}
+      
+      *Sentry:* {{sentry_url}}
+      *Assigned Team:* @{{assigned_team}}
+  
+  email:
+    subject: "[{{severity}}] HopNGo Alert: {{alert_name}} - {{environment}}"
+    body: |
+      Alert: {{alert_name}}
+      Severity: {{severity}}
+      Environment: {{environment}}
+      
+      Description: {{description}}
+      
+      Current Value: {{current_value}}
+      Threshold: {{threshold}}
+      Time Window: {{time_window}}
+      
+      Timestamp: {{timestamp}}
+      
+      Sentry URL: {{sentry_url}}
+      Grafana Dashboard: {{grafana_url}}
+      Runbook: {{runbook_url}}
+      
+      Assigned Team: {{assigned_team}}
+      
+      This is an automated alert from the HopNGo monitoring system.
+
+# Escalation Policies
+escalation_policies:
+  - name: "critical-escalation"
+    steps:
+      - delay: "0m"
+        targets: ["oncall-primary"]
+      - delay: "15m"
+        targets: ["oncall-secondary", "engineering-manager"]
+      - delay: "30m"
+        targets: ["cto", "head-of-engineering"]
+  
+  - name: "payment-escalation"
+    steps:
+      - delay: "0m"
+        targets: ["payment-team-lead"]
+      - delay: "10m"
+        targets: ["payment-team", "product-manager"]
+      - delay: "20m"
+        targets: ["engineering-manager", "cto"]
+
+# Maintenance Windows
+maintenance_windows:
+  - name: "weekly-maintenance"
+    schedule: "0 2 * * SUN"  # Every Sunday at 2 AM
+    duration: "2h"
+    suppress_alerts: ["Database Connection Errors", "API Gateway Errors"]
+  
+  - name: "deployment-window"
+    schedule: "on-demand"
+    duration: "30m"
+    suppress_alerts: ["High Error Rate", "Error Spike Detection"]

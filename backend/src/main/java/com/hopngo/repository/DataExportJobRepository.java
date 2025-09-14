@@ -3,6 +3,8 @@ package com.hopngo.repository;
 import com.hopngo.entity.DataExportJob;
 import com.hopngo.entity.DataExportJob.ExportStatus;
 import com.hopngo.entity.User;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -37,11 +39,6 @@ public interface DataExportJobRepository extends JpaRepository<DataExportJob, Lo
     List<DataExportJob> findByStatusOrderByCreatedAtAsc(ExportStatus status);
     
     /**
-     * Find pending export jobs (for processing)
-     */
-    List<DataExportJob> findByStatusOrderByCreatedAtAsc(ExportStatus status);
-    
-    /**
      * Find export jobs for a user with specific status
      */
     List<DataExportJob> findByUserAndStatus(User user, ExportStatus status);
@@ -50,6 +47,32 @@ public interface DataExportJobRepository extends JpaRepository<DataExportJob, Lo
      * Find export jobs for a user ID with specific status
      */
     List<DataExportJob> findByUserIdAndStatus(Long userId, ExportStatus status);
+
+    /**
+     * Find export jobs for a user ID with multiple statuses
+     */
+    List<DataExportJob> findByUserIdAndStatusIn(Long userId, List<ExportStatus> statuses);
+
+    /**
+     * Find export job by ID and user ID
+     */
+    Optional<DataExportJob> findByIdAndUserId(Long id, Long userId);
+
+    /**
+     * Find export jobs for a user ordered by requested date (descending), limited
+     */
+    @Query("SELECT j FROM DataExportJob j WHERE j.userId = :userId ORDER BY j.createdAt DESC")
+    List<DataExportJob> findByUserIdOrderByRequestedAtDesc(@Param("userId") Long userId, Pageable pageable);
+
+    default List<DataExportJob> findByUserIdOrderByRequestedAtDesc(Long userId, int limit) {
+        return findByUserIdOrderByRequestedAtDesc(userId, PageRequest.of(0, limit));
+    }
+
+    /**
+     * Find expired jobs that need cleanup
+     */
+    @Query("SELECT j FROM DataExportJob j WHERE j.status = 'COMPLETED' AND j.expiresAt < :expireTime")
+    List<DataExportJob> findExpiredJobs(@Param("expireTime") LocalDateTime expireTime);
     
     /**
      * Find the most recent export job for a user

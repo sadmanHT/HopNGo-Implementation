@@ -1,0 +1,292 @@
+# Network policies for production security
+# Deny all traffic by default, then allow specific service-to-service communication
+
+# Default deny all ingress and egress traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: network-policy
+    app.kubernetes.io/component: security
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+# Allow ingress controller to reach services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-services
+  namespace: hopngo-prod
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: hopngo
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 3000  # frontend
+    - protocol: TCP
+      port: 8080  # gateway
+    - protocol: TCP
+      port: 8081  # auth-service
+    - protocol: TCP
+      port: 8082  # social-service
+    - protocol: TCP
+      port: 8083  # booking-service
+    - protocol: TCP
+      port: 8084  # market-service
+    - protocol: TCP
+      port: 8085  # chat-service
+    - protocol: TCP
+      port: 8086  # emergency-service
+    - protocol: TCP
+      port: 8087  # trip-planning-service
+    - protocol: TCP
+      port: 8088  # ai-service
+    - protocol: TCP
+      port: 8089  # notification-service
+---
+# Allow services to communicate with databases
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-services-to-databases
+  namespace: hopngo-prod
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: hopngo
+  policyTypes:
+  - Egress
+  egress:
+  # Allow PostgreSQL access
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow MongoDB access
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 27017
+  # Allow Redis access
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow RabbitMQ access
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 5672
+    - protocol: TCP
+      port: 15672
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow HTTPS for external APIs
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow HTTP for health checks
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 80
+---
+# Allow gateway to communicate with all services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-to-services
+  namespace: hopngo-prod
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: auth-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: gateway
+    ports:
+    - protocol: TCP
+      port: 8081
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-to-social
+  namespace: hopngo-prod
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: social-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: gateway
+    ports:
+    - protocol: TCP
+      port: 8082
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-to-booking
+  namespace: hopngo-prod
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: booking-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: gateway
+    ports:
+    - protocol: TCP
+      port: 8083
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-to-market
+  namespace: hopngo-prod
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: market-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: gateway
+    ports:
+    - protocol: TCP
+      port: 8084
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-to-chat
+  namespace: hopngo-prod
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: chat-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: gateway
+    ports:
+    - protocol: TCP
+      port: 8085
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-to-emergency
+  namespace: hopngo-prod
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: emergency-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: gateway
+    ports:
+    - protocol: TCP
+      port: 8086
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-to-trip
+  namespace: hopngo-prod
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: trip-planning-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: gateway
+    ports:
+    - protocol: TCP
+      port: 8087
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-to-ai
+  namespace: hopngo-prod
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: ai-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: gateway
+    ports:
+    - protocol: TCP
+      port: 8088
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-to-notification
+  namespace: hopngo-prod
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: notification-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: gateway
+    ports:
+    - protocol: TCP
+      port: 8089

@@ -2,11 +2,13 @@ package com.hopngo.market.service.payment;
 
 import com.hopngo.market.entity.Order;
 import com.hopngo.market.dto.PaymentIntentResponse;
+import com.hopngo.market.dto.RefundResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.test.context.TestComponent;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -50,5 +52,12 @@ public class MockBkashPaymentProvider implements PaymentProvider {
         // Mock webhook signature verification using HttpHeaders
         String signature = headers.getFirst("X-Bkash-Signature");
         return "valid_bkash_signature".equals(signature);
+    }
+
+    @Override
+    public RefundResponse processRefund(String paymentId, BigDecimal refundAmount, String currency, String reason) {
+        // Mock refund processing for BKash
+        String refundId = "bkash_ref_" + UUID.randomUUID().toString().substring(0, 8);
+        return RefundResponse.success(refundId, refundAmount, currency);
     }
 }

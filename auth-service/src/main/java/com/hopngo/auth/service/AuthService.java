@@ -34,6 +34,7 @@ public class AuthService {
     private final TwoFactorAuthService twoFactorAuthService;
     private final PasswordValidationService passwordValidationService;
     private final AccountLockoutService accountLockoutService;
+    private final RefreshTokenService refreshTokenService;
     
     @Value("${jwt.refresh-expiration}")
     private long refreshTokenExpiration;
@@ -46,7 +47,8 @@ public class AuthService {
                       UserMapper userMapper,
                       TwoFactorAuthService twoFactorAuthService,
                       PasswordValidationService passwordValidationService,
-                      AccountLockoutService accountLockoutService) {
+                      AccountLockoutService accountLockoutService,
+                      RefreshTokenService refreshTokenService) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.userFlagsRepository = userFlagsRepository;
@@ -56,6 +58,7 @@ public class AuthService {
         this.twoFactorAuthService = twoFactorAuthService;
         this.passwordValidationService = passwordValidationService;
         this.accountLockoutService = accountLockoutService;
+        this.refreshTokenService = refreshTokenService;
     }
     
     /**
@@ -84,7 +87,7 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
-        user.setRole(User.Role.USER);
+        user.setRole(User.Role.TRAVELER);
         user.setIsActive(true);
         
         user = userRepository.save(user);
@@ -164,21 +167,15 @@ public class AuthService {
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         logger.info("Attempting to refresh token");
         
-        // Find refresh token
-        RefreshToken refreshToken = refreshTokenRepository.findByToken(request.getRefreshToken())
-                .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
-        
-        // Check if token is expired
-        if (refreshToken.isExpired()) {
-            refreshTokenRepository.delete(refreshToken);
-            throw new RuntimeException("Refresh token has expired");
-        }
+        // Validate refresh token using RefreshTokenService
+        RefreshToken refreshToken = refreshTokenService.validateRefreshToken(request.getRefreshToken())
+                .orElseThrow(() -> new RuntimeException("Invalid or expired refresh token"));
         
         User user = refreshToken.getUser();
         
         // Check if user is still active
         if (!user.getIsActive()) {
-            refreshTokenRepository.deleteByUser(user);
+            refreshTokenService.revokeUserRefreshTokens(user.getId());
             throw new RuntimeException("User account is inactive");
         }
         
@@ -218,13 +215,10 @@ public class AuthService {
      * Logout user by invalidating refresh token
      */
     public void logout(String refreshToken) {
-        logger.info("Attempting to logout user");
+        logger.info("User logout requested");
         
-        Optional<RefreshToken> token = refreshTokenRepository.findByToken(refreshToken);
-        if (token.isPresent()) {
-            refreshTokenRepository.delete(token.get());
-            logger.info("User logged out successfully");
-        }
+        refreshTokenService.invalidateRefreshToken(refreshToken);
+        logger.info("Refresh token invalidated");
     }
     
     /**
@@ -244,16 +238,8 @@ public class AuthService {
      * Generate refresh token for user
      */
     public String generateRefreshToken(User user) {
-        // Clean up expired tokens for this user
-        cleanupExpiredTokens(user);
-        
-        String tokenValue = UUID.randomUUID().toString();
-        LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(refreshTokenExpiration / 1000);
-        
-        RefreshToken refreshToken = new RefreshToken(tokenValue, user, expiresAt);
-        refreshTokenRepository.save(refreshToken);
-        
-        return tokenValue;
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+        return refreshToken.getToken();
     }
     
     /**
@@ -283,13 +269,11 @@ public class AuthService {
     }
 
     /**
-     * Clean up expired refresh tokens for user
+     * Clean up expired refresh tokens for a user
      */
     private void cleanupExpiredTokens(User user) {
-        LocalDateTime now = LocalDateTime.now();
-        refreshTokenRepository.findByUser(user).stream()
-                .filter(token -> token.getExpiresAt().isBefore(now))
-                .forEach(refreshTokenRepository::delete);
+        refreshTokenService.cleanupExpiredTokens();
+        logger.info("Cleaned up expired tokens for user: {}", user.getId());
     }
     
 

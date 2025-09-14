@@ -1,15 +1,15 @@
 # Production environment replica patches
 # Higher replica counts for production high availability
 
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: gateway
 spec:
   replicas: 3
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: auth-service
 spec:
@@ -22,8 +22,8 @@ metadata:
 spec:
   replicas: 3
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: booking-service
 spec:

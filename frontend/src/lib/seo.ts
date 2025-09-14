@@ -26,9 +26,11 @@ export function generateSEOMetadata(data: SEOData): Metadata {
   const metadata: Metadata = {
     title: data.title,
     description: data.description,
-    canonical: fullUrl,
+    alternates: {
+      canonical: fullUrl,
+    },
     openGraph: {
-      type: data.type || 'website',
+      type: (data.type === 'product' ? 'website' : data.type) || 'website',
       title: data.title,
       description: data.description,
       url: fullUrl,
@@ -68,7 +70,7 @@ export function generateSEOMetadata(data: SEOData): Metadata {
   if (data.type === 'product' && data.price && data.currency) {
     metadata.openGraph = {
       ...metadata.openGraph,
-      type: 'product',
+      type: 'website',
     };
   }
 

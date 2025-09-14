@@ -328,6 +328,38 @@ public class User {
         return phoneVerifiedAt != null;
     }
 
+    // Additional getters/setters needed for compatibility
+    public Boolean getIsEmailVerified() {
+        return isEmailVerified();
+    }
+
+    public void setIsEmailVerified(Boolean emailVerified) {
+        if (emailVerified != null && emailVerified) {
+            this.emailVerifiedAt = LocalDateTime.now();
+        } else {
+            this.emailVerifiedAt = null;
+        }
+    }
+
+    public Boolean getIsPhoneVerified() {
+        return isPhoneVerified();
+    }
+
+    public void setIsPhoneVerified(Boolean phoneVerified) {
+        if (phoneVerified != null && phoneVerified) {
+            this.phoneVerifiedAt = LocalDateTime.now();
+        } else {
+            this.phoneVerifiedAt = null;
+        }
+    }
+
+    public String getRole() {
+        if (roles != null && !roles.isEmpty()) {
+            return roles.iterator().next().name();
+        }
+        return null;
+    }
+
     @Override
     public String toString() {
         return "User{" +

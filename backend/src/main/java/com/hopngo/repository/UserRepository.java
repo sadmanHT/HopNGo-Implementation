@@ -199,9 +199,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.deletedAt IS NOT NULL")
     long countSoftDeletedUsers();
-
-    @Query("SELECT COUNT(u) FROM User u WHERE u.deletedAt IS NULL AND u.scheduledForDeletionAt IS NULL")
-    long countActiveUsers();
     
     /**
      * Count users with pending deletion

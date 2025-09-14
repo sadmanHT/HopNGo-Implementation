@@ -1,0 +1,44 @@
+{
+  "timestamp": "2025-09-14T06:28:28.802Z",
+  "summary": {
+    "passed": 2,
+    "failed": 17,
+    "skipped": 1,
+    "errorRate": 89.47368421052632
+  },
+  "errors": [
+    "Backend health check failed",
+    "ResourceNotFoundException test failed",
+    "ServiceUnavailableException test failed",
+    "PaymentException test failed",
+    "AuthenticationException test failed",
+    "ValidationException test failed",
+    "TimeoutException test failed",
+    "ConcurrencyException test failed",
+    "RateLimitException test failed",
+    "payment feature error test failed",
+    "booking feature error test failed",
+    "search feature error test failed",
+    "auth feature error test failed",
+    "map feature error test failed",
+    "Bulk errors test failed",
+    "Cascading errors test failed",
+    "Slow request test failed"
+  ],
+  "metrics": {
+    "totalRequests": 43,
+    "errorRate": 89.47368421052632,
+    "avgResponseTime": 0,
+    "sentryEvents": 0
+  },
+  "config": {
+    "backendUrl": "http://localhost:8080",
+    "frontendUrl": "http://localhost:3000",
+    "testSettings": {
+      "maxRetries": 3,
+      "retryDelay": 1000,
+      "bulkErrorCount": 10,
+      "concurrentRequests": 5
+    }
+  }
+}

@@ -1,0 +1,411 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: hopngo-security-policy
+  annotations:
+    policies.kyverno.io/title: HopNGo Security Policy
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Deployment
+    policies.kyverno.io/description: >
+      This policy enforces security best practices for HopNGo deployments including
+      image tag validation, resource constraints, security contexts, and probe requirements.
+spec:
+  validationFailureAction: enforce
+  background: true
+  rules:
+  # Rule 1: Disallow :latest tag
+  - name: disallow-latest-tag
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "Using ':latest' tag is not allowed in production"
+      pattern:
+        spec:
+          template:
+            spec:
+              containers:
+              - name: "*"
+                image: "!*:latest"
+
+  # Rule 2: Require explicit image tags
+  - name: require-image-tag
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "Container images must specify an explicit tag"
+      pattern:
+        spec:
+          template:
+            spec:
+              containers:
+              - name: "*"
+                image: "*:*"
+
+  # Rule 3: Require approved registries
+  - name: require-approved-registry
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "Container images must use approved registries (ghcr.io/hopngo, gcr.io/hopngo, or registry.hopngo.com)"
+      anyPattern:
+      - spec:
+          template:
+            spec:
+              containers:
+              - name: "*"
+                image: "ghcr.io/hopngo/*"
+      - spec:
+          template:
+            spec:
+              containers:
+              - name: "*"
+                image: "gcr.io/hopngo/*"
+      - spec:
+          template:
+            spec:
+              containers:
+              - name: "*"
+                image: "registry.hopngo.com/*"
+
+  # Rule 4: Require resource requests and limits
+  - name: require-resources
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "All containers must specify CPU and memory requests and limits"
+      pattern:
+        spec:
+          template:
+            spec:
+              containers:
+              - name: "*"
+                resources:
+                  requests:
+                    cpu: "?*"
+                    memory: "?*"
+                  limits:
+                    cpu: "?*"
+                    memory: "?*"
+
+  # Rule 5: Require liveness and readiness probes
+  - name: require-probes
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "All containers must specify liveness and readiness probes"
+      pattern:
+        spec:
+          template:
+            spec:
+              containers:
+              - name: "*"
+                livenessProbe:
+                  httpGet:
+                    path: "*"
+                    port: "*"
+                  initialDelaySeconds: "?*"
+                  periodSeconds: "?*"
+                readinessProbe:
+                  httpGet:
+                    path: "*"
+                    port: "*"
+                  initialDelaySeconds: "?*"
+                  periodSeconds: "?*"
+
+  # Rule 6: Disallow privileged containers
+  - name: disallow-privileged
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "Privileged containers are not allowed"
+      pattern:
+        spec:
+          template:
+            spec:
+              containers:
+              - name: "*"
+                securityContext:
+                  privileged: "false"
+
+  # Rule 7: Require non-root user
+  - name: require-non-root
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "Containers must run as non-root user"
+      pattern:
+        spec:
+          template:
+            spec:
+              containers:
+              - name: "*"
+                securityContext:
+                  runAsNonRoot: true
+                  runAsUser: ">0"
+
+  # Rule 8: Disallow privilege escalation
+  - name: disallow-privilege-escalation
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "Privilege escalation is not allowed"
+      pattern:
+        spec:
+          template:
+            spec:
+              containers:
+              - name: "*"
+                securityContext:
+                  allowPrivilegeEscalation: false
+
+  # Rule 9: Require read-only root filesystem
+  - name: require-readonly-root
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "Containers should use read-only root filesystem"
+      pattern:
+        spec:
+          template:
+            spec:
+              containers:
+              - name: "*"
+                securityContext:
+                  readOnlyRootFilesystem: true
+
+  # Rule 10: Drop all capabilities
+  - name: drop-all-capabilities
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "All capabilities must be dropped"
+      pattern:
+        spec:
+          template:
+            spec:
+              containers:
+              - name: "*"
+                securityContext:
+                  capabilities:
+                    drop:
+                    - ALL
+
+  # Rule 11: Disallow host namespaces
+  - name: disallow-host-namespaces
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "Host namespaces (hostNetwork, hostPID, hostIPC) are not allowed"
+      pattern:
+        spec:
+          template:
+            spec:
+              =(hostNetwork): false
+              =(hostPID): false
+              =(hostIPC): false
+
+  # Rule 12: Require security context
+  - name: require-security-context
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "Pod security context is required"
+      pattern:
+        spec:
+          template:
+            spec:
+              securityContext:
+                runAsNonRoot: true
+                fsGroup: ">0"
+
+  # Rule 13: Require specific labels
+  - name: require-labels
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "Deployments must have required labels: app, version, environment"
+      pattern:
+        metadata:
+          labels:
+            app: "?*"
+            version: "?*"
+            environment: "development | staging | production"
+
+  # Rule 14: Require minimum replicas for production
+  - name: require-min-replicas-prod
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+          selector:
+            matchLabels:
+              environment: production
+    validate:
+      message: "Production deployments must have at least 2 replicas for high availability"
+      pattern:
+        spec:
+          replicas: ">=2"
+
+  # Rule 15: Disallow default service account
+  - name: disallow-default-serviceaccount
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "Default service account should not be used"
+      pattern:
+        spec:
+          template:
+            spec:
+              =(serviceAccountName): "!default"
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: hopngo-resource-limits
+  annotations:
+    policies.kyverno.io/title: HopNGo Resource Limits
+    policies.kyverno.io/category: Resource Management
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Deployment
+    policies.kyverno.io/description: >
+      This policy validates resource limits to prevent resource exhaustion
+      and ensures reasonable resource allocation.
+spec:
+  validationFailureAction: enforce
+  background: true
+  rules:
+  # Rule 1: Validate CPU limits
+  - name: validate-cpu-limits
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "CPU limits should be reasonable (max 4 cores)"
+      foreach:
+      - list: "request.object.spec.template.spec.containers"
+        deny:
+          conditions:
+            any:
+            - key: "{{ element.resources.limits.cpu || '0' }}"
+              operator: GreaterThan
+              value: "4000m"
+
+  # Rule 2: Validate memory limits
+  - name: validate-memory-limits
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "Memory limits should be reasonable (max 8Gi)"
+      foreach:
+      - list: "request.object.spec.template.spec.containers"
+        deny:
+          conditions:
+            any:
+            - key: "{{ element.resources.limits.memory || '0' }}"
+              operator: GreaterThan
+              value: "8Gi"
+
+  # Rule 3: Validate resource ratios
+  - name: validate-resource-ratios
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "Resource requests should be at least 50% of limits"
+      foreach:
+      - list: "request.object.spec.template.spec.containers"
+        deny:
+          conditions:
+            any:
+            - key: "{{ multiply(to_number(element.resources.requests.cpu || '0m' | trim_suffix(@, 'm')), 2) }}"
+              operator: LessThan
+              value: "{{ to_number(element.resources.limits.cpu || '0m' | trim_suffix(@, 'm')) }}"
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: hopngo-image-verification
+  annotations:
+    policies.kyverno.io/title: HopNGo Image Verification
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Deployment
+    policies.kyverno.io/description: >
+      This policy verifies container image signatures using Cosign
+      to ensure supply chain security.
+spec:
+  validationFailureAction: enforce
+  background: false
+  rules:
+  - name: verify-image-signatures
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    verifyImages:
+    - imageReferences:
+      - "ghcr.io/hopngo/*"
+      attestors:
+      - entries:
+        - keyless:
+            subject: "https://github.com/hopngo/hopngo/.github/workflows/release.yml@refs/heads/main"
+            issuer: "https://token.actions.githubusercontent.com"
+            rekor:
+              url: "https://rekor.sigstore.dev"
+      mutateDigest: true
+      verifyDigest: true
+      required: true

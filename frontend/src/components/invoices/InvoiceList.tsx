@@ -3,7 +3,36 @@ import { invoiceService } from '../../services/invoiceService';
 import LoadingSpinner from '../ui/loading-spinner';
 import Pagination from '../common/Pagination';
 
-const InvoiceList = ({
+interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  status: string;
+  total: number;
+  currency: string;
+  createdAt: string;
+  issuedAt?: string;
+  dueAt?: string;
+  paidAt?: string;
+  description?: string;
+}
+
+interface PaginationData {
+  page: number;
+  size: number;
+  totalPages: number;
+  totalElements: number;
+}
+
+interface InvoiceListProps {
+  invoices: Invoice[];
+  loading: boolean;
+  pagination: PaginationData;
+  onPageChange: (page: number) => void;
+  onDownloadInvoice: (id: string, invoiceNumber: string) => void;
+  onDownloadReceipt: (id: string, invoiceNumber: string) => void;
+}
+
+const InvoiceList: React.FC<InvoiceListProps> = ({
   invoices,
   loading,
   pagination,
@@ -11,7 +40,7 @@ const InvoiceList = ({
   onDownloadInvoice,
   onDownloadReceipt
 }) => {
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string | undefined): string => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('en-GB', {
       day: '2-digit',
@@ -20,7 +49,7 @@ const InvoiceList = ({
     });
   };
 
-  const formatDateTime = (dateString) => {
+  const formatDateTime = (dateString: string | undefined): string => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleString('en-GB', {
       day: '2-digit',
@@ -31,7 +60,7 @@ const InvoiceList = ({
     });
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     const colorClass = invoiceService.getStatusColor(status);
     const statusText = invoiceService.formatStatus(status);
     
@@ -42,18 +71,18 @@ const InvoiceList = ({
     );
   };
 
-  const getDueDateStatus = (invoice) => {
+  const getDueDateStatus = (invoice: Invoice) => {
     if (invoice.status !== 'ISSUED' || !invoice.dueAt) return null;
     
     const daysUntilDue = invoiceService.getDaysUntilDue(invoice.dueAt);
     
-    if (daysUntilDue < 0) {
+    if (daysUntilDue !== null && daysUntilDue < 0) {
       return (
         <span className="text-red-600 text-sm font-medium">
           Overdue by {Math.abs(daysUntilDue)} day{Math.abs(daysUntilDue) !== 1 ? 's' : ''}
         </span>
       );
-    } else if (daysUntilDue <= 7) {
+    } else if (daysUntilDue !== null && daysUntilDue <= 7) {
       return (
         <span className="text-yellow-600 text-sm font-medium">
           Due in {daysUntilDue} day{daysUntilDue !== 1 ? 's' : ''}
@@ -64,7 +93,7 @@ const InvoiceList = ({
     return null;
   };
 
-  const InvoiceRow = ({ invoice }) => {
+  const InvoiceRow: React.FC<{ invoice: Invoice }> = ({ invoice }) => {
     const canDownloadInvoice = invoiceService.canDownloadInvoice(invoice);
     const canDownloadReceipt = invoiceService.canDownloadReceipt(invoice);
     const dueDateStatus = getDueDateStatus(invoice);
@@ -172,7 +201,7 @@ const InvoiceList = ({
   if (loading && invoices.length === 0) {
     return (
       <div className="flex justify-center items-center py-12">
-        <LoadingSpinner size="large" />
+        <LoadingSpinner size="lg" />
       </div>
     );
   }

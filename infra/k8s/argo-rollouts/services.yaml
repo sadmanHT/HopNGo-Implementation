@@ -1,0 +1,359 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hopngo-backend-stable
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo-backend
+    app.kubernetes.io/component: stable-service
+    app.kubernetes.io/part-of: hopngo
+    environment: production
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: hopngo-backend
+    # This selector will be managed by Argo Rollouts
+    # It will point to stable pods during rollout
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hopngo-backend-canary
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo-backend
+    app.kubernetes.io/component: canary-service
+    app.kubernetes.io/part-of: hopngo
+    environment: production
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: hopngo-backend
+    # This selector will be managed by Argo Rollouts
+    # It will point to canary pods during rollout
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hopngo-backend
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo-backend
+    app.kubernetes.io/component: active-service
+    app.kubernetes.io/part-of: hopngo
+    environment: production
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: hopngo-backend
+    # This will be the main service used by ingress
+    # Argo Rollouts will manage traffic splitting
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hopngo-frontend-stable
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo-frontend
+    app.kubernetes.io/component: stable-service
+    app.kubernetes.io/part-of: hopngo
+    environment: production
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: hopngo-frontend
+    # This selector will be managed by Argo Rollouts
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hopngo-frontend-canary
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo-frontend
+    app.kubernetes.io/component: canary-service
+    app.kubernetes.io/part-of: hopngo
+    environment: production
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: hopngo-frontend
+    # This selector will be managed by Argo Rollouts
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hopngo-frontend
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo-frontend
+    app.kubernetes.io/component: active-service
+    app.kubernetes.io/part-of: hopngo
+    environment: production
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: hopngo-frontend
+    # This will be the main service used by ingress
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hopngo-worker-stable
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo-worker
+    app.kubernetes.io/component: stable-service
+    app.kubernetes.io/part-of: hopngo
+    environment: production
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: hopngo-worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hopngo-worker-canary
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo-worker
+    app.kubernetes.io/component: canary-service
+    app.kubernetes.io/part-of: hopngo
+    environment: production
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: hopngo-worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hopngo-worker
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo-worker
+    app.kubernetes.io/component: active-service
+    app.kubernetes.io/part-of: hopngo
+    environment: production
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: hopngo-worker
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: hopngo-backend-monitor
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo-backend
+    app.kubernetes.io/component: monitoring
+    environment: production
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hopngo-backend
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    honorLabels: true
+  namespaceSelector:
+    matchNames:
+    - hopngo-prod
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: hopngo-worker-monitor
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo-worker
+    app.kubernetes.io/component: monitoring
+    environment: production
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hopngo-worker
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    honorLabels: true
+  namespaceSelector:
+    matchNames:
+    - hopngo-prod
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hopngo-backend-stable
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo-backend
+    app.kubernetes.io/component: stable-ingress
+    environment: production
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+spec:
+  tls:
+  - hosts:
+    - api.hopngo.com
+    secretName: hopngo-backend-tls
+  rules:
+  - host: api.hopngo.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hopngo-backend-stable
+            port:
+              number: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hopngo-frontend-stable
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: hopngo-frontend
+    app.kubernetes.io/component: stable-ingress
+    environment: production
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "2000"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  tls:
+  - hosts:
+    - hopngo.com
+    - www.hopngo.com
+    secretName: hopngo-frontend-tls
+  rules:
+  - host: hopngo.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hopngo-frontend-stable
+            port:
+              number: 80
+  - host: www.hopngo.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hopngo-frontend-stable
+            port:
+              number: 80

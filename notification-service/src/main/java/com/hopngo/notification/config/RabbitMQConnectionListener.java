@@ -1,11 +1,12 @@
 package com.hopngo.notification.config;
 
-import com.rabbitmq.client.Connection;
+
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.ShutdownSignalException;
+
 import io.micrometer.core.instrument.Counter;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,13 +21,18 @@ import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class RabbitMQConnectionListener implements ConnectionListener {
 
+    private static final Logger log = LoggerFactory.getLogger(RabbitMQConnectionListener.class);
+    
     private final Counter rabbitMQConnectionErrors;
     private final NotificationMonitoringService monitoringService;
+    
+    public RabbitMQConnectionListener(Counter rabbitMQConnectionErrors, NotificationMonitoringService monitoringService) {
+        this.rabbitMQConnectionErrors = rabbitMQConnectionErrors;
+        this.monitoringService = monitoringService;
+    }
     
     private final AtomicBoolean isConnected = new AtomicBoolean(false);
     private final AtomicInteger reconnectionAttempts = new AtomicInteger(0);
@@ -35,7 +41,7 @@ public class RabbitMQConnectionListener implements ConnectionListener {
     private volatile String lastErrorMessage;
 
     @Override
-    public void onCreate(Connection connection) {
+    public void onCreate(org.springframework.amqp.rabbit.connection.Connection connection) {
         isConnected.set(true);
         lastConnectionTime = LocalDateTime.now();
         reconnectionAttempts.set(0);
@@ -44,27 +50,19 @@ public class RabbitMQConnectionListener implements ConnectionListener {
                 lastConnectionTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
         
         // Log connection details
-        log.debug("RabbitMQ Connection Details - Host: {}, Port: {}, Virtual Host: {}",
-                connection.getAddress().getHostAddress(),
-                connection.getPort(),
-                connection.getServerProperties().get("virtual_host"));
+        log.debug("RabbitMQ Connection established");
     }
 
     @Override
-    public void onClose(Connection connection) {
+    public void onClose(org.springframework.amqp.rabbit.connection.Connection connection) {
         isConnected.set(false);
         lastDisconnectionTime = LocalDateTime.now();
         
         log.warn("RabbitMQ connection closed at {}", 
                 lastDisconnectionTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
         
-        // Check if this was an unexpected closure
-        if (connection.getCloseReason() != null) {
-            ShutdownSignalException reason = connection.getCloseReason();
-            if (!reason.isInitiatedByApplication()) {
-                handleConnectionError("Unexpected connection closure", reason);
-            }
-        }
+        // Log connection closure
+        log.debug("RabbitMQ Connection closed");
     }
 
     @Override
@@ -73,11 +71,9 @@ public class RabbitMQConnectionListener implements ConnectionListener {
         lastDisconnectionTime = LocalDateTime.now();
         
         if (signal.isHardError()) {
-            if (signal.getReason() instanceof Connection.CloseReason) {
-                Connection.CloseReason closeReason = (Connection.CloseReason) signal.getReason();
-                handleConnectionError("Hard connection error", signal);
-                log.error("RabbitMQ hard connection error - Code: {}, Text: {}", 
-                        closeReason.protocolMethodName(), closeReason.protocolClassId());
+            if (signal.getReason() != null) {
+                 handleConnectionError("Hard connection error", signal);
+                 log.error("RabbitMQ hard connection error: {}", signal.getReason().toString());
             } else {
                 handleConnectionError("Unknown hard connection error", signal);
             }
@@ -167,10 +163,13 @@ public class RabbitMQConnectionListener implements ConnectionListener {
 }
 
 @Configuration
-@RequiredArgsConstructor
 class RabbitMQMonitoringConfig {
 
     private final RabbitMQConnectionListener connectionListener;
+    
+    public RabbitMQMonitoringConfig(RabbitMQConnectionListener connectionListener) {
+        this.connectionListener = connectionListener;
+    }
 
     @Bean
     public RabbitTemplate monitoredRabbitTemplate(org.springframework.amqp.rabbit.connection.ConnectionFactory connectionFactory) {
@@ -184,14 +183,17 @@ class RabbitMQMonitoringConfig {
         
         // Configure template for better error handling
         template.setMandatory(true);
-        template.setReturnCallback((message, replyCode, replyText, exchange, routingKey) -> {
-            log.error("Message returned - Exchange: {}, Routing Key: {}, Reply Code: {}, Reply Text: {}",
-                    exchange, routingKey, replyCode, replyText);
+        template.setReturnsCallback(returnedMessage -> {
+            org.slf4j.LoggerFactory.getLogger(RabbitMQMonitoringConfig.class)
+                .error("Message returned - Exchange: {}, Routing Key: {}, Reply Code: {}, Reply Text: {}",
+                    returnedMessage.getExchange(), returnedMessage.getRoutingKey(), 
+                    returnedMessage.getReplyCode(), returnedMessage.getReplyText());
         });
         
         template.setConfirmCallback((correlationData, ack, cause) -> {
             if (!ack) {
-                log.error("Message not acknowledged - Correlation Data: {}, Cause: {}", correlationData, cause);
+                org.slf4j.LoggerFactory.getLogger(RabbitMQMonitoringConfig.class)
+                    .error("Message not acknowledged - Correlation Data: {}, Cause: {}", correlationData, cause);
             }
         });
         

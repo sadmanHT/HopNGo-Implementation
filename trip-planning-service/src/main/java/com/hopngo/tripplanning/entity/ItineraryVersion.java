@@ -29,7 +29,7 @@ public class ItineraryVersion {
     private Integer version;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "plan", nullable = false, columnDefinition = "jsonb")
+    @Column(name = "plan", nullable = false)
     private JsonNode plan;
 
     @CreationTimestamp

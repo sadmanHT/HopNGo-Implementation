@@ -5,9 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuator.health.Health;
-import org.springframework.boot.actuator.health.HealthIndicator;
-import org.springframework.boot.actuator.health.Status;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,7 +20,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/notifications")
-public class HealthController implements HealthIndicator {
+public class HealthController {
 
     private static final Logger logger = LoggerFactory.getLogger(HealthController.class);
 
@@ -36,7 +34,12 @@ public class HealthController implements HealthIndicator {
     private FirebaseMessaging firebaseMessaging;
 
     @GetMapping("/health")
-    public ResponseEntity<Map<String, Object>> health() {
+    public ResponseEntity<Map<String, Object>> healthEndpoint() {
+        Map<String, Object> healthStatus = getHealthDetails();
+        return ResponseEntity.ok(healthStatus);
+    }
+    
+    private Map<String, Object> getHealthDetails() {
         Map<String, Object> healthStatus = new HashMap<>();
         boolean overallHealthy = true;
         
@@ -71,7 +74,7 @@ public class HealthController implements HealthIndicator {
         
         healthStatus.put("status", overallHealthy ? "UP" : "DOWN");
         
-        return ResponseEntity.ok(healthStatus);
+        return healthStatus;
     }
     
     private Map<String, Object> checkRabbitMQHealth() {
@@ -162,23 +165,16 @@ public class HealthController implements HealthIndicator {
         return status;
     }
     
-    @Override
-    public Health health() {
+    @GetMapping("/actuator-health")
+    public ResponseEntity<Map<String, Object>> actuatorHealth() {
         try {
-            Map<String, Object> healthDetails = (Map<String, Object>) health().getBody();
-            if ("UP".equals(healthDetails.get("status"))) {
-                return Health.up()
-                    .withDetails(healthDetails)
-                    .build();
-            } else {
-                return Health.down()
-                    .withDetails(healthDetails)
-                    .build();
-            }
+            Map<String, Object> healthDetails = getHealthDetails();
+            return ResponseEntity.ok(healthDetails);
         } catch (Exception e) {
-            return Health.down()
-                .withDetail("error", e.getMessage())
-                .build();
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "DOWN");
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
         }
     }
 }

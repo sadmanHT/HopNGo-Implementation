@@ -1,0 +1,98 @@
+# Conftest configuration for HopNGo security policies
+# This file configures how Conftest validates Kubernetes manifests
+
+# Policy directory containing .rego files
+policy: policies
+
+# Data directory for additional data files
+data: policies/data
+
+# Namespace for policies (matches package name in .rego files)
+namespace: kubernetes.security
+
+# Output format options: json, table, tap, junit
+output: json
+
+# Fail on warnings (treat warnings as failures)
+fail-on-warn: false
+
+# Combine results from multiple files
+combine: true
+
+# Trace execution for debugging
+trace: false
+
+# Strict mode - fail if no policies are found
+strict: true
+
+# Input type detection
+input-type: yaml
+
+# Parser options
+parser:
+  yaml:
+    # Allow multiple YAML documents in a single file
+    multi-document: true
+
+# Capabilities for OPA evaluation
+capabilities:
+  builtins:
+    - name: "kubernetes.is_gatekeeper"
+      decl:
+        type: function
+        result:
+          type: boolean
+
+# Ignore certain files or patterns
+ignore:
+  - "*.md"
+  - "*.txt"
+  - "**/test/**"
+  - "**/tests/**"
+  - "**/.git/**"
+  - "**/node_modules/**"
+
+# Include specific file patterns
+include:
+  - "**/*.yaml"
+  - "**/*.yml"
+  - "**/*.json"
+
+# Verification settings
+verification:
+  # Verify policy syntax before execution
+  verify-syntax: true
+  
+  # Check for unused variables
+  check-unused-vars: true
+
+# Reporting configuration
+reporting:
+  # Include file path in output
+  include-filename: true
+  
+  # Include line numbers for violations
+  include-line-numbers: true
+  
+  # Group results by file
+  group-by-file: true
+
+# Exit codes
+exit-codes:
+  # Exit code for policy violations
+  violation: 1
+  
+  # Exit code for warnings
+  warning: 0
+  
+  # Exit code for errors
+  error: 2
+
+# Timeout for policy evaluation (in seconds)
+timeout: 30
+
+# Memory limit for OPA evaluation (in MB)
+memory-limit: 512
+
+# CPU limit for OPA evaluation (number of cores)
+cpu-limit: 2

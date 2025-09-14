@@ -1,6 +1,7 @@
 package com.hopngo.auth.controller;
 
 import com.hopngo.auth.service.AccountLockoutService;
+import com.hopngo.auth.service.UserManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -19,9 +20,12 @@ public class AdminController {
     private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
     
     private final AccountLockoutService accountLockoutService;
+    private final UserManagementService userManagementService;
     
-    public AdminController(AccountLockoutService accountLockoutService) {
+    public AdminController(AccountLockoutService accountLockoutService,
+                          UserManagementService userManagementService) {
         this.accountLockoutService = accountLockoutService;
+        this.userManagementService = userManagementService;
     }
     
     /**
@@ -208,5 +212,44 @@ public class AdminController {
         
         public String getMessage() { return message; }
         public void setMessage(String message) { this.message = message; }
+    }
+    
+    @PostMapping("/ban-user/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> banUser(@PathVariable Long userId) {
+        logger.info("Admin banning user with ID: {}", userId);
+        try {
+            userManagementService.banUser(userId);
+            return ResponseEntity.ok("User banned successfully");
+        } catch (Exception e) {
+            logger.error("Error banning user: {}", e.getMessage());
+            return ResponseEntity.badRequest().body("Failed to ban user: " + e.getMessage());
+        }
+    }
+    
+    @PostMapping("/unban-user/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> unbanUser(@PathVariable Long userId) {
+        logger.info("Admin unbanning user with ID: {}", userId);
+        try {
+            userManagementService.unbanUser(userId);
+            return ResponseEntity.ok("User unbanned successfully");
+        } catch (Exception e) {
+            logger.error("Error unbanning user: {}", e.getMessage());
+            return ResponseEntity.badRequest().body("Failed to unban user: " + e.getMessage());
+        }
+    }
+    
+    @DeleteMapping("/remove-post/{postId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> removePost(@PathVariable Long postId) {
+        logger.info("Admin removing post with ID: {}", postId);
+        try {
+            userManagementService.removePost(postId);
+            return ResponseEntity.ok("Post removed successfully");
+        } catch (Exception e) {
+            logger.error("Error removing post: {}", e.getMessage());
+            return ResponseEntity.badRequest().body("Failed to remove post: " + e.getMessage());
+        }
     }
 }

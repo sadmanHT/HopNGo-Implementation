@@ -3,7 +3,7 @@ package com.hopngo.ai.controller;
 import com.hopngo.ai.dto.SimilarityRequest;
 import com.hopngo.ai.dto.SimilarityResponse;
 import com.hopngo.ai.service.SimilarityService;
-import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+// import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -45,7 +45,7 @@ public class RecommendationController {
         @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
         @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
     })
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints")
     public Mono<ResponseEntity<SimilarityResponse>> findSimilarUsers(
             @Parameter(description = "User ID to find similar users for", example = "user123")
             @PathVariable @NotBlank String userId,
@@ -81,7 +81,7 @@ public class RecommendationController {
         @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
         @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
     })
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints")
     public Mono<ResponseEntity<SimilarityResponse>> findSimilarItems(
             @Parameter(description = "Item ID to find similar items for", example = "stay123")
             @PathVariable @NotBlank String itemId,
@@ -123,7 +123,7 @@ public class RecommendationController {
         @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
         @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
     })
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints")
     public Mono<ResponseEntity<SimilarityResponse>> getHomeRecommendations(
             @Parameter(description = "User ID to get recommendations for", example = "user123")
             @PathVariable @NotBlank String userId,
@@ -167,7 +167,7 @@ public class RecommendationController {
         @ApiResponse(responseCode = "400", description = "Invalid request body"),
         @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
     })
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints")
     public Mono<ResponseEntity<SimilarityResponse>> getBatchRecommendations(
             @Parameter(description = "Batch recommendation request")
             @Valid @RequestBody SimilarityRequest request) {

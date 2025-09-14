@@ -4,10 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Counter;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.listener.api.RabbitListenerErrorHandler;
+import org.springframework.amqp.rabbit.support.ListenerExecutionFailedException;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConversionException;
 import org.springframework.context.annotation.Bean;
@@ -21,16 +24,21 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicLong;
 
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class SerializationErrorHandler {
-
+    
+    private static final Logger log = LoggerFactory.getLogger(SerializationErrorHandler.class);
+    
     private final Counter rabbitMQSerializationErrors;
     private final NotificationMonitoringService monitoringService;
+    
+    public SerializationErrorHandler(Counter rabbitMQSerializationErrors, NotificationMonitoringService monitoringService) {
+        this.rabbitMQSerializationErrors = rabbitMQSerializationErrors;
+        this.monitoringService = monitoringService;
+    }
     private final AtomicLong totalSerializationAttempts = new AtomicLong(0);
     private final AtomicLong failedSerializationAttempts = new AtomicLong(0);
-
+    
     public void handleSerializationError(String operation, Object data, Exception exception) {
         failedSerializationAttempts.incrementAndGet();
         rabbitMQSerializationErrors.increment();
@@ -119,10 +127,13 @@ public class SerializationErrorHandler {
 }
 
 @Configuration
-@RequiredArgsConstructor
 class SerializationConfig {
 
     private final SerializationErrorHandler errorHandler;
+    
+    public SerializationConfig(SerializationErrorHandler errorHandler) {
+        this.errorHandler = errorHandler;
+    }
 
     @Bean
     @Primary
@@ -170,10 +181,10 @@ class SerializationConfig {
                     messageBody = "[Unable to read message body]";
                 }
                 
-                log.error("Message deserialization failed - Exchange: {}, Routing Key: {}, Message Body: {}",
-                        message.getMessageProperties().getReceivedExchange(),
-                        message.getMessageProperties().getReceivedRoutingKey(),
-                        messageBody);
+                log.error("Message deserialization failed - Exchange: " + 
+                        message.getMessageProperties().getReceivedExchange() + 
+                        ", Routing Key: " + message.getMessageProperties().getReceivedRoutingKey() + 
+                        ", Message Body: " + messageBody, e);
                 
                 errorHandler.handleSerializationError("deserialization", messageBody, e);
             }
@@ -199,8 +210,9 @@ class SerializationConfig {
 }
 
 @Component
-@Slf4j
 class SerializationMonitor {
+    
+    private static final Logger log = LoggerFactory.getLogger(SerializationMonitor.class);
 
     private final SerializationErrorHandler errorHandler;
 

@@ -5,7 +5,7 @@ import com.hopngo.ai.service.ModerationService;
 import com.hopngo.ai.service.ExternalAiService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+// import io.github.resilience4j.ratelimiter.annotation.RateLimiter; // Disabled for minimal profile
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -37,7 +37,7 @@ public class AiController {
     
     @PostMapping("/itinerary")
     @Operation(summary = "Generate travel itinerary", description = "Creates a structured travel itinerary based on destinations, budget, and interests")
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints") // Disabled for minimal profile
     @Cacheable(value = "itineraries", key = "#request.origin + '_' + #request.destinations + '_' + #request.days + '_' + #request.budget")
     public ResponseEntity<ItineraryResponse> generateItinerary(
             @Valid @RequestBody ItineraryRequest request,
@@ -76,7 +76,7 @@ public class AiController {
     
     @PostMapping("/image-search")
     @Operation(summary = "Search by image", description = "Find similar places, posts, or listings based on an image")
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints") // Disabled for minimal profile
     public ResponseEntity<ImageSearchResponse> searchByImage(
             @Valid @RequestBody ImageSearchRequest request,
             @RequestHeader("X-User-Id") String userId) {
@@ -105,7 +105,7 @@ public class AiController {
     
     @PostMapping("/image-search/upload")
     @Operation(summary = "Search by uploaded image", description = "Find similar places, posts, or listings based on an uploaded image")
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints") // Disabled for minimal profile
     public ResponseEntity<ImageSearchResponse> searchByUploadedImage(
             @RequestParam("image") MultipartFile image,
             @RequestParam(value = "maxResults", defaultValue = "10") int maxResults,
@@ -118,7 +118,7 @@ public class AiController {
     
     @PostMapping("/search")
     @Operation(summary = "Descriptive search", description = "Search for travel content using natural language descriptions")
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints") // Disabled for minimal profile
     @Cacheable(value = "searches", key = "#request.query + '_' + #request.category")
     public ResponseEntity<SearchResponse> descriptiveSearch(
             @Valid @RequestBody SearchRequest request,
@@ -156,7 +156,7 @@ public class AiController {
     
     @PostMapping("/chatbot")
     @Operation(summary = "AI Chatbot", description = "Get location-aware travel suggestions and answers")
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints") // Disabled for minimal profile
     public ResponseEntity<ChatbotResponse> chatbot(
             @Valid @RequestBody ChatbotRequest request,
             @RequestHeader("X-User-Id") String userId) {
@@ -182,7 +182,7 @@ public class AiController {
     
     @GetMapping("/weather")
     @Operation(summary = "Weather information", description = "Get current weather and forecast for a location")
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints") // Disabled for minimal profile
     @Cacheable(value = "weather", key = "#lat + '_' + #lng")
     public ResponseEntity<WeatherResponse> getWeather(
             @RequestParam @DecimalMin("-90.0") @DecimalMax("90.0") double lat,
@@ -212,7 +212,7 @@ public class AiController {
     
     @PostMapping("/moderateContent")
     @Operation(summary = "Content moderation", description = "Analyze content for toxicity, NSFW, spam, and other policy violations")
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints") // Disabled for minimal profile
     public ResponseEntity<ModerationResponse> moderateContent(
             @Valid @RequestBody ModerationRequest request,
             @RequestHeader("X-User-Id") String userId) {
@@ -229,7 +229,7 @@ public class AiController {
     
     @PostMapping("/embeddings")
     @Operation(summary = "Generate embeddings", description = "Generate vector embeddings for text content using AI models")
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints") // Disabled for minimal profile
     @Cacheable(value = "embeddings", key = "#request.text.hashCode()")
     public ResponseEntity<EmbeddingsResponse> generateEmbeddings(
             @Valid @RequestBody EmbeddingsRequest request,

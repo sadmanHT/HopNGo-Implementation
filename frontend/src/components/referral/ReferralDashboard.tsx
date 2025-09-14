@@ -9,14 +9,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { Copy, Share2, Users, MousePointer, Trophy, Coins, Plus, ExternalLink } from 'lucide-react';
 import { referralService, ReferralStats, ReferralResponse } from '@/lib/services/referral';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuthStore } from '@/stores/authStore';
 
 interface ReferralDashboardProps {
   className?: string;
 }
 
 export function ReferralDashboard({ className }: ReferralDashboardProps) {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [referrals, setReferrals] = useState<ReferralResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +76,7 @@ export function ReferralDashboard({ className }: ReferralDashboardProps) {
         setNewCampaign('');
         loadReferralData();
       } else {
-        throw new Error(response.error);
+        throw new Error(response.message || response.errors?.[0] || 'Unknown error');
       }
     } catch (error) {
       console.error('Error creating referral:', error);

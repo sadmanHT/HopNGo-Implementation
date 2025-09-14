@@ -1,0 +1,350 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: hopngo-pod-kill-chaos
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    chaos-type: pod-kill
+spec:
+  # Chaos engine configuration
+  engineState: 'active'
+  auxiliaryAppInfo: ''
+  chaosServiceAccount: litmus-admin
+  
+  # Application under test
+  appinfo:
+    appns: 'hopngo-prod'
+    applabel: 'app=market-service'
+    appkind: 'deployment'
+  
+  # Monitoring configuration
+  monitoring: true
+  
+  # Job cleanup policy
+  jobCleanUpPolicy: 'retain'
+  
+  # Chaos experiments
+  experiments:
+  - name: pod-delete
+    spec:
+      components:
+        env:
+          # Target application details
+          - name: TOTAL_CHAOS_DURATION
+            value: '60' # 1 minute chaos duration
+          
+          - name: CHAOS_INTERVAL
+            value: '10' # Kill pod every 10 seconds
+          
+          - name: FORCE
+            value: 'false' # Graceful termination first
+          
+          # Target selection
+          - name: PODS_AFFECTED_PERC
+            value: '25' # Kill 25% of pods
+          
+          - name: TARGET_PODS
+            value: '' # Empty means random selection
+          
+          # Sequence of chaos
+          - name: SEQUENCE
+            value: 'parallel' # Kill pods in parallel
+          
+          # Ramp time
+          - name: RAMP_TIME
+            value: '10'
+          
+          # Instance ID for multiple experiments
+          - name: INSTANCE_ID
+            value: 'market-service-pod-kill'
+          
+        # Resource requirements
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      
+      # Probe definitions for health checks
+      probe:
+      - name: "market-service-health-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 5
+          retry: 3
+          interval: 10
+          probePollingInterval: 2
+        httpProbe/inputs:
+          url: "http://market-service:8080/actuator/health"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: ==
+              responseCode: "200"
+      
+      - name: "market-service-readiness-check"
+        type: "k8sProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 5
+          retry: 3
+          interval: 15
+          probePollingInterval: 2
+        k8sProbe/inputs:
+          group: "apps"
+          version: "v1"
+          resource: "deployments"
+          namespace: "hopngo-prod"
+          fieldSelector: "metadata.name=market-service"
+          operation: "present"
+          
+      - name: "database-connectivity-check"
+        type: "cmdProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 10
+          retry: 2
+          interval: 20
+          probePollingInterval: 5
+        cmdProbe/inputs:
+          command: "curl"
+          args:
+            - "-f"
+            - "http://market-service:8080/actuator/health/db"
+          source:
+            image: "curlimages/curl:latest"
+            inheritInputs: true
+          comparator:
+            type: "string"
+            criteria: "contains"
+            value: "UP"
+
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: hopngo-frontend-pod-kill-chaos
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    chaos-type: pod-kill
+    target: frontend
+spec:
+  engineState: 'active'
+  auxiliaryAppInfo: ''
+  chaosServiceAccount: litmus-admin
+  
+  appinfo:
+    appns: 'hopngo-prod'
+    applabel: 'app=frontend'
+    appkind: 'deployment'
+  
+  monitoring: true
+  jobCleanUpPolicy: 'retain'
+  
+  experiments:
+  - name: pod-delete
+    spec:
+      components:
+        env:
+          - name: TOTAL_CHAOS_DURATION
+            value: '90' # Longer duration for frontend
+          
+          - name: CHAOS_INTERVAL
+            value: '15'
+          
+          - name: FORCE
+            value: 'false'
+          
+          - name: PODS_AFFECTED_PERC
+            value: '33' # Kill 1/3 of frontend pods
+          
+          - name: SEQUENCE
+            value: 'serial' # Kill pods one by one for frontend
+          
+          - name: RAMP_TIME
+            value: '15'
+          
+          - name: INSTANCE_ID
+            value: 'frontend-pod-kill'
+        
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      
+      probe:
+      - name: "frontend-availability-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 10
+          retry: 3
+          interval: 15
+          probePollingInterval: 3
+        httpProbe/inputs:
+          url: "http://frontend:3000/health"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: ==
+              responseCode: "200"
+      
+      - name: "frontend-load-balancer-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 15
+          retry: 5
+          interval: 20
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://hopngo-frontend-service/api/health"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: ==
+              responseCode: "200"
+      
+      - name: "websocket-connectivity-check"
+        type: "cmdProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 10
+          retry: 2
+          interval: 30
+          probePollingInterval: 5
+        cmdProbe/inputs:
+          command: "wscat"
+          args:
+            - "-c"
+            - "ws://frontend:3000/ws/health"
+            - "-w"
+            - "5"
+          source:
+            image: "node:16-alpine"
+            inheritInputs: true
+          comparator:
+            type: "string"
+            criteria: "contains"
+            value: "connected"
+
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: hopngo-booking-service-pod-kill-chaos
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    chaos-type: pod-kill
+    target: booking-service
+spec:
+  engineState: 'active'
+  auxiliaryAppInfo: ''
+  chaosServiceAccount: litmus-admin
+  
+  appinfo:
+    appns: 'hopngo-prod'
+    applabel: 'app=booking-service'
+    appkind: 'deployment'
+  
+  monitoring: true
+  jobCleanUpPolicy: 'retain'
+  
+  experiments:
+  - name: pod-delete
+    spec:
+      components:
+        env:
+          - name: TOTAL_CHAOS_DURATION
+            value: '120' # 2 minutes for critical booking service
+          
+          - name: CHAOS_INTERVAL
+            value: '20'
+          
+          - name: FORCE
+            value: 'false'
+          
+          - name: PODS_AFFECTED_PERC
+            value: '20' # Conservative for critical service
+          
+          - name: SEQUENCE
+            value: 'serial'
+          
+          - name: RAMP_TIME
+            value: '20'
+          
+          - name: INSTANCE_ID
+            value: 'booking-service-pod-kill'
+        
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      
+      probe:
+      - name: "booking-service-health-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 8
+          retry: 3
+          interval: 12
+          probePollingInterval: 3
+        httpProbe/inputs:
+          url: "http://booking-service:8080/actuator/health"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: ==
+              responseCode: "200"
+      
+      - name: "booking-api-functionality-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 10
+          retry: 2
+          interval: 25
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://booking-service:8080/api/bookings/health-check"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: ==
+              responseCode: "200"
+      
+      - name: "booking-database-check"
+        type: "cmdProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 15
+          retry: 2
+          interval: 30
+          probePollingInterval: 5
+        cmdProbe/inputs:
+          command: "curl"
+          args:
+            - "-f"
+            - "-H"
+            - "Content-Type: application/json"
+            - "http://booking-service:8080/actuator/health/db"
+          source:
+            image: "curlimages/curl:latest"
+            inheritInputs: true
+          comparator:
+            type: "string"
+            criteria: "contains"
+            value: "UP"

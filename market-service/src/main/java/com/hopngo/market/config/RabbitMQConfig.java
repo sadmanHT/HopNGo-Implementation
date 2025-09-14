@@ -21,10 +21,10 @@ public class RabbitMQConfig {
     public static final String ORDER_STATUS_CHANGED_QUEUE = "order.status.changed.queue";
     
     // Routing keys
-    public static final String PAYMENT_SUCCEEDED_ROUTING_KEY = "payment.payment_succeeded";
-    public static final String PAYMENT_FAILED_ROUTING_KEY = "payment.payment_failed";
-    public static final String ORDER_CREATED_ROUTING_KEY = "order.order_created";
-    public static final String ORDER_STATUS_CHANGED_ROUTING_KEY = "order.order_status_changed";
+    public static final String PAYMENT_SUCCEEDED_ROUTING_KEY = "payment.succeeded";
+    public static final String PAYMENT_FAILED_ROUTING_KEY = "payment.failed";
+    public static final String ORDER_CREATED_ROUTING_KEY = "order.created";
+    public static final String ORDER_STATUS_CHANGED_ROUTING_KEY = "order.status_changed";
     
     // Payment Events Exchange
     @Bean

@@ -8,7 +8,11 @@ import com.hopngo.notification.repository.WebPushSubscriptionRepository;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
 import nl.martijndwars.webpush.Utils;
+import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.interfaces.ECPrivateKey;
+import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,12 +22,18 @@ import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
 import java.security.GeneralSecurityException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.Security;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.Base64;
 
 @Service
 @Transactional
@@ -60,9 +70,9 @@ public class WebPushService {
             if (vapidPublicKey.isEmpty() || vapidPrivateKey.isEmpty()) {
                 logger.warn("VAPID keys not configured. Generating new keys...");
                 // Generate new VAPID keys if not configured
-                var keyPair = Utils.generateKeyPair();
-                vapidPublicKey = Utils.encode(keyPair.getPublic());
-                vapidPrivateKey = Utils.encode(keyPair.getPrivate());
+                var keyPair = generateKeyPair();
+                vapidPublicKey = Base64.getUrlEncoder().withoutPadding().encodeToString(Utils.encode((ECPublicKey) keyPair.getPublic()));
+                vapidPrivateKey = Base64.getUrlEncoder().withoutPadding().encodeToString(Utils.encode((ECPrivateKey) keyPair.getPrivate()));
                 logger.info("Generated VAPID Public Key: {}", vapidPublicKey);
                 logger.info("Generated VAPID Private Key: {}", vapidPrivateKey);
             }
@@ -74,6 +84,13 @@ public class WebPushService {
             logger.error("Failed to initialize WebPush service", e);
             throw new RuntimeException("Failed to initialize WebPush service", e);
         }
+    }
+
+    private KeyPair generateKeyPair() throws InvalidAlgorithmParameterException, NoSuchProviderException, NoSuchAlgorithmException {
+        ECNamedCurveParameterSpec parameterSpec = ECNamedCurveTable.getParameterSpec("prime256v1");
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ECDH", "BC");
+        keyPairGenerator.initialize(parameterSpec);
+        return keyPairGenerator.generateKeyPair();
     }
     
     /**

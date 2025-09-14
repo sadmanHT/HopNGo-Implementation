@@ -28,8 +28,6 @@ spring:
           predicates:
             - Path=/api/v1/auth/**
           filters:
-            - name: RequestValidationFilter
-            - name: RateLimitingFilter
             - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
@@ -39,8 +37,6 @@ spring:
           predicates:
             - Path=/social/**
           filters:
-            - name: RequestValidationFilter
-            - name: RateLimitingFilter
             - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
@@ -50,8 +46,6 @@ spring:
           predicates:
             - Path=/bookings/**
           filters:
-            - name: RequestValidationFilter
-            - name: RateLimitingFilter
             - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
@@ -61,8 +55,6 @@ spring:
           predicates:
             - Path=/market/**
           filters:
-            - name: RequestValidationFilter
-            - name: RateLimitingFilter
             - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
@@ -72,8 +64,6 @@ spring:
           predicates:
             - Path=/chat/**
           filters:
-            - name: RequestValidationFilter
-            - name: RateLimitingFilter
             - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
@@ -83,8 +73,6 @@ spring:
           predicates:
             - Path=/notify/**
           filters:
-            - name: RequestValidationFilter
-            - name: RateLimitingFilter
             - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
@@ -94,8 +82,6 @@ spring:
           predicates:
             - Path=/trips/**
           filters:
-            - name: RequestValidationFilter
-            - name: RateLimitingFilter
             - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
@@ -105,10 +91,11 @@ spring:
           predicates:
             - Path=/api/v1/ai/**
           filters:
-            - name: RequestValidationFilter
-            - name: RateLimitingFilter
             - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
+            - name: CircuitBreakerFilter
+              args:
+                name: ai-service
             - StripPrefix=2
         
         # Search Service
@@ -117,8 +104,6 @@ spring:
           predicates:
             - Path=/search/**
           filters:
-            - name: RequestValidationFilter
-            - name: RateLimitingFilter
             - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
         
@@ -128,8 +113,6 @@ spring:
           predicates:
             - Path=/api/v1/config/**
           filters:
-            - name: RequestValidationFilter
-            - name: RateLimitingFilter
             - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
             - StripPrefix=2
@@ -140,10 +123,9 @@ spring:
           predicates:
             - Path=/api/v1/admin/**
           filters:
-            - name: RequestValidationFilter
-            - name: RateLimitingFilter
             - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
+            - name: RoleAuthorizationFilter
             - StripPrefix=2
         
         # Analytics Service
@@ -152,8 +134,6 @@ spring:
           predicates:
             - Path=/api/v1/analytics/**
           filters:
-            - name: RequestValidationFilter
-            - name: RateLimitingFilter
             - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
             - StripPrefix=2
@@ -164,9 +144,8 @@ spring:
           predicates:
             - Path=/api/v1/emergency/**
           filters:
-            - name: RequestValidationFilter
-            - name: RateLimitingFilter
             - name: SecurityHeadersFilter
+            - name: JwtAuthenticationFilter
             - StripPrefix=2
         
         # Support Service
@@ -175,17 +154,17 @@ spring:
           predicates:
             - Path=/api/v1/support/**
           filters:
-            - name: RequestValidationFilter
-            - name: RateLimitingFilter
             - name: SecurityHeadersFilter
             - name: JwtAuthenticationFilter
       
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOriginPatterns: 
+            # Restrict to Next.js frontend origins only
+            allowedOrigins:
               - "${FRONTEND_URL:http://localhost:3000}"
               - "${FRONTEND_DOMAIN:https://hopngo.com}"
+              - "https://www.hopngo.com"
             allowedMethods:
               - GET
               - POST
@@ -203,14 +182,18 @@ spring:
               - "Access-Control-Request-Headers"
               - "X-CSRF-Token"
               - "X-Client-Version"
+              - "X-Request-ID"
             exposedHeaders:
               - "X-Total-Count"
               - "X-Page-Count"
               - "Link"
               - "X-RateLimit-Remaining"
               - "X-RateLimit-Reset"
+              - "X-Request-ID"
             allowCredentials: true
-            maxAge: 1800
+            maxAge: 3600
+            # Additional security for preflight requests
+            preflightMaxAge: 1800
       default-filters:
          - name: AcceptLanguageFilter
          - name: ETagFilter
@@ -324,3 +307,72 @@ spring.data.redis:
       max-active: 8
       max-idle: 8
       min-idle: 0
+
+# Resilience4j Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      ai-service:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        recordExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.util.concurrent.TimeoutException
+          - java.io.IOException
+        ignoreExceptions:
+          - java.lang.IllegalArgumentException
+      trip-planning-service:
+        registerHealthIndicator: true
+        slidingWindowSize: 8
+        minimumNumberOfCalls: 4
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 3s
+        failureRateThreshold: 60
+        eventConsumerBufferSize: 10
+      booking-service:
+        registerHealthIndicator: true
+        slidingWindowSize: 8
+        minimumNumberOfCalls: 4
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 3s
+        failureRateThreshold: 60
+        eventConsumerBufferSize: 10
+  retry:
+    instances:
+      ai-service:
+        maxAttempts: 3
+        waitDuration: 1000ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.util.concurrent.TimeoutException
+      trip-planning-service:
+        maxAttempts: 2
+        waitDuration: 500ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 1.5
+      booking-service:
+        maxAttempts: 2
+        waitDuration: 500ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 1.5
+  timelimiter:
+    instances:
+      ai-service:
+        timeoutDuration: 10s
+        cancelRunningFuture: true
+      trip-planning-service:
+        timeoutDuration: 8s
+        cancelRunningFuture: true
+      booking-service:
+        timeoutDuration: 8s
+        cancelRunningFuture: true

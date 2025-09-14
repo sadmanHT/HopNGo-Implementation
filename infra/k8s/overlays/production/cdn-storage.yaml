@@ -1,0 +1,226 @@
+# CDN and Object Storage configuration for production
+# Configures CloudFront CDN and S3 bucket for static assets
+
+# ConfigMap for CDN configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cdn-config
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: cdn-config
+    app.kubernetes.io/component: cdn
+data:
+  cloudfront_distribution_id: "E1A2B3C4D5E6F7"
+  cloudfront_domain: "cdn.hopngo.com"
+  s3_bucket: "hopngo-prod-assets"
+  s3_region: "us-east-1"
+  cache_control_max_age: "31536000"  # 1 year for static assets
+  cache_control_no_cache: "no-cache, no-store, must-revalidate"
+---
+# ConfigMap for object storage configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: storage-config
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: storage-config
+    app.kubernetes.io/component: storage
+data:
+  # S3 configuration for file uploads
+  s3_uploads_bucket: "hopngo-prod-uploads"
+  s3_uploads_region: "us-east-1"
+  s3_uploads_prefix: "uploads/"
+  # Signed URL configuration
+  signed_url_expiry: "3600"  # 1 hour
+  max_file_size: "10485760"  # 10MB
+  allowed_file_types: "image/jpeg,image/png,image/gif,image/webp,application/pdf"
+  # Image processing
+  image_resize_sizes: "150x150,300x300,800x600,1200x800"
+  image_quality: "85"
+---
+# External Secret for AWS credentials
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: aws-storage-secret
+  namespace: hopngo-prod
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: hopngo-secret-store
+    kind: SecretStore
+  target:
+    name: aws-storage-secret
+    creationPolicy: Owner
+  data:
+  - secretKey: access-key-id
+    remoteRef:
+      key: hopngo-prod-aws-access-key-id
+  - secretKey: secret-access-key
+    remoteRef:
+      key: hopngo-prod-aws-secret-access-key
+  - secretKey: cloudfront-private-key
+    remoteRef:
+      key: hopngo-prod-cloudfront-private-key
+  - secretKey: cloudfront-key-pair-id
+    remoteRef:
+      key: hopngo-prod-cloudfront-key-pair-id
+---
+# Service for CDN invalidation job
+apiVersion: v1
+kind: Service
+metadata:
+  name: cdn-invalidation
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: cdn-invalidation
+    app.kubernetes.io/component: cdn
+spec:
+  selector:
+    app.kubernetes.io/name: cdn-invalidation
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+---
+# Deployment for CDN invalidation service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cdn-invalidation
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: cdn-invalidation
+    app.kubernetes.io/component: cdn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cdn-invalidation
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cdn-invalidation
+    spec:
+      serviceAccountName: hopngo-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+      - name: cdn-invalidation
+        image: ghcr.io/hopngo/cdn-invalidation:v1.0.0
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+        ports:
+        - containerPort: 8080
+        env:
+        - name: AWS_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: storage-config
+              key: s3_uploads_region
+        - name: CLOUDFRONT_DISTRIBUTION_ID
+          valueFrom:
+            configMapKeyRef:
+              name: cdn-config
+              key: cloudfront_distribution_id
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: aws-storage-secret
+              key: access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-storage-secret
+              key: secret-access-key
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: tmp
+        emptyDir: {}
+---
+# CronJob for periodic CDN cache warming
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cdn-cache-warming
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: cdn-cache-warming
+    app.kubernetes.io/component: cdn
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: hopngo-service-account
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 2000
+          containers:
+          - name: cache-warming
+            image: ghcr.io/hopngo/cache-warming:v1.0.0
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              runAsUser: 1000
+              capabilities:
+                drop:
+                - ALL
+            env:
+            - name: CDN_DOMAIN
+              valueFrom:
+                configMapKeyRef:
+                  name: cdn-config
+                  key: cloudfront_domain
+            - name: FRONTEND_URL
+              value: "https://hopngo.com"
+            volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "50m"
+              limits:
+                memory: "128Mi"
+                cpu: "100m"
+          volumes:
+          - name: tmp
+            emptyDir: {}
+          restartPolicy: OnFailure
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1

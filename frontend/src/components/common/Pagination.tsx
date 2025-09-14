@@ -1,6 +1,16 @@
 import React from 'react';
 
-const Pagination = ({ 
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  totalElements: number;
+  onPageChange: (page: number) => void;
+  disabled?: boolean;
+  showInfo?: boolean;
+  size?: number;
+}
+
+const Pagination: React.FC<PaginationProps> = ({ 
   currentPage, 
   totalPages, 
   totalElements, 
@@ -41,7 +51,7 @@ const Pagination = ({
     return rangeWithDots;
   };
 
-  const handlePageChange = (page) => {
+  const handlePageChange = (page: number) => {
     if (page !== currentPage && page >= 1 && page <= totalPages && !disabled) {
       onPageChange(page - 1); // Convert to 0-based index
     }
@@ -123,7 +133,7 @@ const Pagination = ({
               return (
                 <button
                   key={page}
-                  onClick={() => handlePageChange(page)}
+                  onClick={() => typeof page === 'number' && handlePageChange(page)}
                   disabled={disabled}
                   className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                     isCurrentPage

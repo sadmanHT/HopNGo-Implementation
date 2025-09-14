@@ -1,0 +1,223 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hopngo-stg
+  labels:
+    name: hopngo-stg
+    environment: staging
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/instance: hopngo-staging
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: namespace
+    app.kubernetes.io/part-of: hopngo
+    app.kubernetes.io/managed-by: kustomize
+    # Security and policy labels
+    security.policy/enforce: "true"
+    network.policy/isolation: "enabled"
+    resource.quota/enabled: "true"
+    # Monitoring labels
+    monitoring.coreos.com/enabled: "true"
+    prometheus.io/scrape: "true"
+  annotations:
+    description: "HopNGo staging environment namespace"
+    contact: "devops@hopngo.com"
+    created-by: "kustomize"
+    environment: "staging"
+    # Resource management annotations
+    scheduler.alpha.kubernetes.io/preferred-zone: "us-east-1a"
+    # Security annotations
+    seccomp.security.alpha.kubernetes.io/pod: "runtime/default"
+    container.apparmor.security.beta.kubernetes.io/default: "runtime/default"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: hopngo-stg-quota
+  namespace: hopngo-stg
+  labels:
+    environment: staging
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: resource-quota
+spec:
+  hard:
+    # Compute resources
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    # Storage resources
+    requests.storage: 20Gi
+    persistentvolumeclaims: "5"
+    # Object counts
+    pods: "20"
+    services: "10"
+    secrets: "20"
+    configmaps: "20"
+    replicationcontrollers: "0"
+    deployments.apps: "10"
+    replicasets.apps: "20"
+    statefulsets.apps: "5"
+    jobs.batch: "10"
+    cronjobs.batch: "5"
+    # Network resources
+    services.nodeports: "0"
+    services.loadbalancers: "2"
+    # Security resources
+    count/rolebindings.rbac.authorization.k8s.io: "10"
+    count/roles.rbac.authorization.k8s.io: "10"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: hopngo-stg-limits
+  namespace: hopngo-stg
+  labels:
+    environment: staging
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: limit-range
+spec:
+  limits:
+  # Default limits for containers
+  - default:
+      cpu: "200m"
+      memory: "256Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container
+  # Limits for pods
+  - max:
+      cpu: "1"
+      memory: "1Gi"
+    min:
+      cpu: "50m"
+      memory: "64Mi"
+    type: Pod
+  # Limits for persistent volume claims
+  - max:
+      storage: 10Gi
+    min:
+      storage: 1Gi
+    type: PersistentVolumeClaim
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hopngo-stg-network-policy
+  namespace: hopngo-stg
+  labels:
+    environment: staging
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: hopngo
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow ingress from monitoring namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+  # Allow inter-pod communication within namespace
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: hopngo
+  egress:
+  # Allow egress to DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow egress to external databases and services
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 5432  # PostgreSQL
+    - protocol: TCP
+      port: 6379  # Redis
+    - protocol: TCP
+      port: 443   # HTTPS
+    - protocol: TCP
+      port: 80    # HTTP
+  # Allow egress to Kubernetes API server
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hopngo-stg-sa
+  namespace: hopngo-stg
+  labels:
+    environment: staging
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: service-account
+  annotations:
+    description: "Service account for HopNGo staging applications"
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hopngo-stg-role
+  namespace: hopngo-stg
+  labels:
+    environment: staging
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: rbac
+rules:
+# Allow reading config maps and secrets
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+# Allow reading services and endpoints
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list"]
+# Allow reading pods for health checks
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hopngo-stg-rolebinding
+  namespace: hopngo-stg
+  labels:
+    environment: staging
+    app.kubernetes.io/name: hopngo
+    app.kubernetes.io/component: rbac
+subjects:
+- kind: ServiceAccount
+  name: hopngo-stg-sa
+  namespace: hopngo-stg
+roleRef:
+  kind: Role
+  name: hopngo-stg-role
+  apiGroup: rbac.authorization.k8s.io

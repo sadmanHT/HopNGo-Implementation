@@ -1,5 +1,6 @@
 package com.hopngo.ai.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,8 +14,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     
     private final UserIdFilter userIdFilter;
-    
-    public SecurityConfig(UserIdFilter userIdFilter) {
+
+    public SecurityConfig(@Autowired(required = false) UserIdFilter userIdFilter) {
         this.userIdFilter = userIdFilter;
     }
     
@@ -28,7 +29,12 @@ public class SecurityConfig {
                 .requestMatchers("/ai/**").authenticated()
                 .anyRequest().permitAll()
             )
-            .addFilterBefore(userIdFilter, UsernamePasswordAuthenticationFilter.class);
+            ;
+        
+        // Only add the filter if it's available (Redis is enabled)
+        if (userIdFilter != null) {
+            http.addFilterBefore(userIdFilter, UsernamePasswordAuthenticationFilter.class);
+        }
         
         return http.build();
     }

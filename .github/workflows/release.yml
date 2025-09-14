@@ -1,0 +1,296 @@
+name: Release - Build, Sign & Push Images
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: hopngo
+
+jobs:
+  build-and-test:
+    name: Build & Test All Services
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.services.outputs.services }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 8
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Cache pnpm dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.pnpm-store
+        key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: ${{ runner.os }}-pnpm-
+        
+    - name: Define service matrix
+      id: services
+      run: |
+        services='["auth-service","booking-service","chat-service","emergency-service","gateway","notification-service","social-service","trip-planning-service","ai-service","market-service","frontend"]'
+        echo "services=$services" >> $GITHUB_OUTPUT
+        
+    - name: Build and test Java services
+      run: |
+        java_services=("auth-service" "booking-service" "chat-service" "emergency-service" "gateway" "notification-service" "social-service" "trip-planning-service" "ai-service" "market-service")
+        
+        for service in "${java_services[@]}"; do
+          echo "🔨 Building and testing $service..."
+          cd $service
+          ./mvnw -B clean verify -DskipTests=false
+          cd ..
+        done
+        
+    - name: Build and test frontend
+      run: |
+        echo "🔨 Building and testing frontend..."
+        cd frontend
+        pnpm install --frozen-lockfile
+        pnpm lint
+        pnpm build
+        cd ..
+
+  build-images:
+    name: Build & Sign Docker Images
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.build-and-test.outputs.services) }}
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3
+      with:
+        cosign-release: 'v2.2.2'
+        
+    - name: Install Syft
+      uses: anchore/sbom-action/download-syft@v0.15.9
+      
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=raw,value=latest,enable={{is_default_branch}}
+          
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ${{ matrix.service }}/Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+        
+    - name: Generate comprehensive SBOM
+      run: |
+        echo "📋 Generating comprehensive SBOM for ${{ matrix.service }}..."
+        
+        IMAGE_REF="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:${{ github.sha }}"
+        
+        # Generate SBOM in multiple formats
+        echo "  Generating SPDX SBOM..."
+        syft "$IMAGE_REF" -o spdx-json=sbom-${{ matrix.service }}.spdx.json
+        
+        echo "  Generating CycloneDX SBOM..."
+        syft "$IMAGE_REF" -o cyclonedx-json=sbom-${{ matrix.service }}.cyclonedx.json
+        
+        echo "  Generating Syft JSON SBOM..."
+        syft "$IMAGE_REF" -o syft-json=sbom-${{ matrix.service }}.syft.json
+        
+        # Generate vulnerability report with Grype
+        echo "  Scanning for vulnerabilities..."
+        grype "$IMAGE_REF" -o json > vulnerabilities-${{ matrix.service }}.json || true
+        grype "$IMAGE_REF" -o table > vulnerabilities-${{ matrix.service }}.txt || true
+        
+        echo "✅ SBOM generation completed for ${{ matrix.service }}"
+        
+    - name: Sign container image
+      run: |
+        echo "🔐 Signing container image for ${{ matrix.service }}..."
+        cosign sign --yes ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}@${{ steps.build.outputs.digest }}
+        
+    - name: Attest SBOM
+      run: |
+        echo "📝 Attesting SBOM for ${{ matrix.service }}..."
+        cosign attest --yes --predicate sbom-${{ matrix.service }}.spdx.json --type spdx ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}@${{ steps.build.outputs.digest }}
+        
+    - name: Generate SLSA provenance
+      uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v1.9.0
+      with:
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}
+        digest: ${{ steps.build.outputs.digest }}
+        registry-username: ${{ github.actor }}
+      secrets:
+        registry-password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload security artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-${{ matrix.service }}
+        path: |
+          sbom-${{ matrix.service }}.spdx.json
+          sbom-${{ matrix.service }}.cyclonedx.json
+          sbom-${{ matrix.service }}.syft.json
+          vulnerabilities-${{ matrix.service }}.json
+          vulnerabilities-${{ matrix.service }}.txt
+        retention-days: 90
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build-images
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all SBOM artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: sbom-*
+        merge-multiple: true
+        
+    - name: Create release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: '*.spdx.json'
+        generate_release_notes: true
+        draft: false
+        prerelease: ${{ contains(github.ref, '-') }}
+        body: |
+          ## 🚀 Release ${{ github.ref_name }}
+          
+          ### 📦 Container Images
+          All images are signed with Cosign and include SBOM attestations.
+          
+          **Pull images:**
+          ```bash
+          # Verify signature (requires cosign)
+          cosign verify --certificate-identity-regexp=".*" --certificate-oidc-issuer="https://token.actions.githubusercontent.com" ghcr.io/hopngo/auth-service:${{ github.ref_name }}
+          
+          # Pull images
+          docker pull ghcr.io/hopngo/auth-service:${{ github.ref_name }}
+          docker pull ghcr.io/hopngo/gateway:${{ github.ref_name }}
+          docker pull ghcr.io/hopngo/frontend:${{ github.ref_name }}
+          # ... (all services)
+          ```
+          
+          ### 🔒 Security
+          - ✅ All images signed with Cosign
+          - ✅ SBOM (Software Bill of Materials) attached
+          - ✅ SLSA Level 3 provenance attestation
+          
+          ### 📋 Artifacts
+          - SBOM files for all services (SPDX format)
+          - Container image signatures and attestations
+          
+  security-scan:
+    name: Security Scan Images
+    runs-on: ubuntu-latest
+    needs: build-images
+    permissions:
+      security-events: write
+      
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.build-and-test.outputs.services) }}
+        
+    steps:
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:${{ github.sha }}
+        format: 'sarif'
+        output: 'trivy-results-${{ matrix.service }}.sarif'
+        
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
+        category: 'trivy-${{ matrix.service }}'
+
+  notify:
+    name: Notify Release Status
+    runs-on: ubuntu-latest
+    needs: [build-images, create-release, security-scan]
+    if: always()
+    
+    steps:
+    - name: Release notification
+      run: |
+        if [[ "${{ needs.build-images.result }}" == "success" ]]; then
+          echo "✅ All container images built, signed, and pushed successfully"
+          echo "🔗 Registry: https://github.com/orgs/hopngo/packages"
+          
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "🎉 Release ${{ github.ref_name }} created with SBOM attachments"
+            echo "🔗 Release: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+          fi
+        else
+          echo "❌ Release pipeline failed"
+          echo "Build Images: ${{ needs.build-images.result }}"
+          echo "Create Release: ${{ needs.create-release.result }}"
+          echo "Security Scan: ${{ needs.security-scan.result }}"
+        fi

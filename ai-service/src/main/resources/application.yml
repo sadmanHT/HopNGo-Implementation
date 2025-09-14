@@ -87,7 +87,7 @@ ai:
   openai:
     api-key: ${OPENAI_API_KEY:}
     base-url: https://api.openai.com/v1
-    timeout: 30s
+    timeout: 30000  # 30 seconds in milliseconds
     max-retries: 3
     models:
       chat: gpt-3.5-turbo
@@ -99,7 +99,7 @@ ai:
     vision:
       api-key: ${GOOGLE_VISION_API_KEY:}
       project-id: ${GOOGLE_PROJECT_ID:}
-      timeout: 20s
+      timeout: 20000  # 20 seconds in milliseconds
   
   # Image Search Configuration
   image-search:
@@ -121,10 +121,10 @@ ai:
   # Performance Configuration
   performance:
     max-concurrent-requests: 50
-    request-timeout: 30s
+    request-timeout: 30000  # 30 seconds in milliseconds
     circuit-breaker:
       failure-rate-threshold: 50
-      wait-duration-in-open-state: 30s
+      wait-duration-in-open-state: 30000  # 30 seconds in milliseconds
       sliding-window-size: 10
   
   cache:

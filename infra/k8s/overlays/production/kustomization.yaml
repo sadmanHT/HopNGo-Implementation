@@ -6,6 +6,12 @@ namespace: hopngo-prod
 resources:
   - namespace.yaml
   - ../../base
+  - cert-manager.yaml
+  - network-policies.yaml
+  - pod-security.yaml
+  - production-secrets.yaml
+  - stateful-services.yaml
+  - cdn-storage.yaml
 
 patchesStrategicMerge:
   - replica-patch.yaml

@@ -4,6 +4,9 @@ import com.hopngo.tripplanning.dto.*;
 import com.hopngo.tripplanning.entity.*;
 import com.hopngo.tripplanning.enums.ShareVisibility;
 import com.hopngo.tripplanning.repository.*;
+import com.hopngo.tripplanning.mapper.ItineraryMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -31,6 +35,8 @@ public class ItinerarySharingService {
     private final ItineraryShareRepository shareRepository;
     private final ItineraryVersionRepository versionRepository;
     private final ItineraryCommentRepository commentRepository;
+    private final ItineraryMapper itineraryMapper;
+    private final ObjectMapper objectMapper;
     
     @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
@@ -39,11 +45,15 @@ public class ItinerarySharingService {
     public ItinerarySharingService(ItineraryRepository itineraryRepository,
                                  ItineraryShareRepository shareRepository,
                                  ItineraryVersionRepository versionRepository,
-                                 ItineraryCommentRepository commentRepository) {
+                                 ItineraryCommentRepository commentRepository,
+                                 ItineraryMapper itineraryMapper,
+                                 ObjectMapper objectMapper) {
         this.itineraryRepository = itineraryRepository;
         this.shareRepository = shareRepository;
         this.versionRepository = versionRepository;
         this.commentRepository = commentRepository;
+        this.itineraryMapper = itineraryMapper;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -105,18 +115,7 @@ public class ItinerarySharingService {
                 .filter(share -> share.getVisibility() != ShareVisibility.PRIVATE)
                 .map(share -> {
                     Itinerary itinerary = share.getItinerary();
-                    return new ItineraryResponse(
-                        itinerary.getId(),
-                        itinerary.getUserId(),
-                        itinerary.getTitle(),
-                        itinerary.getDays(),
-                        itinerary.getBudget(),
-                        itinerary.getOrigins(),
-                        itinerary.getDestinations(),
-                        itinerary.getPlan(),
-                        itinerary.getCreatedAt(),
-                        itinerary.getUpdatedAt()
-                    );
+                    return itineraryMapper.toResponse(itinerary);
                 });
     }
 
@@ -214,9 +213,19 @@ public class ItinerarySharingService {
             Integer nextVersion = versionRepository.findMaxVersionByItineraryId(itineraryId)
                     .map(max -> max + 1)
                     .orElse(1);
+            // Convert plan string to JsonNode
+            JsonNode planNode = null;
+            if (itinerary.getPlan() != null) {
+                try {
+                    planNode = objectMapper.readTree(itinerary.getPlan());
+                } catch (Exception e) {
+                    logger.warn("Failed to parse plan JSON, storing as text node", e);
+                    planNode = objectMapper.valueToTree(itinerary.getPlan());
+                }
+            }
             
             ItineraryVersion version = new ItineraryVersion(
-                itinerary, nextVersion, itinerary.getPlan(), userId
+                itinerary, nextVersion, planNode, userId
             );
             
             versionRepository.save(version);
@@ -246,11 +255,44 @@ public class ItinerarySharingService {
             // Create current version before reverting
             createVersion(itineraryId, userId);
             
-            // Update itinerary with version data
-            itinerary.setPlan(targetVersion.getPlan());
+            // Update itinerary with version data - convert JsonNode back to String
+            if (targetVersion.getPlan() != null) {
+                try {
+                    itinerary.setPlan(objectMapper.writeValueAsString(targetVersion.getPlan()));
+                } catch (Exception e) {
+                    logger.error("Failed to serialize plan from version", e);
+                    itinerary.setPlan(targetVersion.getPlan().toString());
+                }
+            } else {
+                itinerary.setPlan(null);
+            }
             itinerary = itineraryRepository.save(itinerary);
             
             logger.info("Successfully reverted itinerary: {} to version: {}", itineraryId, version);
+            
+            // Convert string fields back to expected types for response
+            List<Map<String, Object>> origins = null;
+            List<Map<String, Object>> destinations = null;
+            Map<String, Object> plan = null;
+            
+            try {
+                if (itinerary.getOrigins() != null) {
+                    origins = objectMapper.readValue(itinerary.getOrigins(), 
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, 
+                            objectMapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class)));
+                }
+                if (itinerary.getDestinations() != null) {
+                    destinations = objectMapper.readValue(itinerary.getDestinations(), 
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, 
+                            objectMapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class)));
+                }
+                if (itinerary.getPlan() != null) {
+                    plan = objectMapper.readValue(itinerary.getPlan(), 
+                        objectMapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class));
+                }
+            } catch (Exception e) {
+                logger.error("Failed to parse JSON fields for response", e);
+            }
             
             return new ItineraryResponse(
                 itinerary.getId(),
@@ -258,9 +300,9 @@ public class ItinerarySharingService {
                 itinerary.getTitle(),
                 itinerary.getDays(),
                 itinerary.getBudget(),
-                itinerary.getOrigins(),
-                itinerary.getDestinations(),
-                itinerary.getPlan(),
+                origins,
+                destinations,
+                plan,
                 itinerary.getCreatedAt(),
                 itinerary.getUpdatedAt()
             );

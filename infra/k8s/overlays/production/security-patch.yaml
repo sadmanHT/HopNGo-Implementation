@@ -1,8 +1,8 @@
 # Production environment security patches
 # Enhanced security configurations for production
 
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: gateway
 spec:
@@ -23,8 +23,8 @@ spec:
             drop:
             - ALL
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: auth-service
 spec:
@@ -67,8 +67,8 @@ spec:
             drop:
             - ALL
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: booking-service
 spec:

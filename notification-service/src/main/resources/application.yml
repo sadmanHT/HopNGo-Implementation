@@ -185,8 +185,12 @@ notification:
     from: noreply@hopngo.com
     from-name: HopNGo Platform
   sms:
-    enabled: false # Stub implementation
-    provider: stub
+    enabled: true
+    provider: twilio
+    twilio:
+      account-sid: ${TWILIO_ACCOUNT_SID:your_account_sid}
+      auth-token: ${TWILIO_AUTH_TOKEN:your_auth_token}
+      from-number: ${TWILIO_FROM_NUMBER:+1234567890}
   push:
     enabled: false # Stub implementation
     provider: stub

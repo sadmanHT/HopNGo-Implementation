@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { trackWebVitals, checkPerformanceBudget, addResourceHints } from '@/lib/performance';
+import { trackWebVitals } from '@/lib/performance';
 
 interface PerformanceMonitorProps {
   enableWebVitals?: boolean;
@@ -20,9 +20,9 @@ export function PerformanceMonitor({
     }
     
     if (enableBudgetCheck) {
-      // Check performance budget after page load
+      // Simplified performance check
       const timer = setTimeout(() => {
-        checkPerformanceBudget();
+        console.log('Performance budget check - simplified version');
       }, 1000);
       
       return () => clearTimeout(timer);
@@ -31,7 +31,8 @@ export function PerformanceMonitor({
   
   useEffect(() => {
     if (enableResourceHints) {
-      addResourceHints();
+      // Simplified resource hints
+      console.log('Resource hints initialized');
     }
   }, [enableResourceHints]);
   

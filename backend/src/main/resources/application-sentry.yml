@@ -1,0 +1,95 @@
+# Sentry Configuration for Error Monitoring
+sentry:
+  # DSN will be set via environment variable SENTRY_DSN
+  dsn: ${SENTRY_DSN:}
+  
+  # Environment configuration
+  environment: ${SPRING_PROFILES_ACTIVE:development}
+  
+  # Release version for tracking deployments
+  release: ${APP_VERSION:1.0.0}
+  
+  # Server name for identifying instances
+  server-name: ${HOSTNAME:hopngo-backend}
+  
+  # Sampling configuration
+  traces-sample-rate: 0.1  # 10% of transactions
+  profiles-sample-rate: 0.1  # 10% of profiles
+  
+  # Performance monitoring
+  enable-tracing: true
+  
+  # Debug mode (disable in production)
+  debug: false
+  
+  # Tags to add to all events
+  tags:
+    service: backend
+    component: api
+    
+  # Exception filtering
+  ignored-exceptions-for-type:
+    - com.hopngo.common.exception.BusinessException
+    - com.hopngo.common.exception.ResourceNotFoundException
+    - org.springframework.security.access.AccessDeniedException
+    - org.springframework.web.bind.MethodArgumentNotValidException
+    
+  # Breadcrumb configuration
+  max-breadcrumbs: 100
+  
+  # Context configuration
+  send-default-pii: false  # Don't send personally identifiable information
+  
+  # Integration configuration
+  integrations:
+    web:
+      enabled: true
+    jdbc:
+      enabled: true
+    redis:
+      enabled: true
+    spring:
+      enabled: true
+      
+  # Before send callback configuration
+  before-send:
+    enabled: true
+    
+  # In-app includes (for better stack traces)
+  in-app-includes:
+    - com.hopngo
+    
+  # Logging configuration
+  logging:
+    minimum-event-level: warn
+    minimum-breadcrumb-level: info
+    
+# Logging configuration for Sentry
+logging:
+  level:
+    io.sentry: INFO
+    com.hopngo: DEBUG
+    
+# Spring Boot Actuator endpoints for health checks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,sentry
+  endpoint:
+    sentry:
+      enabled: true
+      
+# Custom properties for error handling
+hopngo:
+  error-monitoring:
+    enabled: true
+    capture-user-context: true
+    capture-request-context: true
+    hash-user-ids: true
+    rate-limit:
+      enabled: true
+      max-events-per-minute: 100
+    fallback:
+      enabled: true
+      timeout-ms: 5000

@@ -17,7 +17,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -226,8 +225,8 @@ public class TicketService {
         systemMessage.setBody("Priority changed from " + oldPriority.getDisplayName() + " to " + priority.getDisplayName());
         ticketMessageRepository.save(systemMessage);
         
-        // Send notification for priority changes, especially urgent ones
-        if (priority == TicketPriority.URGENT || oldPriority != priority) {
+        // Send notification for priority changes, especially high priority ones
+        if (priority == TicketPriority.HIGH || oldPriority != priority) {
             notificationService.notifyEscalation(savedTicket, "Priority changed to " + priority.getDisplayName());
         }
         

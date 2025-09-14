@@ -5,9 +5,18 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 /**
  * Accessibility context for managing global accessibility state
  */
+interface AccessibilityPreferences {
+  reducedMotion: boolean;
+  highContrast: boolean;
+  fontSize: 'normal' | 'large' | 'extra-large';
+}
+
 interface AccessibilityContextType {
   announcements: string[];
   announce: (message: string, priority?: 'polite' | 'assertive') => void;
+  preferences: AccessibilityPreferences;
+  updatePreferences: (updates: Partial<AccessibilityPreferences>) => void;
+  resetPreferences: () => void;
   reducedMotion: boolean;
   highContrast: boolean;
   fontSize: 'small' | 'medium' | 'large' | 'extra-large';
@@ -120,14 +129,48 @@ export const AccessibilityProvider: React.FC<AccessibilityProviderProps> = ({ ch
     announce(newValue ? 'High contrast mode enabled' : 'High contrast mode disabled');
   };
 
+  const updatePreferences = (updates: Partial<AccessibilityPreferences>) => {
+    if (updates.reducedMotion !== undefined) {
+      setReducedMotion(updates.reducedMotion);
+    }
+    if (updates.highContrast !== undefined) {
+      setHighContrast(updates.highContrast);
+      localStorage.setItem('accessibility-high-contrast', updates.highContrast.toString());
+    }
+    if (updates.fontSize !== undefined) {
+      const mappedSize = updates.fontSize === 'normal' ? 'medium' : 
+                        updates.fontSize === 'large' ? 'large' : 'extra-large';
+      setFontSize(mappedSize);
+      localStorage.setItem('accessibility-font-size', mappedSize);
+    }
+  };
+
+  const resetPreferences = () => {
+    setReducedMotion(false);
+    setHighContrast(false);
+    setFontSize('medium');
+    localStorage.removeItem('accessibility-font-size');
+    localStorage.removeItem('accessibility-high-contrast');
+    announce('Accessibility preferences reset to defaults');
+  };
+
+  const preferences: AccessibilityPreferences = {
+    reducedMotion,
+    highContrast,
+    fontSize: fontSize === 'medium' ? 'normal' : fontSize === 'large' ? 'large' : 'extra-large'
+  };
+
   const value: AccessibilityContextType = {
     announcements,
     announce,
+    preferences,
+    updatePreferences,
+    resetPreferences,
     reducedMotion,
     highContrast,
     fontSize,
     setFontSize: handleSetFontSize,
-    toggleHighContrast
+    toggleHighContrast,
   };
 
   return (

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, ReactNode } from 'react';
 import { useReferral } from '@/hooks/use-referral';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuthStore } from '@/lib/state/auth';
 import { ReferralStats, ReferralResponse } from '@/lib/services/referral';
 
 interface ReferralContextType {
@@ -23,7 +23,7 @@ interface ReferralProviderProps {
 }
 
 export function ReferralProvider({ children }: ReferralProviderProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuthStore();
   const referralHook = useReferral();
 
   // Auto-track signup conversion when user first authenticates

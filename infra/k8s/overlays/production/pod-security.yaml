@@ -1,0 +1,14 @@
+# Pod Security Standards for production environment
+# Uses Pod Security Standards (PSS) instead of deprecated PodSecurityPolicy
+# Applied via namespace labels for Kubernetes v1.23+
+---
+# Service Account for application services
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hopngo-service-account
+  namespace: hopngo-prod
+  labels:
+    app.kubernetes.io/name: service-account
+    app.kubernetes.io/component: security
+automountServiceAccountToken: false

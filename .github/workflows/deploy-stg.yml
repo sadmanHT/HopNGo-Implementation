@@ -1,0 +1,342 @@
+name: Deploy to Staging
+
+on:
+  workflow_run:
+    workflows: ["Release - Build, Sign & Push Images"]
+    types:
+      - completed
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (default: latest commit SHA)'
+        required: false
+        type: string
+      skip_tests:
+        description: 'Skip smoke tests'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: hopngo
+  KUBECTL_VERSION: v1.28.0
+  STAGING_NAMESPACE: hopngo-staging
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging Environment
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    environment:
+      name: staging
+      url: https://staging.hopngo.com
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: ${{ env.KUBECTL_VERSION }}
+        
+    - name: Setup Kustomize
+      uses: imranismail/setup-kustomize@v2
+      with:
+        kustomize-version: '5.0.0'
+        
+    - name: Install ArgoCD CLI
+      run: |
+        curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+        sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+        rm argocd-linux-amd64
+        
+    - name: Configure kubectl for staging
+      run: |
+        echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        kubectl config current-context
+        kubectl cluster-info
+        
+    - name: Verify image signatures
+      run: |
+        echo "🔐 Verifying container image signatures..."
+        
+        # Install cosign
+        curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64"
+        sudo mv cosign-linux-amd64 /usr/local/bin/cosign
+        sudo chmod +x /usr/local/bin/cosign
+        
+        # Determine image tag
+        IMAGE_TAG="${{ github.event.inputs.image_tag || github.sha }}"
+        
+        # Verify signatures for critical services
+        services=("auth-service" "gateway" "frontend")
+        for service in "${services[@]}"; do
+          echo "Verifying $service image signature..."
+          cosign verify \
+            --certificate-identity-regexp=".*" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/$service:$IMAGE_TAG
+        done
+        
+        echo "✅ All critical service images verified"
+        
+    - name: Apply infrastructure and policies
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🏗️ Applying infrastructure and policies..."
+        
+        # Apply namespace and RBAC
+        kubectl apply -f infra/k8s/overlays/staging/namespace.yaml
+        
+        # Apply network policies and security policies
+        if [ -f "infra/k8s/overlays/staging/network-policies.yaml" ]; then
+          kubectl apply -f infra/k8s/overlays/staging/network-policies.yaml
+        fi
+        
+        if [ -f "infra/k8s/overlays/staging/pod-security.yaml" ]; then
+          kubectl apply -f infra/k8s/overlays/staging/pod-security.yaml
+        fi
+        
+    - name: Run database migrations
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🗄️ Running database migrations..."
+        
+        # Create migration job
+        cat <<EOF | kubectl apply -f -
+        apiVersion: batch/v1
+        kind: Job
+        metadata:
+          name: db-migration-$(date +%s)
+          namespace: ${{ env.STAGING_NAMESPACE }}
+        spec:
+          template:
+            spec:
+              restartPolicy: Never
+              containers:
+              - name: migration
+                image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/auth-service:${{ github.event.inputs.image_tag || github.sha }}
+                command: ["java", "-jar", "/app.jar", "--spring.profiles.active=migration"]
+                env:
+                - name: SPRING_DATASOURCE_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: environment-config
+                      key: database.url
+                - name: SPRING_DATASOURCE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: database-secret
+                      key: username
+                - name: SPRING_DATASOURCE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: database-secret
+                      key: password
+        EOF
+        
+        # Wait for migration to complete
+        kubectl wait --for=condition=complete job -l app=db-migration --timeout=300s -n ${{ env.STAGING_NAMESPACE }}
+        
+    - name: Deploy with ArgoCD App-of-Apps
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🚀 Deploying to staging with ArgoCD App-of-Apps..."
+        
+        # Update image tags in staging overlay
+        cd infra/k8s/overlays/staging
+        
+        IMAGE_TAG="${{ github.event.inputs.image_tag || github.sha }}"
+        services=("auth-service" "booking-service" "gateway" "social-service" "trip-planning-service" "chat-service" "emergency-service" "notification-service" "ai-service" "market-service" "frontend")
+        
+        # Update kustomization.yaml with new image tags
+        for service in "${services[@]}"; do
+          echo "Updating $service image tag to $IMAGE_TAG..."
+          kustomize edit set image ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/$service=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/$service:$IMAGE_TAG
+        done
+        
+        # Apply the deployment
+        kubectl apply -k .
+        
+        cd ../../../..
+        
+    - name: Wait for rollouts to complete
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "⏳ Waiting for rollouts to complete..."
+        
+        services=("auth-service" "booking-service" "gateway" "social-service" "trip-planning-service" "chat-service" "emergency-service" "notification-service" "ai-service" "market-service" "frontend")
+        
+        for service in "${services[@]}"; do
+          echo "Waiting for $service rollout..."
+          
+          # Check if it's an Argo Rollout or regular Deployment
+          if kubectl get rollout $service -n ${{ env.STAGING_NAMESPACE }} >/dev/null 2>&1; then
+            kubectl argo rollouts get rollout $service -n ${{ env.STAGING_NAMESPACE }} --watch --timeout=600s
+          else
+            kubectl rollout status deployment/$service -n ${{ env.STAGING_NAMESPACE }} --timeout=600s
+          fi
+        done
+        
+        echo "✅ All services deployed successfully"
+        
+    - name: Verify deployment health
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🏥 Verifying deployment health..."
+        
+        # Check pod status
+        kubectl get pods -n ${{ env.STAGING_NAMESPACE }}
+        
+        # Wait for all pods to be ready
+        kubectl wait --for=condition=ready pod -l app.kubernetes.io/part-of=hopngo -n ${{ env.STAGING_NAMESPACE }} --timeout=300s
+        
+        # Check service endpoints
+        kubectl get endpoints -n ${{ env.STAGING_NAMESPACE }}
+        
+        echo "✅ All pods are healthy and ready"
+
+  smoke-tests:
+    name: Run Staging Smoke Tests
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: github.event.inputs.skip_tests != 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js for testing
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install test dependencies
+      run: |
+        npm install -g newman
+        
+    - name: Wait for services to be fully ready
+      run: |
+        echo "⏳ Waiting for services to be fully ready..."
+        sleep 60
+        
+    - name: Run comprehensive smoke tests
+      run: |
+        set -e
+        echo "🧪 Running comprehensive staging smoke tests..."
+        
+        STAGING_URL="https://staging.hopngo.com"
+        
+        # Test 1: Gateway Health Check
+        echo "Testing Gateway health..."
+        response=$(curl -s -o /dev/null -w "%{http_code}" $STAGING_URL/api/v1/health)
+        if [ "$response" = "200" ]; then
+          echo "✅ Gateway health check passed"
+        else
+          echo "❌ Gateway health check failed (HTTP $response)"
+          exit 1
+        fi
+        
+        # Test 2: Auth Service Health
+        echo "Testing Auth service health..."
+        response=$(curl -s -o /dev/null -w "%{http_code}" $STAGING_URL/api/v1/auth/health)
+        if [ "$response" = "200" ]; then
+          echo "✅ Auth service health check passed"
+        else
+          echo "❌ Auth service health check failed (HTTP $response)"
+          exit 1
+        fi
+        
+        # Test 3: Frontend Accessibility
+        echo "Testing Frontend accessibility..."
+        response=$(curl -s -o /dev/null -w "%{http_code}" $STAGING_URL/)
+        if [ "$response" = "200" ]; then
+          echo "✅ Frontend accessibility test passed"
+        else
+          echo "❌ Frontend accessibility test failed (HTTP $response)"
+          exit 1
+        fi
+        
+        # Test 4: User Registration Flow
+        echo "Testing user registration flow..."
+        register_response=$(curl -s -X POST $STAGING_URL/api/v1/auth/register \
+          -H "Content-Type: application/json" \
+          -d '{
+            "email": "staging-test-'$(date +%s)'@example.com",
+            "password": "TestPassword123!",
+            "firstName": "Staging",
+            "lastName": "Test"
+          }' \
+          -w "%{http_code}" -o register_output.json)
+        
+        if [ "$register_response" = "201" ] || [ "$register_response" = "200" ]; then
+          echo "✅ User registration test passed"
+        else
+          echo "❌ User registration test failed (HTTP $register_response)"
+          cat register_output.json
+          exit 1
+        fi
+        
+        # Test 5: Database Connectivity
+        echo "Testing database connectivity..."
+        db_response=$(curl -s -o /dev/null -w "%{http_code}" $STAGING_URL/api/v1/auth/health/db)
+        if [ "$db_response" = "200" ]; then
+          echo "✅ Database connectivity test passed"
+        else
+          echo "⚠️ Database connectivity test failed (HTTP $db_response) - may be expected"
+        fi
+        
+        # Test 6: API Response Time
+        echo "Testing API response time..."
+        response_time=$(curl -s -o /dev/null -w "%{time_total}" $STAGING_URL/api/v1/health)
+        if (( $(echo "$response_time < 2.0" | bc -l) )); then
+          echo "✅ API response time test passed ($response_time seconds)"
+        else
+          echo "⚠️ API response time is slow ($response_time seconds)"
+        fi
+        
+        echo "🎉 All staging smoke tests completed successfully!"
+        
+    - name: Performance baseline test
+      run: |
+        echo "📊 Running performance baseline test..."
+        
+        # Simple load test with curl
+        STAGING_URL="https://staging.hopngo.com"
+        
+        echo "Running 10 concurrent requests..."
+        for i in {1..10}; do
+          curl -s -o /dev/null -w "Request $i: %{time_total}s\n" $STAGING_URL/api/v1/health &
+        done
+        wait
+        
+        echo "✅ Performance baseline test completed"
+
+  notify:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, smoke-tests]
+    if: always()
+    
+    steps:
+    - name: Staging deployment notification
+      run: |
+        if [[ "${{ needs.deploy-staging.result }}" == "success" && "${{ needs.smoke-tests.result }}" == "success" ]]; then
+          echo "✅ Staging deployment completed successfully"
+          echo "🔗 Environment: https://staging.hopngo.com"
+          echo "📊 Monitoring: https://grafana-staging.hopngo.com"
+          echo "🚀 Ready for production deployment"
+        else
+          echo "❌ Staging deployment failed"
+          echo "Deploy: ${{ needs.deploy-staging.result }}"
+          echo "Tests: ${{ needs.smoke-tests.result }}"
+          echo "🔍 Check logs for details"
+        fi

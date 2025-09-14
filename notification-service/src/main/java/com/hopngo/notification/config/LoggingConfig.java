@@ -9,7 +9,6 @@ import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
@@ -22,10 +21,13 @@ import javax.annotation.PostConstruct;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Configuration
-@RequiredArgsConstructor
 public class LoggingConfig {
 
     private final MeterRegistry meterRegistry;
+    
+    public LoggingConfig(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+    }
 
     @PostConstruct
     public void configureLogging() {
@@ -151,13 +153,16 @@ public class LoggingConfig {
 }
 
 @Component
-@RequiredArgsConstructor
 class NotificationMonitoringService implements HealthIndicator {
 
     private final AtomicLong totalNotifications = new AtomicLong(0);
     private final AtomicLong failedNotifications = new AtomicLong(0);
     private final AtomicLong rabbitMQErrors = new AtomicLong(0);
     private final AtomicLong serializationErrors = new AtomicLong(0);
+    
+    public NotificationMonitoringService() {
+        // Default constructor
+    }
 
     public void incrementTotalNotifications() {
         totalNotifications.incrementAndGet();

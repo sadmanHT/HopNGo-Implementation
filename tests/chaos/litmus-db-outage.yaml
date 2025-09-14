@@ -1,0 +1,416 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: hopngo-postgres-outage-chaos
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    chaos-type: db-outage
+    target: postgres
+spec:
+  engineState: 'active'
+  auxiliaryAppInfo: ''
+  chaosServiceAccount: litmus-admin
+  
+  appinfo:
+    appns: 'hopngo-prod'
+    applabel: 'app=postgres'
+    appkind: 'statefulset'
+  
+  monitoring: true
+  jobCleanUpPolicy: 'retain'
+  
+  experiments:
+  - name: pod-network-loss
+    spec:
+      components:
+        env:
+          # Network chaos configuration
+          - name: TOTAL_CHAOS_DURATION
+            value: '180' # 3 minutes database outage
+          
+          - name: NETWORK_INTERFACE
+            value: 'eth0'
+          
+          - name: NETWORK_PACKET_LOSS_PERCENTAGE
+            value: '100' # Complete network isolation
+          
+          - name: DESTINATION_IPS
+            value: '' # All traffic affected
+          
+          - name: DESTINATION_HOSTS
+            value: ''
+          
+          - name: CONTAINER_RUNTIME
+            value: 'containerd'
+          
+          - name: SOCKET_PATH
+            value: '/run/containerd/containerd.sock'
+          
+          - name: PODS_AFFECTED_PERC
+            value: '100' # Affect all database pods
+          
+          - name: TARGET_CONTAINER
+            value: 'postgres'
+          
+          - name: RAMP_TIME
+            value: '30'
+          
+          - name: INSTANCE_ID
+            value: 'postgres-network-outage'
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "400m"
+      
+      probe:
+      - name: "market-service-circuit-breaker-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 10
+          retry: 2
+          interval: 15
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://market-service:8080/actuator/health/circuitBreakers"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "contains"
+              responseCode: "200"
+        # Expect circuit breaker to be OPEN during outage
+        
+      - name: "booking-service-fallback-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 15
+          retry: 3
+          interval: 20
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://booking-service:8080/api/bookings/search?fallback=true"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+        # Should return cached/fallback data
+      
+      - name: "application-degraded-mode-check"
+        type: "cmdProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 10
+          retry: 2
+          interval: 25
+          probePollingInterval: 5
+        cmdProbe/inputs:
+          command: "curl"
+          args:
+            - "-f"
+            - "-H"
+            - "Accept: application/json"
+            - "http://market-service:8080/actuator/metrics/resilience4j.circuitbreaker.state"
+          source:
+            image: "curlimages/curl:latest"
+            inheritInputs: true
+          comparator:
+            type: "string"
+            criteria: "contains"
+            value: "OPEN"
+      
+      - name: "redis-cache-utilization-check"
+        type: "cmdProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 8
+          retry: 2
+          interval: 20
+          probePollingInterval: 3
+        cmdProbe/inputs:
+          command: "redis-cli"
+          args:
+            - "-h"
+            - "redis-service"
+            - "-p"
+            - "6379"
+            - "INFO"
+            - "stats"
+          source:
+            image: "redis:7-alpine"
+            inheritInputs: true
+          comparator:
+            type: "string"
+            criteria: "contains"
+            value: "keyspace_hits"
+
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: hopngo-mongodb-outage-chaos
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    chaos-type: db-outage
+    target: mongodb
+spec:
+  engineState: 'active'
+  auxiliaryAppInfo: ''
+  chaosServiceAccount: litmus-admin
+  
+  appinfo:
+    appns: 'hopngo-prod'
+    applabel: 'app=mongodb'
+    appkind: 'statefulset'
+  
+  monitoring: true
+  jobCleanUpPolicy: 'retain'
+  
+  experiments:
+  - name: container-kill
+    spec:
+      components:
+        env:
+          # Container kill configuration
+          - name: TOTAL_CHAOS_DURATION
+            value: '120' # 2 minutes MongoDB outage
+          
+          - name: CHAOS_INTERVAL
+            value: '30' # Kill container every 30 seconds
+          
+          - name: CONTAINER_RUNTIME
+            value: 'containerd'
+          
+          - name: SOCKET_PATH
+            value: '/run/containerd/containerd.sock'
+          
+          - name: TARGET_CONTAINER
+            value: 'mongodb'
+          
+          - name: PODS_AFFECTED_PERC
+            value: '50' # Kill half of MongoDB instances
+          
+          - name: SEQUENCE
+            value: 'serial'
+          
+          - name: SIGNAL
+            value: 'SIGKILL'
+          
+          - name: RAMP_TIME
+            value: '20'
+          
+          - name: INSTANCE_ID
+            value: 'mongodb-container-kill'
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "400m"
+      
+      probe:
+      - name: "social-service-mongodb-fallback-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 12
+          retry: 3
+          interval: 18
+          probePollingInterval: 4
+        httpProbe/inputs:
+          url: "http://social-service:8080/api/social/feed?limit=10&fallback=true"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+        # Should serve cached social feed data
+      
+      - name: "mongodb-replica-set-check"
+        type: "cmdProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 15
+          retry: 2
+          interval: 30
+          probePollingInterval: 5
+        cmdProbe/inputs:
+          command: "mongosh"
+          args:
+            - "--host"
+            - "mongodb-service:27017"
+            - "--eval"
+            - "rs.status().ok"
+          source:
+            image: "mongo:6.0"
+            inheritInputs: true
+          comparator:
+            type: "int"
+            criteria: "=="
+            value: "1"
+      
+      - name: "social-service-circuit-breaker-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 10
+          retry: 2
+          interval: 20
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://social-service:8080/actuator/health/circuitBreakers"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "contains"
+              responseCode: "200"
+
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: hopngo-redis-outage-chaos
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    chaos-type: cache-outage
+    target: redis
+spec:
+  engineState: 'active'
+  auxiliaryAppInfo: ''
+  chaosServiceAccount: litmus-admin
+  
+  appinfo:
+    appns: 'hopngo-prod'
+    applabel: 'app=redis'
+    appkind: 'deployment'
+  
+  monitoring: true
+  jobCleanUpPolicy: 'retain'
+  
+  experiments:
+  - name: pod-memory-hog
+    spec:
+      components:
+        env:
+          # Memory exhaustion configuration
+          - name: TOTAL_CHAOS_DURATION
+            value: '90' # 1.5 minutes Redis memory pressure
+          
+          - name: MEMORY_CONSUMPTION
+            value: '90' # Consume 90% of available memory
+          
+          - name: NUMBER_OF_WORKERS
+            value: '4'
+          
+          - name: CONTAINER_RUNTIME
+            value: 'containerd'
+          
+          - name: SOCKET_PATH
+            value: '/run/containerd/containerd.sock'
+          
+          - name: TARGET_CONTAINER
+            value: 'redis'
+          
+          - name: PODS_AFFECTED_PERC
+            value: '100'
+          
+          - name: RAMP_TIME
+            value: '15'
+          
+          - name: INSTANCE_ID
+            value: 'redis-memory-hog'
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "400m"
+      
+      probe:
+      - name: "cache-miss-handling-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 15
+          retry: 3
+          interval: 20
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://market-service:8080/api/market/products?category=food&nocache=true"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+        # Should handle cache misses gracefully
+      
+      - name: "session-fallback-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 12
+          retry: 2
+          interval: 25
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://frontend:3000/api/auth/session-check"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+        # Should fall back to database sessions
+      
+      - name: "redis-memory-usage-check"
+        type: "cmdProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 8
+          retry: 2
+          interval: 15
+          probePollingInterval: 3
+        cmdProbe/inputs:
+          command: "redis-cli"
+          args:
+            - "-h"
+            - "redis-service"
+            - "-p"
+            - "6379"
+            - "INFO"
+            - "memory"
+          source:
+            image: "redis:7-alpine"
+            inheritInputs: true
+          comparator:
+            type: "string"
+            criteria: "contains"
+            value: "used_memory"
+      
+      - name: "application-performance-degradation-check"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 20
+          retry: 2
+          interval: 30
+          probePollingInterval: 5
+        httpProbe/inputs:
+          url: "http://market-service:8080/actuator/metrics/http.server.requests"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+        # Monitor response time increase during cache outage

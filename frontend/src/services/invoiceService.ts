@@ -20,7 +20,7 @@ class InvoiceService {
   /**
    * Get specific invoice by ID.
    */
-  async getInvoiceById(invoiceId) {
+  async getInvoiceById(invoiceId: string) {
     try {
       const response = await api.get(`/invoices/${invoiceId}`);
       return response.data;
@@ -33,7 +33,7 @@ class InvoiceService {
   /**
    * Get invoice by invoice number.
    */
-  async getInvoiceByNumber(invoiceNumber) {
+  async getInvoiceByNumber(invoiceNumber: string) {
     try {
       const response = await api.get(`/invoices/number/${invoiceNumber}`);
       return response.data;
@@ -59,7 +59,7 @@ class InvoiceService {
   /**
    * Download invoice PDF.
    */
-  async downloadInvoicePdf(invoiceId) {
+  async downloadInvoicePdf(invoiceId: string) {
     try {
       const response = await api.get(`/invoices/${invoiceId}/pdf`, {
         responseType: 'blob'
@@ -74,7 +74,7 @@ class InvoiceService {
   /**
    * Download receipt PDF.
    */
-  async downloadReceiptPdf(invoiceId) {
+  async downloadReceiptPdf(invoiceId: string) {
     try {
       const response = await api.get(`/invoices/${invoiceId}/receipt`, {
         responseType: 'blob'
@@ -89,7 +89,7 @@ class InvoiceService {
   /**
    * Create invoice for order.
    */
-  async createInvoiceForOrder(orderData) {
+  async createInvoiceForOrder(orderData: any) {
     try {
       const response = await api.post('/invoices/order', orderData);
       return response.data;
@@ -102,7 +102,7 @@ class InvoiceService {
   /**
    * Create invoice for booking.
    */
-  async createInvoiceForBooking(bookingData) {
+  async createInvoiceForBooking(bookingData: any) {
     try {
       const response = await api.post('/invoices/booking', bookingData);
       return response.data;
@@ -115,7 +115,7 @@ class InvoiceService {
   /**
    * Cancel an invoice.
    */
-  async cancelInvoice(invoiceId, reason) {
+  async cancelInvoice(invoiceId: string, reason: string) {
     try {
       const response = await api.post(`/invoices/${invoiceId}/cancel`, { reason });
       return response.data;
@@ -141,7 +141,7 @@ class InvoiceService {
   /**
    * Format currency amount for display.
    */
-  formatCurrency(amount, currency = 'BDT') {
+  formatCurrency(amount: number, currency = 'BDT') {
     const formatter = new Intl.NumberFormat('en-BD', {
       style: 'currency',
       currency: currency,
@@ -154,8 +154,8 @@ class InvoiceService {
   /**
    * Format invoice status for display.
    */
-  formatStatus(status) {
-    const statusMap = {
+  formatStatus(status: string) {
+    const statusMap: { [key: string]: string } = {
       'DRAFT': 'Draft',
       'ISSUED': 'Issued',
       'PAID': 'Paid',
@@ -169,8 +169,8 @@ class InvoiceService {
   /**
    * Get status color class for UI.
    */
-  getStatusColor(status) {
-    const colorMap = {
+  getStatusColor(status: string) {
+    const colorMap: { [key: string]: string } = {
       'DRAFT': 'bg-gray-100 text-gray-800',
       'ISSUED': 'bg-blue-100 text-blue-800',
       'PAID': 'bg-green-100 text-green-800',
@@ -184,33 +184,33 @@ class InvoiceService {
   /**
    * Check if invoice can be downloaded.
    */
-  canDownloadInvoice(invoice) {
+  canDownloadInvoice(invoice: any) {
     return invoice.status === 'ISSUED' || invoice.status === 'PAID' || invoice.status === 'OVERDUE';
   }
 
   /**
    * Check if receipt can be downloaded.
    */
-  canDownloadReceipt(invoice) {
+  canDownloadReceipt(invoice: any) {
     return invoice.status === 'PAID';
   }
 
   /**
    * Check if invoice can be cancelled.
    */
-  canCancelInvoice(invoice) {
+  canCancelInvoice(invoice: any) {
     return invoice.status === 'DRAFT' || invoice.status === 'ISSUED';
   }
 
   /**
    * Calculate days until due date.
    */
-  getDaysUntilDue(dueDate) {
+  getDaysUntilDue(dueDate: string | Date | null) {
     if (!dueDate) return null;
     
     const due = new Date(dueDate);
     const now = new Date();
-    const diffTime = due - now;
+    const diffTime = due.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     return diffDays;
@@ -219,17 +219,17 @@ class InvoiceService {
   /**
    * Check if invoice is overdue.
    */
-  isOverdue(invoice) {
+  isOverdue(invoice: any) {
     if (invoice.status !== 'ISSUED' || !invoice.dueAt) return false;
     
     const daysUntilDue = this.getDaysUntilDue(invoice.dueAt);
-    return daysUntilDue < 0;
+    return daysUntilDue !== null && daysUntilDue < 0;
   }
 
   /**
    * Get invoice type display name.
    */
-  getInvoiceType(invoice) {
+  getInvoiceType(invoice: any) {
     if (invoice.orderId) return 'Order';
     if (invoice.bookingId) return 'Booking';
     return 'Invoice';
@@ -238,7 +238,7 @@ class InvoiceService {
   /**
    * Generate invoice breakdown for display.
    */
-  getInvoiceBreakdown(invoice) {
+  getInvoiceBreakdown(invoice: any) {
     const breakdown = [];
     
     breakdown.push({
@@ -283,7 +283,7 @@ class InvoiceService {
   /**
    * Handle API errors.
    */
-  handleError(error) {
+  handleError(error: any) {
     if (error.response) {
       // Server responded with error status
       const { status, data } = error.response;

@@ -3,6 +3,80 @@ import { NextRequest, NextResponse } from 'next/server';
 const locales = ['en', 'bn'];
 const defaultLocale = 'bn';
 
+/**
+ * Add comprehensive security headers to response
+ */
+function addSecurityHeaders(response: NextResponse, pathname: string): NextResponse {
+  // Content Security Policy - Strict policy for React app
+  const csp = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: https: blob:",
+    "connect-src 'self' https://api.hopngo.com wss://api.hopngo.com",
+    "media-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests",
+    "block-all-mixed-content"
+  ].join('; ');
+  
+  response.headers.set('Content-Security-Policy', csp);
+  
+  // HTTP Strict Transport Security with preload
+  response.headers.set(
+    'Strict-Transport-Security',
+    'max-age=31536000; includeSubDomains; preload'
+  );
+  
+  // Prevent MIME type sniffing
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  
+  // Prevent clickjacking
+  response.headers.set('X-Frame-Options', 'DENY');
+  
+  // Strict referrer policy
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Permissions Policy - Restrict dangerous features
+  const permissionsPolicy = [
+    'geolocation=(self)',
+    'microphone=()',
+    'camera=()',
+    'payment=(self)',
+    'usb=()',
+    'magnetometer=()',
+    'gyroscope=()',
+    'speaker=()',
+    'vibrate=()',
+    'fullscreen=(self)',
+    'sync-xhr=()'
+  ].join(', ');
+  
+  response.headers.set('Permissions-Policy', permissionsPolicy);
+  
+  // X-XSS-Protection (legacy but still useful)
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  
+  // Cache control for sensitive pages
+  if (pathname.includes('/admin') ||
+      pathname.includes('/profile') ||
+      pathname.includes('/dashboard')) {
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+  }
+  
+  // Remove server information
+  response.headers.delete('Server');
+  response.headers.set('Server', 'HopNGo-Frontend');
+  
+  return response;
+}
+
 export function middleware(request: NextRequest) {
   // Check if there is any supported locale in the pathname
   const { pathname } = request.nextUrl;
@@ -14,7 +88,8 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/favicon.ico') ||
     pathname.includes('.')
   ) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    return addSecurityHeaders(response, pathname);
   }
 
   const pathnameHasLocale = locales.some(
@@ -22,7 +97,8 @@ export function middleware(request: NextRequest) {
   );
 
   if (pathnameHasLocale) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    return addSecurityHeaders(response, pathname);
   }
 
   // Get locale from Accept-Language header or use default
@@ -48,7 +124,8 @@ export function middleware(request: NextRequest) {
 
   // Redirect to the locale-prefixed URL
   const redirectUrl = new URL(`/${locale}${pathname}`, request.url);
-  return NextResponse.redirect(redirectUrl);
+  const response = NextResponse.redirect(redirectUrl);
+  return addSecurityHeaders(response, pathname);
 }
 
 export const config = {

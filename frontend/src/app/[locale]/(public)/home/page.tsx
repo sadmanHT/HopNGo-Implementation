@@ -17,11 +17,16 @@ import { Loader2, MapPin, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface HomePageProps {
-  params: { locale: string }
+  params: Promise<{ locale: string }>;
 }
 
 export default function HomePage({ params }: HomePageProps) {
+  const [locale, setLocale] = useState<string>('');
   const { isAuthenticated, user } = useAuthStore();
+  
+  useEffect(() => {
+    params.then(({ locale }) => setLocale(locale));
+  }, [params]);
   const recsEnabled = useFeatureFlag('recs_v1');
   const [recommendations, setRecommendations] = useState<RecommendedItem[]>([]);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
@@ -53,7 +58,7 @@ export default function HomePage({ params }: HomePageProps) {
   useEffect(() => {
     const loadTranslations = async () => {
       try {
-        const { t: translations } = await useTranslation(params.locale);
+        const { t: translations } = await useTranslation(locale);
         setT(translations);
       } catch (error) {
         console.error('Failed to load translations:', error);
@@ -61,7 +66,7 @@ export default function HomePage({ params }: HomePageProps) {
       }
     };
     loadTranslations();
-  }, [params.locale]);
+  }, [locale]);
 
   useEffect(() => {
     const fetchRecommendations = async () => {

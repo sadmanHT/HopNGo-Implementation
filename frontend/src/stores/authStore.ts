@@ -11,6 +11,7 @@ interface User {
   role: 'user' | 'admin';
   verified: boolean;
   isVerified?: boolean;
+  createdAt?: string;
 }
 
 interface AuthState {

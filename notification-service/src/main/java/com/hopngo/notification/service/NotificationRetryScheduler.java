@@ -1,10 +1,12 @@
 package com.hopngo.notification.service;
 
+import com.hopngo.notification.dto.PushNotificationRequest;
 import com.hopngo.notification.entity.Notification;
 import com.hopngo.notification.entity.NotificationStatus;
 import com.hopngo.notification.repository.NotificationRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,16 +19,28 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class NotificationRetryScheduler {
+    
+    private static final Logger log = LoggerFactory.getLogger(NotificationRetryScheduler.class);
 
     private final NotificationRepository notificationRepository;
     private final NotificationService notificationService;
     private final EmailService emailService;
     private final SmsService smsService;
     private final FirebaseMessagingService firebaseMessagingService;
+    
+    public NotificationRetryScheduler(NotificationRepository notificationRepository, 
+                                     NotificationService notificationService, 
+                                     EmailService emailService, 
+                                     SmsService smsService,
+                                     FirebaseMessagingService firebaseMessagingService) {
+        this.notificationRepository = notificationRepository;
+        this.notificationService = notificationService;
+        this.emailService = emailService;
+        this.smsService = smsService;
+        this.firebaseMessagingService = firebaseMessagingService;
+    }
 
     @Value("${notification.retry.max-attempts:5}")
     private int maxRetryAttempts;
@@ -127,15 +141,9 @@ public class NotificationRetryScheduler {
         try {
             LocalDateTime last24Hours = LocalDateTime.now().minusHours(24);
             
-            long totalSent = notificationRepository.countByStatusAndCreatedAtAfter(
-                    NotificationStatus.SENT, last24Hours
-            );
-            long totalFailed = notificationRepository.countByStatusAndCreatedAtAfter(
-                    NotificationStatus.FAILED, last24Hours
-            );
-            long totalPending = notificationRepository.countByStatusAndCreatedAtAfter(
-                    NotificationStatus.PENDING, last24Hours
-            );
+            long totalSent = notificationRepository.countByStatus(NotificationStatus.SENT);
+            long totalFailed = notificationRepository.countByStatus(NotificationStatus.FAILED);
+            long totalPending = notificationRepository.countByStatus(NotificationStatus.PENDING);
             
             log.info("Notification statistics (last 24h): Sent={}, Failed={}, Pending={}", 
                     totalSent, totalFailed, totalPending);
@@ -236,40 +244,32 @@ public class NotificationRetryScheduler {
 
     private boolean attemptNotificationDelivery(Notification notification) {
         try {
-            switch (notification.getChannel()) {
-                case EMAIL:
-                    emailService.sendEmail(
-                            notification.getRecipientEmail(),
-                            notification.getSubject(),
-                            notification.getContent()
-                    );
-                    return true;
-                    
-                case SMS:
-                    if (notification.getRecipientPhone() != null) {
-                        smsService.sendSms(
-                                notification.getRecipientPhone(),
-                                notification.getContent()
-                        );
-                        return true;
-                    }
-                    return false;
-                    
-                case PUSH:
-                    if (notification.getDeviceToken() != null && firebaseMessagingService.isEnabled()) {
-                        firebaseMessagingService.sendNotification(
-                                notification.getDeviceToken(),
-                                notification.getSubject(),
-                                notification.getContent(),
-                                null
-                        );
-                        return true;
-                    }
-                    return false;
-                    
-                default:
-                    log.warn("Unknown notification channel: {}", notification.getChannel());
-                    return false;
+            // Determine delivery method based on channel
+            String channel = notification.getChannel();
+            if ("email".equalsIgnoreCase(channel) && notification.getRecipientEmail() != null) {
+                emailService.sendEmail(
+                        notification.getRecipientEmail(),
+                        notification.getSubject(),
+                        notification.getContent()
+                );
+                return true;
+            } else if ("sms".equalsIgnoreCase(channel) && notification.getRecipientPhone() != null) {
+                smsService.sendSms(
+                        notification.getRecipientPhone(),
+                        notification.getContent()
+                );
+                return true;
+            } else if ("push".equalsIgnoreCase(channel) && notification.getDeviceToken() != null && firebaseMessagingService.isEnabled()) {
+                 PushNotificationRequest pushRequest = PushNotificationRequest.builder()
+                         .token(notification.getDeviceToken())
+                         .title(notification.getSubject())
+                         .body(notification.getContent())
+                         .build();
+                 firebaseMessagingService.sendNotification(pushRequest);
+                 return true;
+            } else {
+                log.warn("Unknown notification channel or missing recipient info: {}", channel);
+                return false;
             }
         } catch (Exception e) {
             log.error("Failed to deliver notification {} via {}", 

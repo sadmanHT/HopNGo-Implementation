@@ -1,16 +1,11 @@
-import { Metadata } from 'next';
+'use client';
+
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Calendar, FileText, Cookie, Settings, Shield, BarChart, Target } from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: 'Cookie Policy | HopNGo',
-  description: 'Cookie Policy and tracking preferences for HopNGo travel platform',
-  robots: 'index, follow',
-};
 
 export default function CookiePolicyPage() {
   const lastUpdated = '2024-01-15';

@@ -1,0 +1,472 @@
+name: Deploy to Production
+
+on:
+  workflow_run:
+    workflows: ["Deploy to Staging"]
+    types:
+      - completed
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (default: latest from staging)'
+        required: false
+        type: string
+      skip_canary:
+        description: 'Skip canary deployment and deploy directly'
+        required: false
+        default: false
+        type: boolean
+      emergency_rollback:
+        description: 'Emergency rollback to previous version'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: hopngo
+  KUBECTL_VERSION: v1.28.0
+  PRODUCTION_NAMESPACE: hopngo-prod
+
+jobs:
+  pre-deployment-checks:
+    name: Pre-deployment Validation
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    outputs:
+      staging-healthy: ${{ steps.staging-check.outputs.healthy }}
+      image-tag: ${{ steps.image-tag.outputs.tag }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Determine image tag
+      id: image-tag
+      run: |
+        if [ "${{ github.event.inputs.image_tag }}" != "" ]; then
+          IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+        else
+          IMAGE_TAG="${{ github.sha }}"
+        fi
+        echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+        echo "Using image tag: $IMAGE_TAG"
+        
+    - name: Verify staging environment health
+      id: staging-check
+      run: |
+        echo "🔍 Checking staging environment health..."
+        
+        # Check staging health endpoints
+        staging_health=$(curl -s -o /dev/null -w "%{http_code}" https://staging.hopngo.com/api/v1/health)
+        auth_health=$(curl -s -o /dev/null -w "%{http_code}" https://staging.hopngo.com/api/v1/auth/health)
+        
+        if [ "$staging_health" = "200" ] && [ "$auth_health" = "200" ]; then
+          echo "✅ Staging environment is healthy"
+          echo "healthy=true" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Staging environment is not healthy (Gateway: $staging_health, Auth: $auth_health)"
+          echo "healthy=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+    - name: Verify image signatures for production
+      run: |
+        echo "🔐 Verifying container image signatures for production..."
+        
+        # Install cosign
+        curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64"
+        sudo mv cosign-linux-amd64 /usr/local/bin/cosign
+        sudo chmod +x /usr/local/bin/cosign
+        
+        IMAGE_TAG="${{ steps.image-tag.outputs.tag }}"
+        
+        # Verify signatures for all critical services
+        services=("auth-service" "gateway" "booking-service" "frontend")
+        for service in "${services[@]}"; do
+          echo "Verifying $service image signature..."
+          cosign verify \
+            --certificate-identity-regexp=".*" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/$service:$IMAGE_TAG
+        done
+        
+        echo "✅ All production service images verified"
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: pre-deployment-checks
+    if: needs.pre-deployment-checks.outputs.staging-healthy == 'true' && github.event.inputs.emergency_rollback != 'true'
+    environment:
+      name: production
+      url: https://hopngo.com
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: ${{ env.KUBECTL_VERSION }}
+        
+    - name: Setup Kustomize
+      uses: imranismail/setup-kustomize@v2
+      with:
+        kustomize-version: '5.0.0'
+        
+    - name: Install Argo Rollouts CLI
+      run: |
+        curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
+        sudo install -m 555 kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+        rm kubectl-argo-rollouts-linux-amd64
+        
+    - name: Configure kubectl for production
+      run: |
+        echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        kubectl config current-context
+        kubectl cluster-info
+        
+    - name: Run production database migrations
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🗄️ Running production database migrations..."
+        
+        IMAGE_TAG="${{ needs.pre-deployment-checks.outputs.image-tag }}"
+        
+        # Create migration job with backup
+        cat <<EOF | kubectl apply -f -
+        apiVersion: batch/v1
+        kind: Job
+        metadata:
+          name: db-migration-prod-$(date +%s)
+          namespace: ${{ env.PRODUCTION_NAMESPACE }}
+        spec:
+          template:
+            spec:
+              restartPolicy: Never
+              containers:
+              - name: migration
+                image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/auth-service:$IMAGE_TAG
+                command: ["java", "-jar", "/app.jar", "--spring.profiles.active=migration,production"]
+                env:
+                - name: SPRING_DATASOURCE_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: environment-config
+                      key: database.url
+                - name: SPRING_DATASOURCE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: database-secret
+                      key: username
+                - name: SPRING_DATASOURCE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: database-secret
+                      key: password
+        EOF
+        
+        # Wait for migration to complete
+        kubectl wait --for=condition=complete job -l app=db-migration --timeout=600s -n ${{ env.PRODUCTION_NAMESPACE }}
+        
+    - name: Deploy with Canary Strategy
+      if: github.event.inputs.skip_canary != 'true'
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🚀 Starting canary deployment to production..."
+        
+        IMAGE_TAG="${{ needs.pre-deployment-checks.outputs.image-tag }}"
+        
+        # Update image tags in production overlay
+        cd infra/k8s/overlays/production
+        
+        services=("auth-service" "booking-service" "gateway" "social-service" "trip-planning-service" "chat-service" "emergency-service" "notification-service" "ai-service" "market-service" "frontend")
+        
+        # Update kustomization.yaml with new image tags
+        for service in "${services[@]}"; do
+          echo "Updating $service image tag to $IMAGE_TAG..."
+          kustomize edit set image ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/$service=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/$service:$IMAGE_TAG
+        done
+        
+        # Apply the deployment
+        kubectl apply -k .
+        
+        cd ../../../..
+        
+        echo "✅ Canary deployment initiated"
+        
+    - name: Canary Phase 1 - 10% Traffic
+      if: github.event.inputs.skip_canary != 'true'
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "📊 Canary Phase 1: Deploying to 10% of traffic..."
+        
+        services=("auth-service" "gateway" "booking-service" "social-service")
+        
+        for service in "${services[@]}"; do
+          echo "Setting $service canary to 10%..."
+          kubectl argo rollouts set image $service $service=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/$service:${{ needs.pre-deployment-checks.outputs.image-tag }} -n ${{ env.PRODUCTION_NAMESPACE }}
+          kubectl argo rollouts promote $service -n ${{ env.PRODUCTION_NAMESPACE }}
+        done
+        
+        # Wait for canary analysis
+        echo "⏳ Waiting for canary analysis (5 minutes)..."
+        sleep 300
+        
+        # Check canary health
+        for service in "${services[@]}"; do
+          status=$(kubectl argo rollouts status $service -n ${{ env.PRODUCTION_NAMESPACE }} --timeout=60s)
+          if [[ $status == *"Healthy"* ]]; then
+            echo "✅ $service canary phase 1 healthy"
+          else
+            echo "❌ $service canary phase 1 failed"
+            kubectl argo rollouts abort $service -n ${{ env.PRODUCTION_NAMESPACE }}
+            exit 1
+          fi
+        done
+        
+    - name: Canary Phase 2 - 25% Traffic
+      if: github.event.inputs.skip_canary != 'true'
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "📊 Canary Phase 2: Scaling to 25% of traffic..."
+        
+        services=("auth-service" "gateway" "booking-service" "social-service")
+        
+        for service in "${services[@]}"; do
+          echo "Promoting $service canary to 25%..."
+          kubectl argo rollouts promote $service -n ${{ env.PRODUCTION_NAMESPACE }}
+        done
+        
+        # Wait for canary analysis
+        echo "⏳ Waiting for canary analysis (5 minutes)..."
+        sleep 300
+        
+        # Check canary health and SLOs
+        for service in "${services[@]}"; do
+          status=$(kubectl argo rollouts status $service -n ${{ env.PRODUCTION_NAMESPACE }} --timeout=60s)
+          if [[ $status == *"Healthy"* ]]; then
+            echo "✅ $service canary phase 2 healthy"
+          else
+            echo "❌ $service canary phase 2 failed"
+            kubectl argo rollouts abort $service -n ${{ env.PRODUCTION_NAMESPACE }}
+            exit 1
+          fi
+        done
+        
+    - name: Canary Phase 3 - 50% Traffic
+      if: github.event.inputs.skip_canary != 'true'
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "📊 Canary Phase 3: Scaling to 50% of traffic..."
+        
+        services=("auth-service" "gateway" "booking-service" "social-service")
+        
+        for service in "${services[@]}"; do
+          echo "Promoting $service canary to 50%..."
+          kubectl argo rollouts promote $service -n ${{ env.PRODUCTION_NAMESPACE }}
+        done
+        
+        # Wait for canary analysis
+        echo "⏳ Waiting for canary analysis (10 minutes)..."
+        sleep 600
+        
+        # Check canary health and SLOs
+        for service in "${services[@]}"; do
+          status=$(kubectl argo rollouts status $service -n ${{ env.PRODUCTION_NAMESPACE }} --timeout=60s)
+          if [[ $status == *"Healthy"* ]]; then
+            echo "✅ $service canary phase 3 healthy"
+          else
+            echo "❌ $service canary phase 3 failed"
+            kubectl argo rollouts abort $service -n ${{ env.PRODUCTION_NAMESPACE }}
+            exit 1
+          fi
+        done
+        
+    - name: Canary Phase 4 - 100% Traffic (Full Promotion)
+      if: github.event.inputs.skip_canary != 'true'
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🎯 Canary Phase 4: Full promotion to 100% traffic..."
+        
+        services=("auth-service" "gateway" "booking-service" "social-service" "trip-planning-service" "chat-service" "emergency-service" "notification-service" "ai-service" "market-service" "frontend")
+        
+        for service in "${services[@]}"; do
+          echo "Fully promoting $service..."
+          kubectl argo rollouts promote $service --full -n ${{ env.PRODUCTION_NAMESPACE }}
+        done
+        
+        # Wait for full rollout
+        for service in "${services[@]}"; do
+          echo "Waiting for $service full rollout..."
+          kubectl argo rollouts get rollout $service -n ${{ env.PRODUCTION_NAMESPACE }} --watch --timeout=900s
+        done
+        
+        echo "✅ Full canary deployment completed successfully"
+        
+    - name: Direct Deployment (Skip Canary)
+      if: github.event.inputs.skip_canary == 'true'
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🚀 Direct deployment to production (skipping canary)..."
+        
+        IMAGE_TAG="${{ needs.pre-deployment-checks.outputs.image-tag }}"
+        
+        # Update image tags in production overlay
+        cd infra/k8s/overlays/production
+        
+        services=("auth-service" "booking-service" "gateway" "social-service" "trip-planning-service" "chat-service" "emergency-service" "notification-service" "ai-service" "market-service" "frontend")
+        
+        # Update kustomization.yaml with new image tags
+        for service in "${services[@]}"; do
+          echo "Updating $service image tag to $IMAGE_TAG..."
+          kustomize edit set image ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/$service=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/$service:$IMAGE_TAG
+        done
+        
+        # Apply the deployment
+        kubectl apply -k .
+        
+        # Wait for rollouts to complete
+        for service in "${services[@]}"; do
+          echo "Waiting for $service rollout..."
+          kubectl argo rollouts get rollout $service -n ${{ env.PRODUCTION_NAMESPACE }} --watch --timeout=900s
+        done
+        
+        cd ../../../..
+        
+        echo "✅ Direct deployment completed successfully"
+
+  production-smoke-tests:
+    name: Production Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [pre-deployment-checks, deploy-production]
+    
+    steps:
+    - name: Wait for services to stabilize
+      run: |
+        echo "⏳ Waiting for services to stabilize..."
+        sleep 120
+        
+    - name: Run production smoke tests
+      run: |
+        set -e
+        echo "🧪 Running production smoke tests..."
+        
+        PROD_URL="https://hopngo.com"
+        
+        # Test 1: Gateway Health Check
+        echo "Testing production gateway health..."
+        response=$(curl -s -o /dev/null -w "%{http_code}" $PROD_URL/api/v1/health)
+        if [ "$response" = "200" ]; then
+          echo "✅ Production gateway health check passed"
+        else
+          echo "❌ Production gateway health check failed (HTTP $response)"
+          exit 1
+        fi
+        
+        # Test 2: Auth Service Health
+        echo "Testing production auth service health..."
+        response=$(curl -s -o /dev/null -w "%{http_code}" $PROD_URL/api/v1/auth/health)
+        if [ "$response" = "200" ]; then
+          echo "✅ Production auth service health check passed"
+        else
+          echo "❌ Production auth service health check failed (HTTP $response)"
+          exit 1
+        fi
+        
+        # Test 3: Frontend Accessibility
+        echo "Testing production frontend accessibility..."
+        response=$(curl -s -o /dev/null -w "%{http_code}" $PROD_URL/)
+        if [ "$response" = "200" ]; then
+          echo "✅ Production frontend accessibility test passed"
+        else
+          echo "❌ Production frontend accessibility test failed (HTTP $response)"
+          exit 1
+        fi
+        
+        # Test 4: API Response Time
+        echo "Testing production API response time..."
+        response_time=$(curl -s -o /dev/null -w "%{time_total}" $PROD_URL/api/v1/health)
+        if (( $(echo "$response_time < 1.0" | bc -l) )); then
+          echo "✅ Production API response time test passed ($response_time seconds)"
+        else
+          echo "⚠️ Production API response time is slow ($response_time seconds)"
+        fi
+        
+        echo "🎉 All production smoke tests completed successfully!"
+
+  emergency-rollback:
+    name: Emergency Rollback
+    runs-on: ubuntu-latest
+    if: github.event.inputs.emergency_rollback == 'true'
+    environment:
+      name: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: ${{ env.KUBECTL_VERSION }}
+        
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        
+    - name: Execute emergency rollback
+      run: |
+        export KUBECONFIG=kubeconfig
+        echo "🚨 Executing emergency rollback..."
+        
+        services=("auth-service" "booking-service" "gateway" "social-service" "trip-planning-service" "chat-service" "emergency-service" "notification-service" "ai-service" "market-service" "frontend")
+        
+        for service in "${services[@]}"; do
+          echo "Rolling back $service..."
+          kubectl argo rollouts undo $service -n ${{ env.PRODUCTION_NAMESPACE }}
+          kubectl argo rollouts get rollout $service -n ${{ env.PRODUCTION_NAMESPACE }} --watch --timeout=600s
+        done
+        
+        echo "✅ Emergency rollback completed"
+
+  notify:
+    name: Notify Production Deployment
+    runs-on: ubuntu-latest
+    needs: [pre-deployment-checks, deploy-production, production-smoke-tests, emergency-rollback]
+    if: always()
+    
+    steps:
+    - name: Production deployment notification
+      run: |
+        if [[ "${{ github.event.inputs.emergency_rollback }}" == "true" ]]; then
+          if [[ "${{ needs.emergency-rollback.result }}" == "success" ]]; then
+            echo "🚨 Emergency rollback completed successfully"
+            echo "🔗 Environment: https://hopngo.com"
+          else
+            echo "❌ Emergency rollback failed"
+          fi
+        elif [[ "${{ needs.deploy-production.result }}" == "success" && "${{ needs.production-smoke-tests.result }}" == "success" ]]; then
+          echo "🎉 Production deployment completed successfully"
+          echo "🔗 Environment: https://hopngo.com"
+          echo "📊 Monitoring: https://grafana.hopngo.com"
+          echo "🚀 Image tag: ${{ needs.pre-deployment-checks.outputs.image-tag }}"
+          if [[ "${{ github.event.inputs.skip_canary }}" != "true" ]]; then
+            echo "📈 Canary deployment strategy: 10% → 25% → 50% → 100%"
+          fi
+        else
+          echo "❌ Production deployment failed"
+          echo "Pre-checks: ${{ needs.pre-deployment-checks.result }}"
+          echo "Deploy: ${{ needs.deploy-production.result }}"
+          echo "Tests: ${{ needs.production-smoke-tests.result }}"
+          echo "🔄 Consider emergency rollback if needed"
+        fi

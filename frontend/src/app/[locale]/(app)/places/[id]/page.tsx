@@ -43,8 +43,9 @@ async function getReviews(id: string) {
 }
 
 // Generate metadata for SEO
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const listing = await getListing(params.id);
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const listing = await getListing(id);
   
   if (!listing) {
     return {
@@ -56,10 +57,11 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   return generateListingMetadata(listing);
 }
 
-export default async function ListingDetailsPage({ params }: { params: { id: string } }) {
+export default async function ListingDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const [listing, reviews] = await Promise.all([
-    getListing(params.id),
-    getReviews(params.id),
+    getListing(id),
+    getReviews(id),
   ]);
   
   if (!listing) {

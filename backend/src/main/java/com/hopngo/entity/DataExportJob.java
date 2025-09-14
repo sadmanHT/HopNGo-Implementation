@@ -236,6 +236,11 @@ public class DataExportJob {
         this.createdAt = createdAt;
     }
 
+    // Alias for compatibility
+    public void setRequestedAt(LocalDateTime requestedAt) {
+        this.createdAt = requestedAt;
+    }
+
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }

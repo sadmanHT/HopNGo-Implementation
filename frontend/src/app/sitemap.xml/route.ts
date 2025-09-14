@@ -116,6 +116,3 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
 
   return sitemap;
 }
-
-// Export as default for Next.js App Router
-export default GET;

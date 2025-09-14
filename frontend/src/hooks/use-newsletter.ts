@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useAuth } from './use-auth';
+import { useAuthStore } from '@/lib/state/auth';
 import { toast } from 'sonner';
 import {
   newsletterService,
@@ -40,7 +40,7 @@ export interface UseNewsletterReturn {
 }
 
 export function useNewsletter(): UseNewsletterReturn {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);

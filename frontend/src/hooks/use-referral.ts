@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { referralService, ReferralStats, ReferralResponse } from '@/lib/services/referral';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuthStore } from '@/lib/state/auth';
 import { toast } from '@/hooks/use-toast';
 
 interface UseReferralReturn {
@@ -23,7 +23,7 @@ interface UseReferralReturn {
 }
 
 export function useReferral(): UseReferralReturn {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [referrals, setReferrals] = useState<ReferralResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,13 +53,13 @@ export function useReferral(): UseReferralReturn {
       if (statsResponse.success) {
         setStats(statsResponse.data);
       } else {
-        console.error('Failed to load referral stats:', statsResponse.error);
+        console.error('Failed to load referral stats:', statsResponse.message || statsResponse.errors?.[0]);
       }
 
       if (referralsResponse.success) {
         setReferrals(referralsResponse.data);
       } else {
-        console.error('Failed to load referrals:', referralsResponse.error);
+        console.error('Failed to load referrals:', referralsResponse.message || referralsResponse.errors?.[0]);
       }
     } catch (error) {
       console.error('Error refreshing referral data:', error);
@@ -97,7 +97,7 @@ export function useReferral(): UseReferralReturn {
       } else {
         toast({
           title: 'Error',
-          description: response.error || 'Failed to create referral code',
+          description: response.message || response.errors?.[0] || 'Failed to create referral code',
           variant: 'destructive',
         });
         return null;

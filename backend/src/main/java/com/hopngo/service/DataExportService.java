@@ -17,7 +17,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -149,13 +148,20 @@ public class DataExportService {
             
             generateExportFile(job, filePath);
 
+            // Calculate file size
+            long fileSize = Files.size(filePath);
+            
+            // Generate download URL (placeholder implementation)
+            String downloadUrl = "/api/export/download/" + jobId;
+
             // Update job with file path and completion
-            exportJobRepository.markAsCompleted(jobId, filePath.toString(), LocalDateTime.now());
+            exportJobRepository.markAsCompleted(jobId, LocalDateTime.now(), filePath.toString(), 
+                                              downloadUrl, fileSize);
             logger.info("Completed export job {} with file {}", jobId, fileName);
 
         } catch (Exception e) {
             logger.error("Failed to process export job {}", jobId, e);
-            exportJobRepository.markAsFailed(jobId, e.getMessage(), LocalDateTime.now());
+            exportJobRepository.markAsFailed(jobId, LocalDateTime.now(), e.getMessage());
         }
 
         return CompletableFuture.completedFuture(null);
@@ -197,14 +203,33 @@ public class DataExportService {
                 exportData.put("bookings", Collections.emptyList()); // Placeholder
                 exportData.put("reviews", Collections.emptyList()); // Placeholder
                 exportData.put("preferences", Collections.emptyMap()); // Placeholder
+                exportData.put("orders", Collections.emptyList()); // Placeholder
                 break;
-            case PERSONAL_DATA_ONLY:
+            case PROFILE_ONLY:
                 // Only personal information (already included above)
                 break;
-            case ACTIVITY_DATA_ONLY:
-                // Add activity data
+            case BOOKINGS_ONLY:
+                // Add booking data only
                 exportData.put("bookings", Collections.emptyList()); // Placeholder
-                exportData.put("searchHistory", Collections.emptyList()); // Placeholder
+                break;
+            case ORDERS_ONLY:
+                // Add order data only
+                exportData.put("orders", Collections.emptyList()); // Placeholder
+                break;
+            case CUSTOM:
+                // Add data based on custom flags
+                if (job.getIncludeBookings()) {
+                    exportData.put("bookings", Collections.emptyList()); // Placeholder
+                }
+                if (job.getIncludeOrders()) {
+                    exportData.put("orders", Collections.emptyList()); // Placeholder
+                }
+                if (job.getIncludeMessages()) {
+                    exportData.put("messages", Collections.emptyList()); // Placeholder
+                }
+                if (job.getIncludeActivityLogs()) {
+                    exportData.put("activityLogs", Collections.emptyList()); // Placeholder
+                }
                 break;
         }
 
@@ -271,7 +296,7 @@ public class DataExportService {
         if (jobOpt.isPresent()) {
             DataExportJob job = jobOpt.get();
             if (job.getStatus() == ExportStatus.PENDING) {
-                exportJobRepository.markAsFailed(jobId, "Cancelled by user", LocalDateTime.now());
+                exportJobRepository.markAsFailed(jobId, LocalDateTime.now(), "Cancelled by user");
                 return true;
             }
         }

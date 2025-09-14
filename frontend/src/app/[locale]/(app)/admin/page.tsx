@@ -231,6 +231,35 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <div className="flex items-center space-x-3">
+              <Shield className="h-6 w-6 text-indigo-600" />
+              <CardTitle>Gear Management</CardTitle>
+            </div>
+            <CardDescription>
+              Manage travel gear inventory, pricing, availability, and product catalog.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Total Gear Items:</span>
+                <span className="font-medium">Loading...</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Low Stock Items:</span>
+                <span className="font-medium">Loading...</span>
+              </div>
+              <Link href="/admin/gear">
+                <Button className="w-full">
+                  Manage Gear Inventory
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Recent Activity */}

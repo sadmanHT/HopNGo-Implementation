@@ -229,6 +229,22 @@ public class Notification {
         this.nextRetryAt = nextRetryAt;
     }
     
+    public LocalDateTime getLastAttemptAt() {
+        return lastAttemptAt;
+    }
+    
+    public void setLastAttemptAt(LocalDateTime lastAttemptAt) {
+        this.lastAttemptAt = lastAttemptAt;
+    }
+    
+    public String getDeviceToken() {
+        return deviceToken;
+    }
+    
+    public void setDeviceToken(String deviceToken) {
+        this.deviceToken = deviceToken;
+    }
+    
     public String getExternalId() {
         return externalId;
     }

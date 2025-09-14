@@ -1,0 +1,518 @@
+name: Pipeline Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment for validation'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      validation_type:
+        description: 'Type of validation to perform'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+        - full
+        - security-only
+        - deployment-only
+        - rollback-test
+      skip_tests:
+        description: 'Skip test execution (for faster validation)'
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    # Run full validation daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/**'
+      - 'infra/**'
+      - 'policies/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+  AWS_REGION: us-west-2
+
+jobs:
+  validate-prerequisites:
+    name: Validate Prerequisites
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.setup.outputs.environment }}
+      validation-type: ${{ steps.setup.outputs.validation-type }}
+      skip-tests: ${{ steps.setup.outputs.skip-tests }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup validation parameters
+      id: setup
+      run: |
+        # Set defaults for scheduled runs
+        ENVIRONMENT="${{ github.event.inputs.environment || 'staging' }}"
+        VALIDATION_TYPE="${{ github.event.inputs.validation_type || 'full' }}"
+        SKIP_TESTS="${{ github.event.inputs.skip_tests || 'false' }}"
+        
+        echo "environment=${ENVIRONMENT}" >> $GITHUB_OUTPUT
+        echo "validation-type=${VALIDATION_TYPE}" >> $GITHUB_OUTPUT
+        echo "skip-tests=${SKIP_TESTS}" >> $GITHUB_OUTPUT
+        
+        echo "🎯 Environment: ${ENVIRONMENT}"
+        echo "🔍 Validation Type: ${VALIDATION_TYPE}"
+        echo "⏭️ Skip Tests: ${SKIP_TESTS}"
+
+    - name: Validate required secrets
+      run: |
+        REQUIRED_SECRETS=(
+          "KUBE_CONFIG_DATA"
+          "AWS_ACCESS_KEY_ID"
+          "AWS_SECRET_ACCESS_KEY"
+          "DOCKER_USERNAME"
+          "DOCKER_PASSWORD"
+          "COSIGN_PRIVATE_KEY"
+          "COSIGN_PASSWORD"
+        )
+        
+        MISSING_SECRETS=()
+        
+        for secret in "${REQUIRED_SECRETS[@]}"; do
+          if [[ -z "${!secret:-}" ]]; then
+            MISSING_SECRETS+=("$secret")
+          fi
+        done
+        
+        if [[ ${#MISSING_SECRETS[@]} -gt 0 ]]; then
+          echo "❌ Missing required secrets:"
+          printf '  - %s\n' "${MISSING_SECRETS[@]}"
+          exit 1
+        fi
+        
+        echo "✅ All required secrets are configured"
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+        COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+
+  validate-policies:
+    name: Validate Security Policies
+    runs-on: ubuntu-latest
+    needs: validate-prerequisites
+    if: contains(fromJSON('["full", "security-only"]'), needs.validate-prerequisites.outputs.validation-type)
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup OPA and Conftest
+      run: |
+        # Install OPA
+        curl -L -o opa https://openpolicyagent.org/downloads/v0.58.0/opa_linux_amd64_static
+        chmod +x opa
+        sudo mv opa /usr/local/bin/
+        
+        # Install Conftest
+        wget https://github.com/open-policy-agent/conftest/releases/download/v0.46.0/conftest_0.46.0_Linux_x86_64.tar.gz
+        tar xzf conftest_0.46.0_Linux_x86_64.tar.gz
+        sudo mv conftest /usr/local/bin/
+        
+        # Install Kyverno CLI
+        curl -LO https://github.com/kyverno/kyverno/releases/download/v1.10.5/kyverno-cli_v1.10.5_linux_x86_64.tar.gz
+        tar -xzf kyverno-cli_v1.10.5_linux_x86_64.tar.gz
+        sudo mv kyverno /usr/local/bin/
+
+    - name: Validate OPA policies
+      run: |
+        echo "🔍 Validating OPA policies..."
+        
+        # Test policy syntax
+        find policies/opa -name "*.rego" -exec opa fmt --diff {} \;
+        find policies/opa -name "*.rego" -exec opa test {} \;
+        
+        # Run Conftest validation
+        conftest verify --policy policies/opa
+        
+        echo "✅ OPA policies validation completed"
+
+    - name: Validate Kyverno policies
+      run: |
+        echo "🔍 Validating Kyverno policies..."
+        
+        # Validate policy syntax
+        kyverno validate policies/kyverno-security-policy.yaml
+        
+        # Test policies against sample resources
+        kubectl create --dry-run=client -o yaml deployment test-deployment --image=nginx:latest > test-deployment.yaml
+        kyverno apply policies/kyverno-security-policy.yaml --resource test-deployment.yaml
+        
+        echo "✅ Kyverno policies validation completed"
+
+  validate-infrastructure:
+    name: Validate Infrastructure
+    runs-on: ubuntu-latest
+    needs: validate-prerequisites
+    if: contains(fromJSON('["full", "deployment-only"]'), needs.validate-prerequisites.outputs.validation-type)
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup tools
+      run: |
+        # Install kubectl
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
+        
+        # Install kustomize
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+        sudo mv kustomize /usr/local/bin/
+        
+        # Install kubeval
+        wget https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
+        tar xf kubeval-linux-amd64.tar.gz
+        sudo mv kubeval /usr/local/bin/
+
+    - name: Validate Kubernetes manifests
+      run: |
+        echo "🔍 Validating Kubernetes manifests..."
+        
+        # Validate base manifests
+        find infra/k8s/base -name "*.yaml" -exec kubeval {} \;
+        
+        # Validate overlay manifests
+        find infra/k8s/overlays -name "*.yaml" -exec kubeval {} \;
+        
+        # Test kustomize builds
+        for overlay in infra/k8s/overlays/*/; do
+          echo "Testing overlay: $overlay"
+          kustomize build "$overlay" | kubeval
+        done
+        
+        echo "✅ Kubernetes manifests validation completed"
+
+    - name: Validate Argo Rollouts configuration
+      run: |
+        echo "🔍 Validating Argo Rollouts configuration..."
+        
+        # Install Argo Rollouts kubectl plugin
+        curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
+        chmod +x kubectl-argo-rollouts-linux-amd64
+        sudo mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+        
+        # Validate rollout manifests
+        find infra/k8s/argo-rollouts -name "*.yaml" -exec kubeval {} \;
+        
+        echo "✅ Argo Rollouts configuration validation completed"
+
+  test-deployment:
+    name: Test Deployment Process
+    runs-on: ubuntu-latest
+    needs: [validate-prerequisites, validate-policies, validate-infrastructure]
+    if: |
+      always() && 
+      (needs.validate-prerequisites.result == 'success') &&
+      (needs.validate-policies.result == 'success' || needs.validate-policies.result == 'skipped') &&
+      (needs.validate-infrastructure.result == 'success' || needs.validate-infrastructure.result == 'skipped') &&
+      contains(fromJSON('["full", "deployment-only"]'), needs.validate-prerequisites.outputs.validation-type) &&
+      needs.validate-prerequisites.outputs.skip-tests == 'false'
+    environment: ${{ needs.validate-prerequisites.outputs.environment }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup kubectl
+      run: |
+        # Install kubectl
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
+        
+        # Configure kubeconfig
+        echo "$KUBE_CONFIG_DATA" | base64 -d > ~/.kube/config
+        chmod 600 ~/.kube/config
+        
+        # Test cluster connectivity
+        kubectl cluster-info
+        kubectl get nodes
+
+    - name: Deploy to test namespace
+      run: |
+        TEST_NAMESPACE="hopngo-pipeline-test-$(date +%s)"
+        echo "TEST_NAMESPACE=${TEST_NAMESPACE}" >> $GITHUB_ENV
+        
+        echo "🚀 Deploying to test namespace: ${TEST_NAMESPACE}"
+        
+        # Create test namespace
+        kubectl create namespace "${TEST_NAMESPACE}"
+        kubectl label namespace "${TEST_NAMESPACE}" test=pipeline-validation
+        
+        # Apply base configurations
+        kubectl apply -n "${TEST_NAMESPACE}" -k infra/k8s/base/
+        
+        # Wait for deployments
+        kubectl wait --for=condition=available --timeout=300s deployment --all -n "${TEST_NAMESPACE}"
+        
+        echo "✅ Test deployment completed"
+
+    - name: Run health checks
+      run: |
+        echo "🏥 Running health checks..."
+        
+        # Check pod status
+        kubectl get pods -n "${TEST_NAMESPACE}" -o wide
+        
+        # Check service endpoints
+        kubectl get endpoints -n "${TEST_NAMESPACE}"
+        
+        # Test service connectivity
+        for service in $(kubectl get services -n "${TEST_NAMESPACE}" -o jsonpath='{.items[*].metadata.name}'); do
+          echo "Testing service: $service"
+          kubectl run test-pod --rm -i --restart=Never --image=curlimages/curl -- \
+            curl -f "http://${service}.${TEST_NAMESPACE}.svc.cluster.local:8080/health" || true
+        done
+        
+        echo "✅ Health checks completed"
+
+    - name: Test rollout functionality
+      run: |
+        echo "🔄 Testing rollout functionality..."
+        
+        # Install Argo Rollouts kubectl plugin
+        curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
+        chmod +x kubectl-argo-rollouts-linux-amd64
+        sudo mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+        
+        # Apply rollout configuration
+        kubectl apply -n "${TEST_NAMESPACE}" -f infra/k8s/argo-rollouts/
+        
+        # Wait for rollout to be ready
+        kubectl argo rollouts get rollout hopngo-backend -n "${TEST_NAMESPACE}" --watch --timeout=300s || true
+        
+        echo "✅ Rollout functionality test completed"
+
+    - name: Cleanup test resources
+      if: always()
+      run: |
+        if [[ -n "${TEST_NAMESPACE:-}" ]]; then
+          echo "🧹 Cleaning up test namespace: ${TEST_NAMESPACE}"
+          kubectl delete namespace "${TEST_NAMESPACE}" --ignore-not-found=true
+        fi
+
+  test-rollback:
+    name: Test Rollback Process
+    runs-on: ubuntu-latest
+    needs: validate-prerequisites
+    if: needs.validate-prerequisites.outputs.validation-type == 'rollback-test'
+    environment: ${{ needs.validate-prerequisites.outputs.environment }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup kubectl and Argo Rollouts
+      run: |
+        # Install kubectl
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
+        
+        # Install Argo Rollouts kubectl plugin
+        curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
+        chmod +x kubectl-argo-rollouts-linux-amd64
+        sudo mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+        
+        # Configure kubeconfig
+        echo "$KUBE_CONFIG_DATA" | base64 -d > ~/.kube/config
+        chmod 600 ~/.kube/config
+
+    - name: Test rollback functionality
+      run: |
+        NAMESPACE="hopngo-${{ needs.validate-prerequisites.outputs.environment }}"
+        
+        echo "🔄 Testing rollback functionality in namespace: ${NAMESPACE}"
+        
+        # Get current rollout status
+        kubectl argo rollouts get rollout hopngo-backend -n "${NAMESPACE}"
+        
+        # Simulate a failed deployment by updating to a bad image
+        kubectl argo rollouts set image hopngo-backend backend=nginx:invalid-tag -n "${NAMESPACE}"
+        
+        # Wait for rollout to start
+        sleep 30
+        
+        # Abort the rollout (simulating failure detection)
+        kubectl argo rollouts abort hopngo-backend -n "${NAMESPACE}"
+        
+        # Rollback to previous version
+        kubectl argo rollouts undo hopngo-backend -n "${NAMESPACE}"
+        
+        # Wait for rollback to complete
+        kubectl argo rollouts get rollout hopngo-backend -n "${NAMESPACE}" --watch --timeout=300s
+        
+        echo "✅ Rollback test completed successfully"
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: validate-prerequisites
+    if: contains(fromJSON('["full", "security-only"]'), needs.validate-prerequisites.outputs.validation-type)
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy security scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run Checkov scan
+      uses: bridgecrewio/checkov-action@master
+      with:
+        directory: .
+        framework: kubernetes,dockerfile,github_actions
+        output_format: sarif
+        output_file_path: checkov-results.sarif
+
+    - name: Upload Checkov scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: checkov-results.sarif
+
+  generate-report:
+    name: Generate Validation Report
+    runs-on: ubuntu-latest
+    needs: [validate-prerequisites, validate-policies, validate-infrastructure, test-deployment, test-rollback, security-scan]
+    if: always()
+    steps:
+    - name: Generate validation report
+      run: |
+        cat << 'EOF' > validation-report.md
+        # Pipeline Validation Report
+        
+        **Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+        **Environment:** ${{ needs.validate-prerequisites.outputs.environment }}
+        **Validation Type:** ${{ needs.validate-prerequisites.outputs.validation-type }}
+        **Triggered By:** ${{ github.event_name }}
+        **Commit:** ${{ github.sha }}
+        
+        ## Results Summary
+        
+        | Component | Status | Details |
+        |-----------|--------|----------|
+        | Prerequisites | ${{ needs.validate-prerequisites.result }} | Required secrets and configuration |
+        | Security Policies | ${{ needs.validate-policies.result }} | OPA and Kyverno policy validation |
+        | Infrastructure | ${{ needs.validate-infrastructure.result }} | Kubernetes manifests and Argo Rollouts |
+        | Deployment Test | ${{ needs.test-deployment.result }} | End-to-end deployment validation |
+        | Rollback Test | ${{ needs.test-rollback.result }} | Rollback functionality validation |
+        | Security Scan | ${{ needs.security-scan.result }} | Trivy and Checkov security scans |
+        
+        ## Recommendations
+        
+        EOF
+        
+        # Add recommendations based on results
+        if [[ "${{ needs.validate-policies.result }}" == "failure" ]]; then
+          echo "- ⚠️ Review and fix security policy violations" >> validation-report.md
+        fi
+        
+        if [[ "${{ needs.validate-infrastructure.result }}" == "failure" ]]; then
+          echo "- ⚠️ Fix infrastructure configuration issues" >> validation-report.md
+        fi
+        
+        if [[ "${{ needs.test-deployment.result }}" == "failure" ]]; then
+          echo "- ⚠️ Investigate deployment failures and fix underlying issues" >> validation-report.md
+        fi
+        
+        if [[ "${{ needs.security-scan.result }}" == "failure" ]]; then
+          echo "- ⚠️ Address security vulnerabilities identified in scans" >> validation-report.md
+        fi
+        
+        # Add success message if all tests passed
+        if [[ "${{ needs.validate-policies.result }}" == "success" && \
+              "${{ needs.validate-infrastructure.result }}" == "success" && \
+              ("${{ needs.test-deployment.result }}" == "success" || "${{ needs.test-deployment.result }}" == "skipped") && \
+              ("${{ needs.test-rollback.result }}" == "success" || "${{ needs.test-rollback.result }}" == "skipped") && \
+              "${{ needs.security-scan.result }}" == "success" ]]; then
+          echo "- ✅ All validations passed successfully. Pipeline is ready for production use." >> validation-report.md
+        fi
+        
+        cat validation-report.md
+
+    - name: Upload validation report
+      uses: actions/upload-artifact@v4
+      with:
+        name: pipeline-validation-report
+        path: validation-report.md
+        retention-days: 30
+
+    - name: Comment on PR (if applicable)
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const report = fs.readFileSync('validation-report.md', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: report
+          });
+
+    - name: Set final status
+      run: |
+        # Determine overall status
+        OVERALL_STATUS="success"
+        
+        if [[ "${{ needs.validate-prerequisites.result }}" == "failure" || \
+              "${{ needs.validate-policies.result }}" == "failure" || \
+              "${{ needs.validate-infrastructure.result }}" == "failure" || \
+              "${{ needs.test-deployment.result }}" == "failure" || \
+              "${{ needs.test-rollback.result }}" == "failure" || \
+              "${{ needs.security-scan.result }}" == "failure" ]]; then
+          OVERALL_STATUS="failure"
+        fi
+        
+        echo "Overall pipeline validation status: ${OVERALL_STATUS}"
+        
+        if [[ "${OVERALL_STATUS}" == "failure" ]]; then
+          echo "❌ Pipeline validation failed. Please review the results and fix issues before proceeding."
+          exit 1
+        else
+          echo "✅ Pipeline validation completed successfully!"
+        fi

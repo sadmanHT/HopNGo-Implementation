@@ -1,0 +1,504 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-cache-config
+  namespace: hopngo-prod
+  labels:
+    app: market-service
+    component: cache
+data:
+  redis-cache.yml: |
+    # Redis Cache Configuration for Market Service
+    spring:
+      cache:
+        type: redis
+        redis:
+          time-to-live: 300000  # 5 minutes default TTL
+          cache-null-values: false
+          use-key-prefix: true
+          key-prefix: "market:"
+      data:
+        redis:
+          repositories:
+            enabled: true
+          jedis:
+            pool:
+              max-active: 20
+              max-idle: 10
+              min-idle: 2
+              max-wait: 2000ms
+          timeout: 2000ms
+          connect-timeout: 1000ms
+          command-timeout: 1000ms
+    
+    # Custom cache configurations with different TTLs
+    cache:
+      configs:
+        # Product catalog cache - longer TTL as products don't change frequently
+        products:
+          ttl: 1800000  # 30 minutes
+          max-entries: 10000
+          eviction-policy: "lru"
+          
+        # Product search results - medium TTL
+        product-search:
+          ttl: 600000   # 10 minutes
+          max-entries: 5000
+          eviction-policy: "lru"
+          
+        # Category data - long TTL as categories are stable
+        categories:
+          ttl: 3600000  # 1 hour
+          max-entries: 1000
+          eviction-policy: "lru"
+          
+        # Pricing data - short TTL as prices can change
+        pricing:
+          ttl: 300000   # 5 minutes
+          max-entries: 20000
+          eviction-policy: "lru"
+          
+        # Inventory levels - very short TTL for accuracy
+        inventory:
+          ttl: 60000    # 1 minute
+          max-entries: 15000
+          eviction-policy: "lru"
+          
+        # User sessions - medium TTL
+        user-sessions:
+          ttl: 1800000  # 30 minutes
+          max-entries: 50000
+          eviction-policy: "lru"
+          
+        # Shopping cart data - short TTL
+        shopping-carts:
+          ttl: 900000   # 15 minutes
+          max-entries: 25000
+          eviction-policy: "lru"
+          
+        # Recommendations - medium TTL
+        recommendations:
+          ttl: 1200000  # 20 minutes
+          max-entries: 30000
+          eviction-policy: "lru"
+    
+    # Cache warming configuration
+    cache-warming:
+      enabled: true
+      strategies:
+        # Warm popular products on startup
+        popular-products:
+          enabled: true
+          schedule: "0 */6 * * *"  # Every 6 hours
+          batch-size: 100
+          query: "SELECT * FROM products WHERE popularity_score > 80 ORDER BY popularity_score DESC LIMIT 1000"
+          
+        # Warm trending categories
+        trending-categories:
+          enabled: true
+          schedule: "0 0 */4 * *"  # Every 4 hours
+          batch-size: 50
+          query: "SELECT * FROM categories WHERE trending = true"
+          
+        # Warm featured products
+        featured-products:
+          enabled: true
+          schedule: "0 0 8 * *"   # Daily at 8 AM
+          batch-size: 200
+          query: "SELECT * FROM products WHERE featured = true AND active = true"
+          
+        # Warm seasonal promotions
+        seasonal-promotions:
+          enabled: true
+          schedule: "0 0 6 * *"   # Daily at 6 AM
+          batch-size: 150
+          query: "SELECT * FROM promotions WHERE active = true AND start_date <= NOW() AND end_date >= NOW()"
+    
+    # Cache monitoring and metrics
+    monitoring:
+      enabled: true
+      metrics:
+        hit-ratio:
+          enabled: true
+          threshold: 0.85  # Alert if hit ratio drops below 85%
+          window: "5m"
+          
+        miss-ratio:
+          enabled: true
+          threshold: 0.15  # Alert if miss ratio exceeds 15%
+          window: "5m"
+          
+        eviction-rate:
+          enabled: true
+          threshold: 100   # Alert if more than 100 evictions per minute
+          window: "1m"
+          
+        memory-usage:
+          enabled: true
+          threshold: 0.80  # Alert if memory usage exceeds 80%
+          window: "5m"
+          
+        connection-pool:
+          enabled: true
+          active-connections-threshold: 18  # Alert if active connections > 18
+          idle-connections-threshold: 2    # Alert if idle connections < 2
+          
+      alerts:
+        webhook-url: "http://alertmanager:9093/api/v1/alerts"
+        slack-channel: "#ops-alerts"
+        
+    # Cache invalidation strategies
+    invalidation:
+      strategies:
+        # Time-based invalidation
+        time-based:
+          enabled: true
+          
+        # Event-based invalidation
+        event-based:
+          enabled: true
+          events:
+            - "product.updated"
+            - "product.deleted"
+            - "category.updated"
+            - "pricing.changed"
+            - "inventory.updated"
+            - "promotion.activated"
+            - "promotion.deactivated"
+            
+        # Manual invalidation endpoints
+        manual:
+          enabled: true
+          endpoints:
+            - "/cache/invalidate/products/{productId}"
+            - "/cache/invalidate/categories/{categoryId}"
+            - "/cache/invalidate/user/{userId}"
+            - "/cache/flush/all"
+    
+    # Cache compression
+    compression:
+      enabled: true
+      algorithm: "gzip"
+      min-size: 1024  # Only compress data larger than 1KB
+      
+    # Cache serialization
+    serialization:
+      format: "json"
+      compress: true
+      
+    # Distributed cache coordination
+    distributed:
+      enabled: true
+      coordination:
+        type: "redis-cluster"
+        nodes:
+          - "redis-cluster-0.redis-cluster:6379"
+          - "redis-cluster-1.redis-cluster:6379"
+          - "redis-cluster-2.redis-cluster:6379"
+        
+      # Cache replication for high availability
+      replication:
+        enabled: true
+        replicas: 2
+        sync-mode: "async"
+        
+    # Performance tuning
+    performance:
+      # Pipeline operations for better throughput
+      pipeline:
+        enabled: true
+        batch-size: 100
+        
+      # Connection pooling optimization
+      connection-pool:
+        test-on-borrow: true
+        test-on-return: false
+        test-while-idle: true
+        validation-query: "PING"
+        
+      # Async operations
+      async:
+        enabled: true
+        thread-pool-size: 10
+        queue-capacity: 1000
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cache-warmer-scripts
+  namespace: hopngo-prod
+  labels:
+    app: market-service
+    component: cache-warmer
+data:
+  warm-popular-products.sql: |
+    -- Warm cache with popular products
+    SELECT 
+        p.id,
+        p.name,
+        p.description,
+        p.price,
+        p.category_id,
+        p.brand_id,
+        p.popularity_score,
+        p.rating,
+        p.review_count,
+        c.name as category_name,
+        b.name as brand_name
+    FROM products p
+    JOIN categories c ON p.category_id = c.id
+    JOIN brands b ON p.brand_id = b.id
+    WHERE p.active = true
+      AND p.popularity_score > 80
+      AND p.stock_quantity > 0
+    ORDER BY p.popularity_score DESC, p.rating DESC
+    LIMIT 1000;
+    
+  warm-trending-categories.sql: |
+    -- Warm cache with trending categories
+    SELECT 
+        c.id,
+        c.name,
+        c.description,
+        c.parent_id,
+        c.level,
+        c.trending_score,
+        COUNT(p.id) as product_count
+    FROM categories c
+    LEFT JOIN products p ON c.id = p.category_id AND p.active = true
+    WHERE c.active = true
+      AND c.trending = true
+    GROUP BY c.id, c.name, c.description, c.parent_id, c.level, c.trending_score
+    ORDER BY c.trending_score DESC
+    LIMIT 100;
+    
+  warm-featured-products.sql: |
+    -- Warm cache with featured products
+    SELECT 
+        p.id,
+        p.name,
+        p.description,
+        p.price,
+        p.sale_price,
+        p.category_id,
+        p.brand_id,
+        p.featured_priority,
+        p.stock_quantity,
+        p.rating,
+        i.thumbnail_url,
+        i.image_urls
+    FROM products p
+    LEFT JOIN product_images i ON p.id = i.product_id AND i.is_primary = true
+    WHERE p.active = true
+      AND p.featured = true
+      AND p.stock_quantity > 0
+    ORDER BY p.featured_priority ASC, p.rating DESC
+    LIMIT 500;
+    
+  warm-seasonal-promotions.sql: |
+    -- Warm cache with active promotions
+    SELECT 
+        pr.id,
+        pr.name,
+        pr.description,
+        pr.discount_type,
+        pr.discount_value,
+        pr.start_date,
+        pr.end_date,
+        pr.min_order_amount,
+        pr.max_discount_amount,
+        pr.usage_limit,
+        pr.current_usage,
+        GROUP_CONCAT(pc.category_id) as applicable_categories,
+        GROUP_CONCAT(pp.product_id) as applicable_products
+    FROM promotions pr
+    LEFT JOIN promotion_categories pc ON pr.id = pc.promotion_id
+    LEFT JOIN promotion_products pp ON pr.id = pp.promotion_id
+    WHERE pr.active = true
+      AND pr.start_date <= NOW()
+      AND pr.end_date >= NOW()
+      AND (pr.usage_limit IS NULL OR pr.current_usage < pr.usage_limit)
+    GROUP BY pr.id
+    ORDER BY pr.priority DESC, pr.discount_value DESC
+    LIMIT 200;
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cache-warmer-popular-products
+  namespace: hopngo-prod
+  labels:
+    app: market-service
+    component: cache-warmer
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cache-warmer
+            job: popular-products
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: cache-warmer
+            image: market-service:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting cache warming for popular products..."
+              java -jar /app/market-service.jar \
+                --spring.profiles.active=cache-warmer \
+                --cache.warmer.job=popular-products \
+                --cache.warmer.batch-size=100
+            env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "cache-warmer"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: url
+            - name: REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: redis-config
+                  key: url
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "200m"
+            volumeMounts:
+            - name: cache-config
+              mountPath: /app/config
+            - name: warmer-scripts
+              mountPath: /app/scripts
+          volumes:
+          - name: cache-config
+            configMap:
+              name: redis-cache-config
+          - name: warmer-scripts
+            configMap:
+              name: cache-warmer-scripts
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cache-warmer-trending-categories
+  namespace: hopngo-prod
+  labels:
+    app: market-service
+    component: cache-warmer
+spec:
+  schedule: "0 0 */4 * *"  # Every 4 hours
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cache-warmer
+            job: trending-categories
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: cache-warmer
+            image: market-service:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting cache warming for trending categories..."
+              java -jar /app/market-service.jar \
+                --spring.profiles.active=cache-warmer \
+                --cache.warmer.job=trending-categories \
+                --cache.warmer.batch-size=50
+            env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "cache-warmer"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: url
+            - name: REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: redis-config
+                  key: url
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "200m"
+            volumeMounts:
+            - name: cache-config
+              mountPath: /app/config
+            - name: warmer-scripts
+              mountPath: /app/scripts
+          volumes:
+          - name: cache-config
+            configMap:
+              name: redis-cache-config
+          - name: warmer-scripts
+            configMap:
+              name: cache-warmer-scripts
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cache-metrics
+  namespace: hopngo-prod
+  labels:
+    app: market-service
+    component: cache-metrics
+spec:
+  selector:
+    app: market-service
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: cache-metrics-monitor
+  namespace: hopngo-prod
+  labels:
+    app: market-service
+    component: cache-metrics
+spec:
+  selector:
+    matchLabels:
+      app: market-service
+      component: cache-metrics
+  endpoints:
+  - port: metrics
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    honorLabels: true
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'cache_.*'
+      targetLabel: service
+      replacement: 'market-service'
+    - sourceLabels: [__name__]
+      regex: 'redis_.*'
+      targetLabel: service
+      replacement: 'market-service'

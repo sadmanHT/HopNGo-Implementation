@@ -277,10 +277,6 @@ public class RabbitMQConfig {
         
         // Retry template
         factory.setRetryTemplate(retryTemplate());
-        factory.setRecoveryCallback(context -> {
-            System.err.println("Message processing failed after all retries: " + context.getLastThrowable().getMessage());
-            return null;
-        });
         
         return factory;
     }

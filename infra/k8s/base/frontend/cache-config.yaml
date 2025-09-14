@@ -1,0 +1,455 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-cache-config
+  namespace: hopngo-prod
+  labels:
+    app: frontend
+    component: cache
+data:
+  cache-config.json: |
+    {
+      "redis": {
+        "host": "redis-cluster",
+        "port": 6379,
+        "password": "",
+        "db": 1,
+        "keyPrefix": "frontend:",
+        "connectTimeout": 1000,
+        "commandTimeout": 1000,
+        "retryDelayOnFailover": 100,
+        "maxRetriesPerRequest": 3,
+        "lazyConnect": true,
+        "keepAlive": 30000
+      },
+      "cache": {
+        "defaultTTL": 300,
+        "maxMemory": "256mb",
+        "evictionPolicy": "allkeys-lru",
+        "compression": {
+          "enabled": true,
+          "algorithm": "gzip",
+          "minSize": 1024
+        }
+      },
+      "strategies": {
+        "apiResponses": {
+          "enabled": true,
+          "ttl": 300,
+          "staleWhileRevalidate": 60,
+          "cacheControl": "public, max-age=300, stale-while-revalidate=60",
+          "varyHeaders": ["Accept-Language", "Authorization"]
+        },
+        "staticAssets": {
+          "enabled": true,
+          "ttl": 86400,
+          "cacheControl": "public, max-age=86400, immutable",
+          "extensions": [".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".woff", ".woff2"]
+        },
+        "pageCache": {
+          "enabled": true,
+          "ttl": 600,
+          "staleWhileRevalidate": 120,
+          "cacheControl": "public, max-age=600, stale-while-revalidate=120",
+          "excludePaths": ["/admin", "/profile", "/checkout", "/cart"]
+        },
+        "sessionCache": {
+          "enabled": true,
+          "ttl": 1800,
+          "sliding": true,
+          "secure": true,
+          "httpOnly": true
+        }
+      },
+      "warming": {
+        "enabled": true,
+        "strategies": {
+          "homepage": {
+            "enabled": true,
+            "schedule": "0 */2 * * *",
+            "urls": [
+              "/",
+              "/api/products/featured",
+              "/api/categories/trending",
+              "/api/promotions/active"
+            ]
+          },
+          "popularPages": {
+            "enabled": true,
+            "schedule": "0 */4 * * *",
+            "urls": [
+              "/products",
+              "/categories",
+              "/search",
+              "/api/products/popular",
+              "/api/search/suggestions"
+            ]
+          },
+          "criticalAPIs": {
+            "enabled": true,
+            "schedule": "0 */1 * * *",
+            "urls": [
+              "/api/health",
+              "/api/config/app",
+              "/api/categories/tree",
+              "/api/brands/active"
+            ]
+          }
+        }
+      },
+      "invalidation": {
+        "enabled": true,
+        "strategies": {
+          "timeBasedInvalidation": {
+            "enabled": true
+          },
+          "eventBasedInvalidation": {
+            "enabled": true,
+            "events": [
+              "product.updated",
+              "category.updated",
+              "promotion.changed",
+              "inventory.updated",
+              "user.logout"
+            ]
+          },
+          "manualInvalidation": {
+            "enabled": true,
+            "endpoints": [
+              "/cache/invalidate/page/*",
+              "/cache/invalidate/api/*",
+              "/cache/invalidate/user/*",
+              "/cache/flush/all"
+            ]
+          }
+        }
+      },
+      "monitoring": {
+        "enabled": true,
+        "metrics": {
+          "hitRatio": {
+            "enabled": true,
+            "threshold": 0.80,
+            "window": "5m"
+          },
+          "responseTime": {
+            "enabled": true,
+            "threshold": 200,
+            "window": "1m"
+          },
+          "memoryUsage": {
+            "enabled": true,
+            "threshold": 0.85,
+            "window": "5m"
+          },
+          "errorRate": {
+            "enabled": true,
+            "threshold": 0.01,
+            "window": "5m"
+          }
+        },
+        "alerts": {
+          "webhook": "http://alertmanager:9093/api/v1/alerts",
+          "slack": "#frontend-alerts"
+        }
+      },
+      "performance": {
+        "brotliCompression": {
+          "enabled": true,
+          "quality": 6,
+          "minSize": 1024
+        },
+        "http2Push": {
+          "enabled": true,
+          "resources": [
+            "/static/css/main.css",
+            "/static/js/main.js",
+            "/static/js/vendor.js"
+          ]
+        },
+        "preload": {
+          "enabled": true,
+          "resources": [
+            {
+              "href": "/static/fonts/main.woff2",
+              "as": "font",
+              "type": "font/woff2",
+              "crossorigin": "anonymous"
+            }
+          ]
+        }
+      }
+    }
+  
+  nginx-cache.conf: |
+    # Nginx cache configuration for frontend
+    
+    # Cache zones
+    proxy_cache_path /var/cache/nginx/api levels=1:2 keys_zone=api_cache:10m max_size=1g inactive=60m use_temp_path=off;
+    proxy_cache_path /var/cache/nginx/static levels=1:2 keys_zone=static_cache:10m max_size=2g inactive=1d use_temp_path=off;
+    proxy_cache_path /var/cache/nginx/pages levels=1:2 keys_zone=page_cache:10m max_size=500m inactive=30m use_temp_path=off;
+    
+    # Cache key configuration
+    proxy_cache_key "$scheme$request_method$host$request_uri$http_accept_language";
+    
+    # Upstream configuration
+    upstream frontend_app {
+        least_conn;
+        server frontend-service:3000 max_fails=3 fail_timeout=30s;
+        keepalive 32;
+    }
+    
+    # Rate limiting
+    limit_req_zone $binary_remote_addr zone=api_limit:10m rate=100r/s;
+    limit_req_zone $binary_remote_addr zone=static_limit:10m rate=200r/s;
+    
+    server {
+        listen 80;
+        server_name _;
+        
+        # Security headers
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        
+        # Compression
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 1024;
+        gzip_comp_level 6;
+        gzip_types
+            text/plain
+            text/css
+            text/xml
+            text/javascript
+            application/json
+            application/javascript
+            application/xml+rss
+            application/atom+xml
+            image/svg+xml;
+        
+        # Brotli compression (if module available)
+        brotli on;
+        brotli_comp_level 6;
+        brotli_types
+            text/plain
+            text/css
+            text/xml
+            text/javascript
+            application/json
+            application/javascript
+            application/xml+rss
+            application/atom+xml
+            image/svg+xml;
+        
+        # Static assets with long cache
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+            proxy_cache static_cache;
+            proxy_cache_valid 200 1d;
+            proxy_cache_valid 404 1m;
+            proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+            proxy_cache_lock on;
+            proxy_cache_lock_timeout 5s;
+            
+            add_header Cache-Control "public, max-age=86400, immutable";
+            add_header X-Cache-Status $upstream_cache_status;
+            
+            expires 1d;
+            
+            limit_req zone=static_limit burst=50 nodelay;
+            
+            proxy_pass http://frontend_app;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        
+        # API endpoints with shorter cache
+        location /api/ {
+            proxy_cache api_cache;
+            proxy_cache_valid 200 5m;
+            proxy_cache_valid 404 1m;
+            proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+            proxy_cache_lock on;
+            proxy_cache_lock_timeout 2s;
+            
+            # Cache based on user authentication
+            proxy_cache_key "$scheme$request_method$host$request_uri$http_authorization";
+            
+            # Don't cache authenticated requests
+            proxy_cache_bypass $http_authorization;
+            proxy_no_cache $http_authorization;
+            
+            add_header Cache-Control "public, max-age=300, stale-while-revalidate=60";
+            add_header X-Cache-Status $upstream_cache_status;
+            
+            limit_req zone=api_limit burst=20 nodelay;
+            
+            proxy_pass http://frontend_app;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            
+            # Enable streaming for real-time APIs
+            proxy_buffering off;
+            proxy_read_timeout 300s;
+            proxy_connect_timeout 75s;
+        }
+        
+        # Pages with medium cache (exclude user-specific pages)
+        location / {
+            # Skip cache for user-specific pages
+            set $skip_cache 0;
+            if ($request_uri ~* "/(admin|profile|checkout|cart|login|register)") {
+                set $skip_cache 1;
+            }
+            if ($http_cookie ~* "(user_session|auth_token)") {
+                set $skip_cache 1;
+            }
+            
+            proxy_cache page_cache;
+            proxy_cache_bypass $skip_cache;
+            proxy_no_cache $skip_cache;
+            proxy_cache_valid 200 10m;
+            proxy_cache_valid 404 1m;
+            proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+            proxy_cache_lock on;
+            proxy_cache_lock_timeout 5s;
+            
+            add_header Cache-Control "public, max-age=600, stale-while-revalidate=120";
+            add_header X-Cache-Status $upstream_cache_status;
+            
+            proxy_pass http://frontend_app;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        
+        # Cache purge endpoint (restricted access)
+        location /cache/purge {
+            allow 10.0.0.0/8;
+            allow 172.16.0.0/12;
+            allow 192.168.0.0/16;
+            deny all;
+            
+            proxy_cache_purge api_cache static_cache page_cache $scheme$request_method$host$1;
+        }
+        
+        # Health check endpoint (no cache)
+        location /health {
+            proxy_cache off;
+            proxy_pass http://frontend_app;
+            access_log off;
+        }
+    }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: frontend-cache-warmer
+  namespace: hopngo-prod
+  labels:
+    app: frontend
+    component: cache-warmer
+spec:
+  schedule: "0 */2 * * *"  # Every 2 hours
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cache-warmer
+            job: frontend-pages
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: cache-warmer
+            image: curlimages/curl:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting frontend cache warming..."
+              
+              # Homepage and critical pages
+              curl -s -o /dev/null -w "Homepage: %{http_code} %{time_total}s\n" http://frontend-service/
+              curl -s -o /dev/null -w "Products: %{http_code} %{time_total}s\n" http://frontend-service/products
+              curl -s -o /dev/null -w "Categories: %{http_code} %{time_total}s\n" http://frontend-service/categories
+              curl -s -o /dev/null -w "Search: %{http_code} %{time_total}s\n" http://frontend-service/search
+              
+              # Critical API endpoints
+              curl -s -o /dev/null -w "Featured Products API: %{http_code} %{time_total}s\n" http://frontend-service/api/products/featured
+              curl -s -o /dev/null -w "Trending Categories API: %{http_code} %{time_total}s\n" http://frontend-service/api/categories/trending
+              curl -s -o /dev/null -w "Active Promotions API: %{http_code} %{time_total}s\n" http://frontend-service/api/promotions/active
+              curl -s -o /dev/null -w "Popular Products API: %{http_code} %{time_total}s\n" http://frontend-service/api/products/popular
+              curl -s -o /dev/null -w "Search Suggestions API: %{http_code} %{time_total}s\n" http://frontend-service/api/search/suggestions
+              curl -s -o /dev/null -w "App Config API: %{http_code} %{time_total}s\n" http://frontend-service/api/config/app
+              curl -s -o /dev/null -w "Categories Tree API: %{http_code} %{time_total}s\n" http://frontend-service/api/categories/tree
+              curl -s -o /dev/null -w "Active Brands API: %{http_code} %{time_total}s\n" http://frontend-service/api/brands/active
+              
+              echo "Cache warming completed successfully"
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "50m"
+              limits:
+                memory: "128Mi"
+                cpu: "100m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-cache-metrics
+  namespace: hopngo-prod
+  labels:
+    app: frontend
+    component: cache-metrics
+spec:
+  selector:
+    app: frontend
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: frontend-cache-monitor
+  namespace: hopngo-prod
+  labels:
+    app: frontend
+    component: cache-metrics
+spec:
+  selector:
+    matchLabels:
+      app: frontend
+      component: cache-metrics
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    honorLabels: true
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'nginx_.*'
+      targetLabel: service
+      replacement: 'frontend'
+    - sourceLabels: [__name__]
+      regex: 'redis_.*'
+      targetLabel: service
+      replacement: 'frontend'
+    - sourceLabels: [__name__]
+      regex: 'cache_.*'
+      targetLabel: service
+      replacement: 'frontend'

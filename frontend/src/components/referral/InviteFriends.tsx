@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { toast } from '@/hooks/use-toast';
 import { Copy, Share2, Users, Gift, Mail, MessageCircle, Facebook, Twitter, Linkedin } from 'lucide-react';
 import { referralService, ReferralResponse } from '@/lib/services/referral';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuthStore } from '@/stores/authStore';
 
 interface InviteFriendsProps {
   variant?: 'card' | 'button' | 'inline';
@@ -18,7 +18,7 @@ interface InviteFriendsProps {
 }
 
 export function InviteFriends({ variant = 'card', className, showRewards = true }: InviteFriendsProps) {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [referral, setReferral] = useState<ReferralResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -39,7 +39,7 @@ export function InviteFriends({ variant = 'card', className, showRewards = true 
       
       if (referralsResponse.success && referralsResponse.data.length > 0) {
         // Use the first active referral
-        const activeReferral = referralsResponse.data.find(r => r.status === 'ACTIVE');
+        const activeReferral = referralsResponse.data.find((r: ReferralResponse) => r.status === 'ACTIVE');
         if (activeReferral) {
           setReferral(activeReferral);
           return;

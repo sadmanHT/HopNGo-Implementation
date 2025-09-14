@@ -1,0 +1,439 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: performance-tuning-config
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    component: performance-tuning
+data:
+  # JVM Performance Tuning
+  jvm-opts: |
+    -server
+    -XX:+UseG1GC
+    -XX:MaxGCPauseMillis=200
+    -XX:+UseStringDeduplication
+    -XX:+OptimizeStringConcat
+    -XX:+UseCompressedOops
+    -XX:+UseCompressedClassPointers
+    -XX:+UnlockExperimentalVMOptions
+    -XX:+UseCGroupMemoryLimitForHeap
+    -XX:MaxRAMFraction=2
+    -XX:InitialRAMFraction=2
+    -XX:MinRAMFraction=2
+    -XX:+PrintGC
+    -XX:+PrintGCDetails
+    -XX:+PrintGCTimeStamps
+    -XX:+PrintGCApplicationStoppedTime
+    -XX:+UseGCLogFileRotation
+    -XX:NumberOfGCLogFiles=5
+    -XX:GCLogFileSize=10M
+    -Xloggc:/var/log/gc.log
+    -XX:+HeapDumpOnOutOfMemoryError
+    -XX:HeapDumpPath=/var/log/heapdump.hprof
+    -Djava.awt.headless=true
+    -Dfile.encoding=UTF-8
+    -Duser.timezone=UTC
+    -Djava.security.egd=file:/dev/./urandom
+  
+  # Thread Pool Configuration
+  thread-pool-config: |
+    # Tomcat Thread Pool
+    server.tomcat.threads.max=200
+    server.tomcat.threads.min-spare=25
+    server.tomcat.max-connections=8192
+    server.tomcat.accept-count=100
+    server.tomcat.connection-timeout=20000
+    server.tomcat.keep-alive-timeout=60000
+    server.tomcat.max-keep-alive-requests=100
+    
+    # Async Task Executor
+    spring.task.execution.pool.core-size=10
+    spring.task.execution.pool.max-size=50
+    spring.task.execution.pool.queue-capacity=1000
+    spring.task.execution.pool.keep-alive=60s
+    spring.task.execution.thread-name-prefix=async-task-
+    
+    # Scheduling Task Executor
+    spring.task.scheduling.pool.size=5
+    spring.task.scheduling.thread-name-prefix=scheduled-task-
+  
+  # Database Performance Tuning
+  database-config: |
+    # HikariCP Connection Pool
+    spring.datasource.hikari.maximum-pool-size=25
+    spring.datasource.hikari.minimum-idle=10
+    spring.datasource.hikari.connection-timeout=30000
+    spring.datasource.hikari.idle-timeout=600000
+    spring.datasource.hikari.max-lifetime=1800000
+    spring.datasource.hikari.leak-detection-threshold=60000
+    spring.datasource.hikari.validation-timeout=5000
+    spring.datasource.hikari.initialization-fail-timeout=1
+    spring.datasource.hikari.isolate-internal-queries=false
+    spring.datasource.hikari.allow-pool-suspension=false
+    spring.datasource.hikari.read-only=false
+    spring.datasource.hikari.register-mbeans=true
+    
+    # JPA/Hibernate Performance
+    spring.jpa.properties.hibernate.jdbc.batch_size=25
+    spring.jpa.properties.hibernate.order_inserts=true
+    spring.jpa.properties.hibernate.order_updates=true
+    spring.jpa.properties.hibernate.batch_versioned_data=true
+    spring.jpa.properties.hibernate.default_batch_fetch_size=16
+    spring.jpa.properties.hibernate.batch_fetch_style=PADDED
+    spring.jpa.properties.hibernate.connection.provider_disables_autocommit=true
+    spring.jpa.properties.hibernate.query.plan_cache_max_size=2048
+    spring.jpa.properties.hibernate.query.plan_parameter_metadata_max_size=128
+    spring.jpa.properties.hibernate.session.events.log.LOG_QUERIES_SLOWER_THAN_MS=1000
+  
+  # Cache Performance Tuning
+  cache-config: |
+    # Redis Connection Pool
+    spring.data.redis.lettuce.pool.max-active=20
+    spring.data.redis.lettuce.pool.max-idle=10
+    spring.data.redis.lettuce.pool.min-idle=5
+    spring.data.redis.lettuce.pool.max-wait=-1ms
+    spring.data.redis.lettuce.pool.time-between-eviction-runs=30s
+    
+    # Redis Performance
+    spring.data.redis.timeout=2000ms
+    spring.data.redis.connect-timeout=2000ms
+    spring.data.redis.command-timeout=2000ms
+    
+    # Cache Configuration
+    spring.cache.redis.time-to-live=3600000
+    spring.cache.redis.cache-null-values=false
+    spring.cache.redis.use-key-prefix=true
+    spring.cache.redis.key-prefix=hopngo:
+  
+  # Message Queue Performance
+  rabbitmq-config: |
+    # RabbitMQ Connection
+    spring.rabbitmq.connection-timeout=60000
+    spring.rabbitmq.requested-heartbeat=30
+    spring.rabbitmq.publisher-confirm-type=correlated
+    spring.rabbitmq.publisher-returns=true
+    spring.rabbitmq.template.mandatory=true
+    spring.rabbitmq.template.retry.enabled=true
+    spring.rabbitmq.template.retry.initial-interval=1000
+    spring.rabbitmq.template.retry.max-attempts=3
+    spring.rabbitmq.template.retry.max-interval=10000
+    spring.rabbitmq.template.retry.multiplier=2
+    
+    # Consumer Configuration
+    spring.rabbitmq.listener.simple.concurrency=5
+    spring.rabbitmq.listener.simple.max-concurrency=20
+    spring.rabbitmq.listener.simple.prefetch=10
+    spring.rabbitmq.listener.simple.default-requeue-rejected=false
+    spring.rabbitmq.listener.simple.idle-event-interval=30s
+  
+  # MongoDB Performance
+  mongodb-config: |
+    # MongoDB Connection Pool
+    spring.data.mongodb.uri=mongodb://mongodb:27017/hopngo?maxPoolSize=20&minPoolSize=5&maxIdleTimeMS=300000&waitQueueTimeoutMS=5000&serverSelectionTimeoutMS=5000&connectTimeoutMS=10000&socketTimeoutMS=0&maxLifeTimeMS=0&heartbeatFrequencyMS=10000&minHeartbeatFrequencyMS=500
+  
+  # Logging Performance
+  logging-config: |
+    # Async Logging
+    logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+    logging.pattern.file=%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+    
+    # Log Levels for Performance
+    logging.level.org.springframework.web=WARN
+    logging.level.org.springframework.security=WARN
+    logging.level.org.hibernate.SQL=WARN
+    logging.level.org.hibernate.type.descriptor.sql.BasicBinder=WARN
+    logging.level.com.zaxxer.hikari=WARN
+    logging.level.org.springframework.data.redis=WARN
+    logging.level.org.springframework.amqp=WARN
+    
+    # Application Logging
+    logging.level.com.hopngo=INFO
+    logging.level.root=WARN
+  
+  # HTTP Client Performance
+  http-client-config: |
+    # RestTemplate/WebClient
+    spring.http.client.connect-timeout=5000
+    spring.http.client.read-timeout=30000
+    spring.http.client.write-timeout=30000
+    
+    # Connection Pool
+    spring.http.client.pool.max-connections=100
+    spring.http.client.pool.max-connections-per-route=20
+    spring.http.client.pool.time-to-live=30s
+    spring.http.client.pool.max-idle-time=30s
+  
+  # Actuator Performance
+  actuator-config: |
+    # Management Endpoints
+    management.endpoints.web.exposure.include=health,info,metrics,prometheus
+    management.endpoint.health.show-details=when-authorized
+    management.endpoint.health.cache.time-to-live=10s
+    management.endpoint.metrics.cache.time-to-live=10s
+    
+    # Metrics
+    management.metrics.export.prometheus.enabled=true
+    management.metrics.distribution.percentiles-histogram.http.server.requests=true
+    management.metrics.distribution.percentiles.http.server.requests=0.5,0.9,0.95,0.99
+    management.metrics.distribution.slo.http.server.requests=50ms,100ms,200ms,300ms,400ms,500ms,1s,2s
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gc-tuning-config
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    component: gc-tuning
+data:
+  # G1GC Tuning for Different Heap Sizes
+  small-heap-gc: |
+    # For containers with 512MB-1GB heap
+    -XX:+UseG1GC
+    -XX:MaxGCPauseMillis=100
+    -XX:G1HeapRegionSize=8m
+    -XX:G1NewSizePercent=30
+    -XX:G1MaxNewSizePercent=40
+    -XX:G1MixedGCCountTarget=8
+    -XX:InitiatingHeapOccupancyPercent=35
+    -XX:G1MixedGCLiveThresholdPercent=85
+    -XX:G1HeapWastePercent=5
+  
+  medium-heap-gc: |
+    # For containers with 1GB-4GB heap
+    -XX:+UseG1GC
+    -XX:MaxGCPauseMillis=200
+    -XX:G1HeapRegionSize=16m
+    -XX:G1NewSizePercent=20
+    -XX:G1MaxNewSizePercent=30
+    -XX:G1MixedGCCountTarget=8
+    -XX:InitiatingHeapOccupancyPercent=45
+    -XX:G1MixedGCLiveThresholdPercent=85
+    -XX:G1HeapWastePercent=5
+  
+  large-heap-gc: |
+    # For containers with 4GB+ heap
+    -XX:+UseG1GC
+    -XX:MaxGCPauseMillis=300
+    -XX:G1HeapRegionSize=32m
+    -XX:G1NewSizePercent=15
+    -XX:G1MaxNewSizePercent=25
+    -XX:G1MixedGCCountTarget=8
+    -XX:InitiatingHeapOccupancyPercent=45
+    -XX:G1MixedGCLiveThresholdPercent=85
+    -XX:G1HeapWastePercent=5
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-index-optimization
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    component: database-optimization
+data:
+  booking-service-indexes.sql: |
+    -- Booking Service Index Optimizations
+    
+    -- Composite index for booking conflicts query
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bookings_listing_dates_status 
+    ON bookings (listing_id, start_date, end_date, status) 
+    WHERE status IN ('PENDING', 'CONFIRMED');
+    
+    -- Index for user bookings with status
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bookings_user_status_created 
+    ON bookings (user_id, status, created_at DESC);
+    
+    -- Index for vendor bookings
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bookings_vendor_created 
+    ON bookings (vendor_id, created_at DESC);
+    
+    -- Index for expired pending bookings
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bookings_status_created 
+    ON bookings (status, created_at) 
+    WHERE status = 'PENDING';
+    
+    -- Index for completed bookings
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bookings_status_end_date 
+    ON bookings (status, end_date) 
+    WHERE status = 'CONFIRMED';
+    
+    -- Index for booking reference lookup
+    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS idx_bookings_reference 
+    ON bookings (booking_reference);
+    
+    -- Index for revenue calculations
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bookings_vendor_status_created_amount 
+    ON bookings (vendor_id, status, created_at, total_amount) 
+    WHERE status = 'CONFIRMED';
+    
+    -- Partial index for review eligibility
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bookings_review_eligible 
+    ON bookings (user_id, end_date, status) 
+    WHERE status IN ('CONFIRMED', 'COMPLETED');
+  
+  market-service-indexes.sql: |
+    -- Market Service Index Optimizations
+    
+    -- Product search indexes
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_products_category_status_created 
+    ON products (category_id, status, created_at DESC) 
+    WHERE status = 'ACTIVE';
+    
+    -- Product price range index
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_products_price_status 
+    ON products (price, status) 
+    WHERE status = 'ACTIVE';
+    
+    -- Vendor products index
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_products_vendor_status 
+    ON products (vendor_id, status, created_at DESC);
+    
+    -- Order processing indexes
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_user_status_created 
+    ON orders (user_id, status, created_at DESC);
+    
+    -- Order items for inventory management
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_order_items_product_created 
+    ON order_items (product_id, created_at DESC);
+    
+    -- Cart optimization
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cart_items_user_updated 
+    ON cart_items (user_id, updated_at DESC);
+  
+  social-service-indexes.sql: |
+    -- Social Service Index Optimizations
+    
+    -- Feed timeline index
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_posts_user_created_status 
+    ON posts (user_id, created_at DESC, status) 
+    WHERE status = 'PUBLISHED';
+    
+    -- Following relationship index
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_follows_follower_created 
+    ON follows (follower_id, created_at DESC);
+    
+    -- Comments hierarchy index
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_comments_post_parent_created 
+    ON comments (post_id, parent_id, created_at DESC);
+    
+    -- Likes aggregation index
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_likes_post_created 
+    ON likes (post_id, created_at DESC);
+    
+    -- User activity index
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_activities_user_created 
+    ON user_activities (user_id, created_at DESC);
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: database-optimization-job
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    component: database-optimization
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: db-optimizer
+        image: postgres:15-alpine
+        env:
+        - name: PGHOST
+          value: "postgresql"
+        - name: PGPORT
+          value: "5432"
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secret
+              key: username
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secret
+              key: password
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Starting database optimization..."
+          
+          # Apply booking service indexes
+          psql -d hopngo_booking -f /scripts/booking-service-indexes.sql
+          
+          # Apply market service indexes
+          psql -d hopngo_market -f /scripts/market-service-indexes.sql
+          
+          # Apply social service indexes
+          psql -d hopngo_social -f /scripts/social-service-indexes.sql
+          
+          # Analyze tables for query planner
+          psql -d hopngo_booking -c "ANALYZE;"
+          psql -d hopngo_market -c "ANALYZE;"
+          psql -d hopngo_social -c "ANALYZE;"
+          
+          echo "Database optimization completed successfully!"
+        volumeMounts:
+        - name: optimization-scripts
+          mountPath: /scripts
+      volumes:
+      - name: optimization-scripts
+        configMap:
+          name: database-index-optimization
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: performance-monitoring-queries
+  namespace: hopngo-prod
+  labels:
+    app: hopngo
+    component: performance-monitoring
+data:
+  slow-queries.sql: |
+    -- Monitor slow queries
+    SELECT 
+      query,
+      calls,
+      total_time,
+      mean_time,
+      rows,
+      100.0 * shared_blks_hit / nullif(shared_blks_hit + shared_blks_read, 0) AS hit_percent
+    FROM pg_stat_statements 
+    WHERE mean_time > 1000  -- queries slower than 1 second
+    ORDER BY mean_time DESC 
+    LIMIT 20;
+  
+  index-usage.sql: |
+    -- Monitor index usage
+    SELECT 
+      schemaname,
+      tablename,
+      indexname,
+      idx_tup_read,
+      idx_tup_fetch,
+      idx_scan
+    FROM pg_stat_user_indexes 
+    WHERE idx_scan = 0  -- unused indexes
+    ORDER BY schemaname, tablename;
+  
+  table-stats.sql: |
+    -- Monitor table statistics
+    SELECT 
+      schemaname,
+      tablename,
+      n_tup_ins,
+      n_tup_upd,
+      n_tup_del,
+      n_live_tup,
+      n_dead_tup,
+      last_vacuum,
+      last_autovacuum,
+      last_analyze,
+      last_autoanalyze
+    FROM pg_stat_user_tables 
+    ORDER BY n_dead_tup DESC;

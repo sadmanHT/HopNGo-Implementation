@@ -3,6 +3,7 @@ package com.hopngo.ai.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +18,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Service
+@ConditionalOnProperty(name = "spring.cache.type", havingValue = "redis", matchIfMissing = false)
 public class ImageHashService {
     
     private static final Logger logger = LoggerFactory.getLogger(ImageHashService.class);

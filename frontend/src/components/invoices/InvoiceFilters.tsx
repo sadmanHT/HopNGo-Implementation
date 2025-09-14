@@ -1,7 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { invoiceService } from '../../services/invoiceService';
 
-const InvoiceFilters = ({ filters, onFiltersChange, onReset, loading }) => {
+interface InvoiceFiltersData {
+  search: string;
+  status: string;
+  type: string;
+  currency: string;
+  minAmount: string;
+  maxAmount: string;
+  startDate: string;
+  endDate: string;
+}
+
+interface InvoiceFiltersProps {
+  filters: InvoiceFiltersData;
+  onFiltersChange: (filters: InvoiceFiltersData) => void;
+  onReset: () => void;
+  loading: boolean;
+}
+
+const InvoiceFilters: React.FC<InvoiceFiltersProps> = ({ filters, onFiltersChange, onReset, loading }) => {
   const [localFilters, setLocalFilters] = useState(filters);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -25,7 +43,7 @@ const InvoiceFilters = ({ filters, onFiltersChange, onReset, loading }) => {
     }
   }, [localFilters, showAdvanced]);
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: keyof InvoiceFiltersData, value: string) => {
     const newFilters = { ...localFilters, [field]: value };
     setLocalFilters(newFilters);
     onFiltersChange(newFilters);

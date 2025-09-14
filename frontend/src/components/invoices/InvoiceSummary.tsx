@@ -1,7 +1,32 @@
 import React from 'react';
 import { invoiceService } from '../../services/invoiceService';
 
-const InvoiceSummary = ({ summary, loading }) => {
+interface RecentActivity {
+  type: string;
+  invoiceNumber: string;
+  action: string;
+  timestamp: string;
+}
+
+interface InvoiceSummaryData {
+  totalCount?: number;
+  totalAmount?: number;
+  paidAmount?: number;
+  paidCount?: number;
+  outstandingAmount?: number;
+  outstandingCount?: number;
+  overdueAmount?: number;
+  overdueCount?: number;
+  currency?: string;
+  recentActivity?: RecentActivity[];
+}
+
+interface InvoiceSummaryProps {
+  summary: InvoiceSummaryData | null;
+  loading: boolean;
+}
+
+const InvoiceSummary: React.FC<InvoiceSummaryProps> = ({ summary, loading }) => {
   if (loading && !summary) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -83,7 +108,7 @@ const InvoiceSummary = ({ summary, loading }) => {
   ];
 
   // Add overdue card if there are overdue invoices
-  if (summary.overdueCount > 0) {
+  if (summary.overdueCount && summary.overdueCount > 0) {
     summaryCards.push({
       title: 'Overdue',
       value: summary.overdueAmount ? invoiceService.formatCurrency(summary.overdueAmount, summary.currency || 'USD') : '$0.00',
@@ -164,14 +189,14 @@ const InvoiceSummary = ({ summary, loading }) => {
       )}
 
       {/* Payment status breakdown */}
-      {(summary.paidCount > 0 || summary.outstandingCount > 0 || summary.overdueCount > 0) && (
+      {((summary.paidCount && summary.paidCount > 0) || (summary.outstandingCount && summary.outstandingCount > 0) || (summary.overdueCount && summary.overdueCount > 0)) && (
         <div className="mt-6 bg-white shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-medium text-gray-900">Payment Status Breakdown</h3>
           </div>
           <div className="px-6 py-4">
             <div className="space-y-4">
-              {summary.paidCount > 0 && (
+              {summary.paidCount && summary.paidCount > 0 && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-4 h-4 bg-green-400 rounded"></div>
@@ -182,13 +207,13 @@ const InvoiceSummary = ({ summary, loading }) => {
                       {summary.paidCount} invoice{summary.paidCount !== 1 ? 's' : ''}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {invoiceService.formatCurrency(summary.paidAmount, summary.currency || 'USD')}
+                      {invoiceService.formatCurrency(summary.paidAmount || 0, summary.currency || 'USD')}
                     </div>
                   </div>
                 </div>
               )}
               
-              {summary.outstandingCount > 0 && (
+              {summary.outstandingCount && summary.outstandingCount > 0 && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-4 h-4 bg-yellow-400 rounded"></div>
@@ -199,13 +224,13 @@ const InvoiceSummary = ({ summary, loading }) => {
                       {summary.outstandingCount} invoice{summary.outstandingCount !== 1 ? 's' : ''}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {invoiceService.formatCurrency(summary.outstandingAmount, summary.currency || 'USD')}
+                      {invoiceService.formatCurrency(summary.outstandingAmount || 0, summary.currency || 'USD')}
                     </div>
                   </div>
                 </div>
               )}
               
-              {summary.overdueCount > 0 && (
+              {summary.overdueCount && summary.overdueCount > 0 && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-4 h-4 bg-red-400 rounded"></div>
@@ -216,7 +241,7 @@ const InvoiceSummary = ({ summary, loading }) => {
                       {summary.overdueCount} invoice{summary.overdueCount !== 1 ? 's' : ''}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {invoiceService.formatCurrency(summary.overdueAmount, summary.currency || 'USD')}
+                      {invoiceService.formatCurrency(summary.overdueAmount || 0, summary.currency || 'USD')}
                     </div>
                   </div>
                 </div>

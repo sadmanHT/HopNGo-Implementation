@@ -22,14 +22,36 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-        show_sql: true
-        use_sql_comments: true
+        show_sql: false
+        use_sql_comments: false
         generate_statistics: true
+        # N+1 Query Prevention
+        default_batch_fetch_size: 16
+        batch_fetch_style: PADDED
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+        # JDBC Batching
+        jdbc:
+          batch_size: 25
+          batch_versioned_data: true
+        # Query Optimization
+        query:
+          plan_cache_max_size: 2048
+          plan_parameter_metadata_max_size: 128
+        # Connection Pool Integration
+        connection:
+          provider_disables_autocommit: true
+        # Performance Monitoring
+        session:
+          events:
+            log:
+              LOG_QUERIES_SLOWER_THAN_MS: 1000
   
   flyway:
     enabled: false

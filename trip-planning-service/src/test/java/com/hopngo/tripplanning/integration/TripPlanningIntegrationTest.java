@@ -46,7 +46,7 @@ public class TripPlanningIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private static final String USER_ID = "test-user-123";
+    private static final String USER_ID = "550e8400-e29b-41d4-a716-446655440000"; // Valid UUID format
     private static final String USER_ID_HEADER = "X-User-Id";
 
     @DynamicPropertySource
@@ -54,6 +54,8 @@ public class TripPlanningIntegrationTest {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        registry.add("spring.jpa.show-sql", () -> "true");
     }
 
     private TripPlanRequest createValidTripPlanRequest() {

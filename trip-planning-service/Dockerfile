@@ -1,36 +1,29 @@
-FROM openjdk:17-jdk-slim as builder
+FROM eclipse-temurin:17-jdk as builder
 
 # Set working directory
 WORKDIR /app
 
 # Copy Maven wrapper and pom.xml for dependency caching
 COPY .mvn/ .mvn/
-COPY mvnw pom.xml ./
+COPY mvnw.cmd pom.xml ./
 
-# Download dependencies (this layer will be cached if pom.xml doesn't change)
-RUN ./mvnw dependency:go-offline -B
+# Install Maven
+RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
 
 # Copy source code
 COPY src ./src
 
 # Build the application
-RUN ./mvnw clean package -DskipTests
+RUN mvn clean package -DskipTests
 
 # Create final image
-FROM openjdk:17-jre-slim
-
-# Add non-root user for security
-RUN groupadd -r tripplanningservice && useradd -r -g tripplanningservice tripplanningservice
+FROM eclipse-temurin:17-jre
 
 # Set working directory
 WORKDIR /app
 
 # Copy the built JAR file
 COPY --from=builder /app/target/trip-planning-service-*.jar app.jar
-
-# Change ownership to non-root user
-RUN chown -R tripplanningservice:tripplanningservice /app
-USER tripplanningservice
 
 # Expose port
 EXPOSE 8087

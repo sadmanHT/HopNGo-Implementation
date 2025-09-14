@@ -93,7 +93,7 @@ const FinanceSummary: React.FC<FinanceSummaryProps> = ({ ledgerSummary, loading 
     return (
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex justify-center">
-          <LoadingSpinner size="medium" />
+          <LoadingSpinner size="md" />
         </div>
       </div>
     );
@@ -245,7 +245,7 @@ const FinanceSummary: React.FC<FinanceSummaryProps> = ({ ledgerSummary, loading 
 
           {statsLoading ? (
             <div className="flex justify-center py-8">
-              <LoadingSpinner size="medium" />
+              <LoadingSpinner size="md" />
             </div>
           ) : statistics ? (
             <div className="space-y-4">

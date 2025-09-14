@@ -1,0 +1,402 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cache-performance-alerts
+  namespace: hopngo-prod
+  labels:
+    app: monitoring
+    component: cache-alerts
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: cache.performance
+    interval: 30s
+    rules:
+    # Cache Hit Ratio Alerts
+    - alert: CacheHitRatioLow
+      expr: cache_hit_ratio * 100 < 80
+      for: 5m
+      labels:
+        severity: warning
+        service: "{{ $labels.service }}"
+        component: cache
+      annotations:
+        summary: "Low cache hit ratio detected"
+        description: "Cache hit ratio for {{ $labels.service }} on {{ $labels.instance }} is {{ $value }}%, which is below the 80% threshold for 5 minutes."
+        runbook_url: "https://docs.hopngo.com/runbooks/cache-hit-ratio-low"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+    - alert: CacheHitRatioCritical
+      expr: cache_hit_ratio * 100 < 60
+      for: 2m
+      labels:
+        severity: critical
+        service: "{{ $labels.service }}"
+        component: cache
+      annotations:
+        summary: "Critical cache hit ratio detected"
+        description: "Cache hit ratio for {{ $labels.service }} on {{ $labels.instance }} is {{ $value }}%, which is critically low (below 60%) for 2 minutes."
+        runbook_url: "https://docs.hopngo.com/runbooks/cache-hit-ratio-critical"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+    # Cache Miss Ratio Alerts
+    - alert: CacheMissRatioHigh
+      expr: cache_miss_ratio * 100 > 20
+      for: 5m
+      labels:
+        severity: warning
+        service: "{{ $labels.service }}"
+        component: cache
+      annotations:
+        summary: "High cache miss ratio detected"
+        description: "Cache miss ratio for {{ $labels.service }} on {{ $labels.instance }} is {{ $value }}%, which is above the 20% threshold for 5 minutes."
+        runbook_url: "https://docs.hopngo.com/runbooks/cache-miss-ratio-high"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+    # Cache Response Time Alerts
+    - alert: CacheResponseTimeSlow
+      expr: histogram_quantile(0.95, rate(cache_request_duration_seconds_bucket[5m])) * 1000 > 100
+      for: 3m
+      labels:
+        severity: warning
+        service: "{{ $labels.service }}"
+        component: cache
+      annotations:
+        summary: "Slow cache response time detected"
+        description: "95th percentile cache response time for {{ $labels.service }} on {{ $labels.instance }} is {{ $value }}ms, which is above the 100ms threshold for 3 minutes."
+        runbook_url: "https://docs.hopngo.com/runbooks/cache-response-time-slow"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+    - alert: CacheResponseTimeCritical
+      expr: histogram_quantile(0.95, rate(cache_request_duration_seconds_bucket[5m])) * 1000 > 200
+      for: 1m
+      labels:
+        severity: critical
+        service: "{{ $labels.service }}"
+        component: cache
+      annotations:
+        summary: "Critical cache response time detected"
+        description: "95th percentile cache response time for {{ $labels.service }} on {{ $labels.instance }} is {{ $value }}ms, which is critically slow (above 200ms) for 1 minute."
+        runbook_url: "https://docs.hopngo.com/runbooks/cache-response-time-critical"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+  - name: redis.performance
+    interval: 30s
+    rules:
+    # Redis Memory Usage Alerts
+    - alert: RedisMemoryUsageHigh
+      expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 80
+      for: 5m
+      labels:
+        severity: warning
+        service: "{{ $labels.service }}"
+        component: redis
+      annotations:
+        summary: "High Redis memory usage detected"
+        description: "Redis memory usage for {{ $labels.service }} on {{ $labels.instance }} is {{ $value }}%, which is above the 80% threshold for 5 minutes."
+        runbook_url: "https://docs.hopngo.com/runbooks/redis-memory-usage-high"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+    - alert: RedisMemoryUsageCritical
+      expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 90
+      for: 2m
+      labels:
+        severity: critical
+        service: "{{ $labels.service }}"
+        component: redis
+      annotations:
+        summary: "Critical Redis memory usage detected"
+        description: "Redis memory usage for {{ $labels.service }} on {{ $labels.instance }} is {{ $value }}%, which is critically high (above 90%) for 2 minutes."
+        runbook_url: "https://docs.hopngo.com/runbooks/redis-memory-usage-critical"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+    # Redis Connection Alerts
+    - alert: RedisConnectionsHigh
+      expr: redis_connected_clients > 80
+      for: 5m
+      labels:
+        severity: warning
+        service: "{{ $labels.service }}"
+        component: redis
+      annotations:
+        summary: "High Redis connection count detected"
+        description: "Redis connected clients for {{ $labels.service }} on {{ $labels.instance }} is {{ $value }}, which is above the 80 threshold for 5 minutes."
+        runbook_url: "https://docs.hopngo.com/runbooks/redis-connections-high"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+    - alert: RedisConnectionsCritical
+      expr: redis_connected_clients > 95
+      for: 1m
+      labels:
+        severity: critical
+        service: "{{ $labels.service }}"
+        component: redis
+      annotations:
+        summary: "Critical Redis connection count detected"
+        description: "Redis connected clients for {{ $labels.service }} on {{ $labels.instance }} is {{ $value }}, which is critically high (above 95) for 1 minute."
+        runbook_url: "https://docs.hopngo.com/runbooks/redis-connections-critical"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+    # Redis Eviction Alerts
+    - alert: RedisEvictionRateHigh
+      expr: rate(redis_evicted_keys_total[5m]) > 50
+      for: 3m
+      labels:
+        severity: warning
+        service: "{{ $labels.service }}"
+        component: redis
+      annotations:
+        summary: "High Redis key eviction rate detected"
+        description: "Redis key eviction rate for {{ $labels.service }} on {{ $labels.instance }} is {{ $value }} keys/sec, which is above the 50/sec threshold for 3 minutes."
+        runbook_url: "https://docs.hopngo.com/runbooks/redis-eviction-rate-high"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+    - alert: RedisEvictionRateCritical
+      expr: rate(redis_evicted_keys_total[5m]) > 100
+      for: 1m
+      labels:
+        severity: critical
+        service: "{{ $labels.service }}"
+        component: redis
+      annotations:
+        summary: "Critical Redis key eviction rate detected"
+        description: "Redis key eviction rate for {{ $labels.service }} on {{ $labels.instance }} is {{ $value }} keys/sec, which is critically high (above 100/sec) for 1 minute."
+        runbook_url: "https://docs.hopngo.com/runbooks/redis-eviction-rate-critical"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+    # Redis Availability Alerts
+    - alert: RedisDown
+      expr: up{job="redis"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: "{{ $labels.service }}"
+        component: redis
+      annotations:
+        summary: "Redis instance is down"
+        description: "Redis instance {{ $labels.instance }} for {{ $labels.service }} has been down for more than 1 minute."
+        runbook_url: "https://docs.hopngo.com/runbooks/redis-down"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+    - alert: RedisSlowLog
+      expr: increase(redis_slowlog_length[5m]) > 10
+      for: 2m
+      labels:
+        severity: warning
+        service: "{{ $labels.service }}"
+        component: redis
+      annotations:
+        summary: "Redis slow queries detected"
+        description: "Redis slow log for {{ $labels.service }} on {{ $labels.instance }} has increased by {{ $value }} entries in the last 5 minutes."
+        runbook_url: "https://docs.hopngo.com/runbooks/redis-slow-queries"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+  - name: nginx.cache
+    interval: 30s
+    rules:
+    # Nginx Cache Alerts
+    - alert: NginxCacheHitRatioLow
+      expr: |
+        (
+          sum(rate(nginx_cache_requests_total{status="HIT"}[5m])) /
+          sum(rate(nginx_cache_requests_total[5m]))
+        ) * 100 < 70
+      for: 5m
+      labels:
+        severity: warning
+        service: frontend
+        component: nginx-cache
+      annotations:
+        summary: "Low Nginx cache hit ratio detected"
+        description: "Nginx cache hit ratio is {{ $value }}%, which is below the 70% threshold for 5 minutes."
+        runbook_url: "https://docs.hopngo.com/runbooks/nginx-cache-hit-ratio-low"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service=frontend"
+    
+    - alert: NginxCacheStorageFull
+      expr: nginx_cache_size_bytes / nginx_cache_max_size_bytes * 100 > 90
+      for: 3m
+      labels:
+        severity: warning
+        service: frontend
+        component: nginx-cache
+      annotations:
+        summary: "Nginx cache storage nearly full"
+        description: "Nginx cache storage usage is {{ $value }}%, which is above the 90% threshold for 3 minutes."
+        runbook_url: "https://docs.hopngo.com/runbooks/nginx-cache-storage-full"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service=frontend"
+    
+  - name: cache.warming
+    interval: 60s
+    rules:
+    # Cache Warming Alerts
+    - alert: CacheWarmerJobFailed
+      expr: kube_job_status_failed{job_name=~".*cache-warmer.*"} > 0
+      for: 1m
+      labels:
+        severity: warning
+        service: "{{ $labels.service }}"
+        component: cache-warmer
+      annotations:
+        summary: "Cache warmer job failed"
+        description: "Cache warmer job {{ $labels.job_name }} has failed."
+        runbook_url: "https://docs.hopngo.com/runbooks/cache-warmer-job-failed"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance"
+    
+    - alert: CacheWarmerJobNotRunning
+      expr: |
+        time() - kube_job_status_completion_time{job_name=~".*cache-warmer.*"} > 7200
+      for: 5m
+      labels:
+        severity: warning
+        service: "{{ $labels.service }}"
+        component: cache-warmer
+      annotations:
+        summary: "Cache warmer job not running"
+        description: "Cache warmer job {{ $labels.job_name }} has not completed successfully in the last 2 hours."
+        runbook_url: "https://docs.hopngo.com/runbooks/cache-warmer-job-not-running"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance"
+    
+  - name: cache.application
+    interval: 30s
+    rules:
+    # Application-level Cache Alerts
+    - alert: ApplicationCacheErrorRateHigh
+      expr: |
+        (
+          sum(rate(cache_operations_total{status="error"}[5m])) /
+          sum(rate(cache_operations_total[5m]))
+        ) * 100 > 5
+      for: 3m
+      labels:
+        severity: warning
+        service: "{{ $labels.service }}"
+        component: application-cache
+      annotations:
+        summary: "High application cache error rate detected"
+        description: "Application cache error rate for {{ $labels.service }} is {{ $value }}%, which is above the 5% threshold for 3 minutes."
+        runbook_url: "https://docs.hopngo.com/runbooks/application-cache-error-rate-high"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+    - alert: CacheKeyExpirationRateHigh
+      expr: rate(cache_key_expirations_total[5m]) > 1000
+      for: 5m
+      labels:
+        severity: warning
+        service: "{{ $labels.service }}"
+        component: application-cache
+      annotations:
+        summary: "High cache key expiration rate detected"
+        description: "Cache key expiration rate for {{ $labels.service }} is {{ $value }} keys/sec, which is above the 1000/sec threshold for 5 minutes."
+        runbook_url: "https://docs.hopngo.com/runbooks/cache-key-expiration-rate-high"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+    
+    - alert: CacheInvalidationRateHigh
+      expr: rate(cache_invalidations_total[5m]) > 500
+      for: 5m
+      labels:
+        severity: warning
+        service: "{{ $labels.service }}"
+        component: application-cache
+      annotations:
+        summary: "High cache invalidation rate detected"
+        description: "Cache invalidation rate for {{ $labels.service }} is {{ $value }} invalidations/sec, which is above the 500/sec threshold for 5 minutes."
+        runbook_url: "https://docs.hopngo.com/runbooks/cache-invalidation-rate-high"
+        dashboard_url: "https://grafana.hopngo.com/d/cache-performance/cache-performance?var-service={{ $labels.service }}"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cache-alert-runbooks
+  namespace: hopngo-prod
+  labels:
+    app: monitoring
+    component: runbooks
+data:
+  cache-hit-ratio-low.md: |
+    # Cache Hit Ratio Low Runbook
+    
+    ## Alert Description
+    Cache hit ratio has dropped below 80% for more than 5 minutes.
+    
+    ## Impact
+    - Increased response times
+    - Higher database load
+    - Degraded user experience
+    
+    ## Investigation Steps
+    1. Check cache memory usage and eviction rates
+    2. Verify cache warming jobs are running successfully
+    3. Review recent application deployments
+    4. Check for changes in traffic patterns
+    5. Analyze cache key distribution and TTL settings
+    
+    ## Immediate Actions
+    1. Increase cache memory if usage is high
+    2. Restart cache warming jobs if they've failed
+    3. Review and optimize cache TTL settings
+    4. Consider scaling Redis instances
+    
+    ## Prevention
+    - Monitor cache warming job success rates
+    - Set up proactive cache memory scaling
+    - Implement cache key optimization strategies
+    - Regular review of cache performance metrics
+  
+  redis-memory-usage-high.md: |
+    # Redis Memory Usage High Runbook
+    
+    ## Alert Description
+    Redis memory usage has exceeded 80% for more than 5 minutes.
+    
+    ## Impact
+    - Increased key evictions
+    - Potential cache misses
+    - Risk of Redis OOM errors
+    
+    ## Investigation Steps
+    1. Check current memory usage and trends
+    2. Identify largest keys and their usage patterns
+    3. Review eviction policy effectiveness
+    4. Check for memory leaks in application code
+    
+    ## Immediate Actions
+    1. Scale Redis memory vertically or horizontally
+    2. Implement aggressive key expiration
+    3. Clear non-essential cached data
+    4. Optimize large key structures
+    
+    ## Prevention
+    - Implement proactive memory monitoring
+    - Set up automatic scaling policies
+    - Regular cache cleanup procedures
+    - Optimize data structures and TTLs
+  
+  nginx-cache-hit-ratio-low.md: |
+    # Nginx Cache Hit Ratio Low Runbook
+    
+    ## Alert Description
+    Nginx cache hit ratio has dropped below 70% for more than 5 minutes.
+    
+    ## Impact
+    - Increased backend load
+    - Higher response times
+    - Reduced CDN effectiveness
+    
+    ## Investigation Steps
+    1. Check Nginx cache configuration
+    2. Review cache storage usage and limits
+    3. Analyze request patterns and cache keys
+    4. Verify cache purging mechanisms
+    
+    ## Immediate Actions
+    1. Increase cache storage limits
+    2. Optimize cache key generation
+    3. Review and adjust cache TTL settings
+    4. Restart Nginx if configuration changed
+    
+    ## Prevention
+    - Regular cache configuration reviews
+    - Implement cache warming for static content
+    - Monitor cache storage trends
+    - Optimize cache key strategies

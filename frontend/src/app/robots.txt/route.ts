@@ -79,6 +79,3 @@ Disallow: /`;
     }
   });
 }
-
-// Export as default for Next.js App Router
-export default GET;

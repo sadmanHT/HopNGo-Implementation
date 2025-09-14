@@ -1,0 +1,140 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: hopngo-stg
+
+# Base resources to customize
+resources:
+- ../../base
+- namespace.yaml
+- ingress.yaml
+- monitoring.yaml
+- secrets.yaml
+
+# Images to override for staging
+images:
+- name: hopngo-frontend
+  newTag: staging-latest
+- name: hopngo-backend
+  newTag: staging-latest
+- name: hopngo-worker
+  newTag: staging-latest
+
+# ConfigMap and Secret generators
+configMapGenerator:
+- name: hopngo-config
+  behavior: merge
+  literals:
+  - ENVIRONMENT=staging
+  - LOG_LEVEL=debug
+  - METRICS_ENABLED=true
+  - TRACING_ENABLED=true
+  - FEATURE_FLAGS_ENABLED=true
+  - DATABASE_POOL_SIZE=10
+  - REDIS_POOL_SIZE=5
+  - RATE_LIMIT_ENABLED=true
+  - CACHE_TTL=300
+  - SESSION_TIMEOUT=1800
+  - API_TIMEOUT=30
+  - CORS_ORIGINS=https://staging.hopngo.com,https://staging-api.hopngo.com
+  - ALLOWED_HOSTS=staging.hopngo.com,staging-api.hopngo.com
+  - SECURE_COOKIES=true
+  - CSRF_PROTECTION=true
+
+secretGenerator:
+- name: hopngo-secrets
+  behavior: merge
+  literals:
+  - JWT_SECRET_KEY=staging-jwt-secret-key-placeholder
+  - ENCRYPTION_KEY=staging-encryption-key-placeholder
+  - API_KEY_SALT=staging-api-key-salt-placeholder
+
+# Patches for staging-specific configurations
+patches:
+# Resource limits for staging (smaller than production)
+- target:
+    kind: Deployment
+    name: hopngo-frontend
+  patch: |
+    - op: replace
+      path: /spec/template/spec/containers/0/resources
+      value:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "256Mi"
+          cpu: "200m"
+    - op: replace
+      path: /spec/replicas
+      value: 2
+
+- target:
+    kind: Deployment
+    name: hopngo-backend
+  patch: |
+    - op: replace
+      path: /spec/template/spec/containers/0/resources
+      value:
+        requests:
+          memory: "256Mi"
+          cpu: "200m"
+        limits:
+          memory: "512Mi"
+          cpu: "400m"
+    - op: replace
+      path: /spec/replicas
+      value: 2
+
+- target:
+    kind: Deployment
+    name: hopngo-worker
+  patch: |
+    - op: replace
+      path: /spec/template/spec/containers/0/resources
+      value:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "256Mi"
+          cpu: "200m"
+    - op: replace
+      path: /spec/replicas
+      value: 1
+
+# Add staging-specific environment variables
+- target:
+    kind: Deployment
+  patch: |
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ENVIRONMENT
+        value: staging
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: DEBUG
+        value: "true"
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: STAGING_MODE
+        value: "true"
+
+# Add staging-specific labels
+commonLabels:
+  environment: staging
+  tier: staging
+  version: staging-latest
+
+commonAnnotations:
+  deployment.kubernetes.io/revision: "1"
+  environment: staging
+  managed-by: kustomize
+  last-updated: "2024-01-01T00:00:00Z"
+
+# Transformers
+transformers:
+- ../../transformers/staging-transformer.yaml

@@ -307,7 +307,7 @@ const PayoutManagement: React.FC<PayoutManagementProps> = ({
       <div className="p-6">
         {loading ? (
           <div className="flex justify-center py-8">
-            <LoadingSpinner size="medium" />
+            <LoadingSpinner size="md" />
           </div>
         ) : payouts.length === 0 ? (
           <div className="text-center py-8">
@@ -398,7 +398,8 @@ const PayoutManagement: React.FC<PayoutManagementProps> = ({
             <Pagination
               currentPage={pagination.page + 1}
               totalPages={pagination.totalPages}
-              onPageChange={(page) => onPageChange(page - 1)}
+              totalElements={pagination.totalElements || 0}
+              onPageChange={(page: number) => onPageChange(page - 1)}
             />
           </div>
         )}
@@ -474,7 +475,7 @@ const PayoutManagement: React.FC<PayoutManagementProps> = ({
                   }`}
                   disabled={actionLoading}
                 >
-                  {actionLoading && <LoadingSpinner size="small" className="mr-2" />}
+                  {actionLoading && <LoadingSpinner size="sm" className="mr-2" />}
                   {actionLoading ? 'Processing...' : `${actionModal.type.charAt(0).toUpperCase() + actionModal.type.slice(1)}`}
                 </button>
               </div>

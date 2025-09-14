@@ -4,7 +4,7 @@ import com.hopngo.ai.dto.EmbeddingResponse;
 import com.hopngo.ai.dto.BatchEmbeddingRequest;
 import com.hopngo.ai.dto.BatchEmbeddingResponse;
 import com.hopngo.ai.service.EmbeddingService;
-import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+// import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -45,7 +45,7 @@ public class EmbeddingController {
         @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
         @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
     })
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints")
     public Mono<ResponseEntity<EmbeddingResponse>> generateTextEmbedding(
             @Parameter(description = "Text content to generate embeddings for")
             @RequestParam @NotBlank @Size(max = 8000) String text,
@@ -72,7 +72,7 @@ public class EmbeddingController {
         @ApiResponse(responseCode = "400", description = "Invalid image file or parameters"),
         @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
     })
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints")
     public Mono<ResponseEntity<EmbeddingResponse>> generateImageEmbedding(
             @Parameter(description = "Image file to generate embeddings for")
             @RequestParam("image") MultipartFile imageFile,
@@ -101,7 +101,7 @@ public class EmbeddingController {
         @ApiResponse(responseCode = "400", description = "Invalid image URL or parameters"),
         @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
     })
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints")
     public Mono<ResponseEntity<EmbeddingResponse>> generateImageEmbeddingFromUrl(
             @Parameter(description = "Image URL to generate embeddings for")
             @RequestParam @NotBlank String imageUrl,
@@ -128,7 +128,7 @@ public class EmbeddingController {
         @ApiResponse(responseCode = "400", description = "Invalid request body"),
         @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
     })
-    @RateLimiter(name = "ai-endpoints")
+    // @RateLimiter(name = "ai-endpoints")
     public Mono<ResponseEntity<BatchEmbeddingResponse>> generateBatchTextEmbeddings(
             @Parameter(description = "Batch text embedding request")
             @Valid @RequestBody BatchEmbeddingRequest request) {

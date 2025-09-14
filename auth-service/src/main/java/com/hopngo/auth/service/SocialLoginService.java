@@ -141,7 +141,7 @@ public class SocialLoginService {
             newUser.setEmail(googleUser.getEmail());
             newUser.setFirstName(googleUser.getGivenName() != null ? googleUser.getGivenName() : "");
             newUser.setLastName(googleUser.getFamilyName() != null ? googleUser.getFamilyName() : "");
-            newUser.setRole(User.Role.USER);
+            newUser.setRole(User.Role.TRAVELER);
             newUser.setIsActive(true);
             newUser.setPassword(""); // No password for social login users
             newUser.setCreatedAt(LocalDateTime.now());

@@ -33,3 +33,6 @@ export function PageLoadingSpinner() {
     </div>
   );
 }
+
+// Default export for compatibility
+export default LoadingSpinner;

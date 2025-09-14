@@ -21,14 +21,19 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @Transactional
 public class BookingService {
+    
+    private static final Logger log = LoggerFactory.getLogger(BookingService.class);
     
     private final BookingRepository bookingRepository;
     private final ListingRepository listingRepository;
@@ -123,7 +128,7 @@ public class BookingService {
             );
         } catch (Exception e) {
             // Log error but don't fail the booking creation
-            System.err.println("Failed to emit add to cart event: " + e.getMessage());
+            log.warn("Failed to emit add to cart event for booking {}: {}", savedBooking.getId(), e.getMessage());
         }
         
         return savedBooking;
@@ -257,16 +262,26 @@ public class BookingService {
     public void expirePendingBookings() {
         List<Booking> expiredBookings = findExpiredPendingBookings();
         
+        // Batch process expired bookings for better performance
+        List<Booking> bookingsToUpdate = new ArrayList<>();
+        
         for (Booking booking : expiredBookings) {
             // Release inventory
             releaseInventoryForBooking(booking);
             
             // Cancel booking
             booking.cancel();
-            bookingRepository.save(booking);
+            bookingsToUpdate.add(booking);
+        }
+        
+        // Batch save all updated bookings
+        if (!bookingsToUpdate.isEmpty()) {
+            bookingRepository.saveAll(bookingsToUpdate);
             
-            // Publish booking expired event
-            outboxService.publishBookingCancelledEvent(booking);
+            // Publish events for all expired bookings
+            for (Booking booking : bookingsToUpdate) {
+                outboxService.publishBookingCancelledEvent(booking);
+            }
         }
     }
     
