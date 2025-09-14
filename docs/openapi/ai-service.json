@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "ai-service API",
+    "description": "AI-powered recommendations and insights (Service unavailable)",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {},
+  "servers": [
+    {
+      "url": "http://localhost:8088",
+      "description": "Service endpoint"
+    }
+  ]
+}

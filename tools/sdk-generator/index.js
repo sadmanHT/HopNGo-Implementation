@@ -30,6 +30,41 @@ const services = [
     name: 'chat-service',
     specPath: '../../docs/openapi/chat-service.json',
     outputDir: 'chat'
+  },
+  {
+    name: 'market-service',
+    specPath: '../../docs/openapi/market-service.json',
+    outputDir: 'market'
+  },
+  {
+    name: 'search-service',
+    specPath: '../../docs/openapi/search-service.json',
+    outputDir: 'search'
+  },
+  {
+    name: 'ai-service',
+    specPath: '../../docs/openapi/ai-service.json',
+    outputDir: 'ai'
+  },
+  {
+    name: 'trip-planning-service',
+    specPath: '../../docs/openapi/trip-planning-service.json',
+    outputDir: 'tripPlanning'
+  },
+  {
+    name: 'admin-service',
+    specPath: '../../docs/openapi/admin-service.json',
+    outputDir: 'admin'
+  },
+  {
+    name: 'analytics-service',
+    specPath: '../../docs/openapi/analytics-service.json',
+    outputDir: 'analytics'
+  },
+  {
+    name: 'emergency-service',
+    specPath: '../../docs/openapi/emergency-service.json',
+    outputDir: 'emergency'
   }
 ];
 
@@ -292,12 +327,26 @@ export { AuthServiceClient, authClient } from './auth/client';
 export { SocialServiceClient, socialClient } from './social/client';
 export { BookingServiceClient, bookingClient } from './booking/client';
 export { ChatServiceClient, chatClient } from './chat/client';
+export { MarketServiceClient, marketClient } from './market/client';
+export { SearchServiceClient, searchClient } from './search/client';
+export { AiServiceClient, aiClient } from './ai/client';
+export { TripPlanningServiceClient, tripPlanningClient } from './tripPlanning/client';
+export { AdminServiceClient, adminClient } from './admin/client';
+export { AnalyticsServiceClient, analyticsClient } from './analytics/client';
+export { EmergencyServiceClient, emergencyClient } from './emergency/client';
 
 // Export all types
 export type { Paths as AuthPaths } from './auth/types';
 export type { Paths as SocialPaths } from './social/types';
 export type { Paths as BookingPaths } from './booking/types';
 export type { Paths as ChatPaths } from './chat/types';
+export type { Paths as MarketPaths } from './market/types';
+export type { Paths as SearchPaths } from './search/types';
+export type { Paths as AiPaths } from './ai/types';
+export type { Paths as TripPlanningPaths } from './tripPlanning/types';
+export type { Paths as AdminPaths } from './admin/types';
+export type { Paths as AnalyticsPaths } from './analytics/types';
+export type { Paths as EmergencyPaths } from './emergency/types';
 
 // Export common types
 export type { ApiClientConfig, ApiResponse, ApiError } from './auth/client';
@@ -307,12 +356,26 @@ import { authClient } from './auth/client';
 import { socialClient } from './social/client';
 import { bookingClient } from './booking/client';
 import { chatClient } from './chat/client';
+import { marketClient } from './market/client';
+import { searchClient } from './search/client';
+import { aiClient } from './ai/client';
+import { tripPlanningClient } from './tripPlanning/client';
+import { adminClient } from './admin/client';
+import { analyticsClient } from './analytics/client';
+import { emergencyClient } from './emergency/client';
 
 export const HopNGoSDK = {
   auth: authClient,
   social: socialClient,
   booking: bookingClient,
   chat: chatClient,
+  market: marketClient,
+  search: searchClient,
+  ai: aiClient,
+  tripPlanning: tripPlanningClient,
+  admin: adminClient,
+  analytics: analyticsClient,
+  emergency: emergencyClient,
   
   // Set auth token for all clients
   setAuthToken(token: string) {
@@ -320,6 +383,13 @@ export const HopNGoSDK = {
     this.social.setAuthToken(token);
     this.booking.setAuthToken(token);
     this.chat.setAuthToken(token);
+    this.market.setAuthToken(token);
+    this.search.setAuthToken(token);
+    this.ai.setAuthToken(token);
+    this.tripPlanning.setAuthToken(token);
+    this.admin.setAuthToken(token);
+    this.analytics.setAuthToken(token);
+    this.emergency.setAuthToken(token);
   },
   
   // Clear auth token from all clients
@@ -328,6 +398,13 @@ export const HopNGoSDK = {
     this.social.clearAuthToken();
     this.booking.clearAuthToken();
     this.chat.clearAuthToken();
+    this.market.clearAuthToken();
+    this.search.clearAuthToken();
+    this.ai.clearAuthToken();
+    this.tripPlanning.clearAuthToken();
+    this.admin.clearAuthToken();
+    this.analytics.clearAuthToken();
+    this.emergency.clearAuthToken();
   }
 };
 

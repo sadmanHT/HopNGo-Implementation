@@ -3,7 +3,7 @@ package com.hopngo.config;
 import com.hopngo.common.monitoring.SentryEventProcessor;
 import io.sentry.Sentry;
 import io.sentry.SentryOptions;
-import io.sentry.spring.jakarta.SentrySpringIntegration;
+// Removed EnableSentry import - not available in sentry-spring-boot-starter-jakarta 7.0.0
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -86,7 +86,7 @@ public class SentryConfiguration {
         options.addEventProcessor(sentryEventProcessor);
         
         // Configure integrations
-        options.addIntegration(SentrySpringIntegration.create());
+        // Note: SentrySpringIntegration will be auto-configured by Spring Boot
         
         // Set in-app packages
         options.addInAppInclude("com.hopngo");
@@ -123,6 +123,9 @@ public class SentryConfiguration {
             return breadcrumb;
         });
     }
+    
+    // Sentry auto-configuration is handled by @EnableSentry annotation
+    // No manual bean configuration needed for Spring Boot 3 with Jakarta EE
     
     /**
      * Bean for development environment to disable Sentry

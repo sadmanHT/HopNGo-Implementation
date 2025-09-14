@@ -15,12 +15,51 @@ const sidebars = {
   tutorialSidebar: [
     {
       type: 'doc',
+      id: 'vision-overview',
+      label: 'Vision & Overview',
+    },
+    {
+      type: 'doc',
+      id: 'data-model',
+      label: 'Data Model',
+    },
+    {
+      type: 'doc',
+      id: 'security-compliance',
+      label: 'Security & Compliance',
+    },
+    {
+      type: 'doc',
       id: 'getting-started',
       label: 'Getting Started',
     },
-    {
-      type: 'category',
-      label: 'Architecture',
+     {
+          type: 'doc',
+          id: 'operations',
+          label: 'Operations',
+        },
+        {
+           type: 'doc',
+           id: 'runbooks',
+           label: 'Runbooks',
+         },
+         {
+           type: 'doc',
+           id: 'api-reference',
+           label: 'API Reference',
+         },
+         {
+           type: 'doc',
+           id: 'typescript-sdks',
+           label: 'TypeScript SDKs',
+         },
+         'intro',
+         'code-samples',
+        'checklists',
+         'pitch-kit',
+         {
+           type: 'category',
+           label: 'Architecture',
       items: [
         'architecture/overview',
         'architecture/microservices',

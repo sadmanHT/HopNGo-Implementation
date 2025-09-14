@@ -1,0 +1,42 @@
+# Development profile with H2 in-memory database
+spring:
+  datasource:
+    url: jdbc:h2:mem:hopngo_dev
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  # Disable Redis for dev profile
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    # Add connection pool settings to handle Redis unavailability gracefully
+    jedis:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+logging:
+  level:
+    com.hopngo: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

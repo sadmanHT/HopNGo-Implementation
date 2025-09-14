@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "chat-service API",
+    "description": "Real-time chat and messaging (Service unavailable)",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {},
+  "servers": [
+    {
+      "url": "http://localhost:8085",
+      "description": "Service endpoint"
+    }
+  ]
+}

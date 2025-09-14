@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "trip-planning-service API",
+    "description": "Trip planning and itinerary management (Service unavailable)",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {},
+  "servers": [
+    {
+      "url": "http://localhost:8089",
+      "description": "Service endpoint"
+    }
+  ]
+}

@@ -37,6 +37,8 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@sentry/nextjs": "^8.0.0",
+    "@sentry/profiling-node": "^8.0.0",
     "@stomp/stompjs": "^7.0.0",
     "@tanstack/react-query": "^5.86.0",
     "@types/mapbox-gl": "^3.4.1",
@@ -46,6 +48,7 @@
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.18",
     "firebase": "^12.2.1",
+    "framer-motion": "^12.23.12",
     "i18next": "^25.5.2",
     "i18next-resources-to-backend": "^1.2.1",
     "idb": "^8.0.3",
@@ -65,9 +68,7 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^4.1.5",
-    "zustand": "^5.0.8",
-    "@sentry/nextjs": "^8.0.0",
-    "@sentry/profiling-node": "^8.0.0"
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

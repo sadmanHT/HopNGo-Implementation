@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "booking-service API",
+    "description": "Booking and vendor management (Service unavailable)",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {},
+  "servers": [
+    {
+      "url": "http://localhost:8083",
+      "description": "Service endpoint"
+    }
+  ]
+}

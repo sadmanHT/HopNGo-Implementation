@@ -83,7 +83,9 @@ public class SentryInterceptor implements HandlerInterceptor {
             
             // Add user roles (without sensitive data)
             if (authentication.getAuthorities() != null) {
-                user.setData("roles", authentication.getAuthorities().toString());
+                Map<String, String> userData = new HashMap<>();
+                userData.put("roles", authentication.getAuthorities().toString());
+                user.setData(userData);
             }
             
             Sentry.setUser(user);
@@ -109,7 +111,7 @@ public class SentryInterceptor implements HandlerInterceptor {
             }
         }
         
-        Sentry.setExtra("request.headers", headers);
+        Sentry.setExtra("request.headers", headers.toString());
         Sentry.setExtra("request.query_string", request.getQueryString());
     }
     

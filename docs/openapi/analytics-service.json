@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "analytics-service API",
+    "description": "Analytics and reporting (Service unavailable)",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {},
+  "servers": [
+    {
+      "url": "http://localhost:8091",
+      "description": "Service endpoint"
+    }
+  ]
+}

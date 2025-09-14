@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,9 +25,9 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("/api/test/error")
 @Tag(name = "Error Testing", description = "Endpoints for testing error monitoring (non-production only)")
 @ConditionalOnProperty(name = "app.environment", havingValue = "production", matchIfMissing = false)
-@Slf4j
 public class ErrorTestController {
 
+    private static final Logger log = LoggerFactory.getLogger(ErrorTestController.class);
     private final Random random = new Random();
 
     @PostMapping
@@ -39,46 +41,26 @@ public class ErrorTestController {
         
         switch (errorType) {
             case "ResourceNotFoundException":
-                throw ResourceNotFoundException.userNotFound("test-user-123");
+                throw ResourceNotFoundException.user("test-user-123");
             
             case "ServiceUnavailableException":
-                throw ServiceUnavailableException.databaseUnavailable("Test database connection failure");
+                throw ServiceUnavailableException.database("Test database connection failure");
             
             case "DatabaseConnectionException":
-                throw ServiceUnavailableException.databaseUnavailable("Connection pool exhausted");
+                throw ServiceUnavailableException.database("Connection pool exhausted");
             
             case "PaymentException":
-                throw new BusinessException(
-                    "PAYMENT_FAILED",
-                    "Payment processing failed for testing",
-                    Map.of(
-                        "paymentId", "test-payment-123",
-                        "amount", "99.99",
-                        "currency", "USD"
-                    )
-                );
+                throw BusinessException.paymentFailed("Payment processing failed for testing");
             
             case "AuthenticationException":
-                throw new BusinessException(
-                    "AUTH_FAILED",
-                    "Authentication failed for testing",
-                    Map.of("userId", "test-user-456")
-                );
+                throw new BusinessException("Authentication failed for testing", "AUTH_FAILED");
             
             case "ValidationException":
-                throw new BusinessException(
-                    "VALIDATION_FAILED",
-                    "Validation failed for testing",
-                    Map.of(
-                        "field", "email",
-                        "value", "invalid-email",
-                        "constraint", "must be valid email"
-                    )
-                );
+                throw BusinessException.invalidInput("Validation failed for testing");
             
             case "TimeoutException":
                 simulateTimeout();
-                throw ServiceUnavailableException.externalApiUnavailable(
+                throw ServiceUnavailableException.externalApi(
                     "external-service",
                     "Request timeout for testing"
                 );
@@ -88,26 +70,10 @@ public class ErrorTestController {
                 throw new RuntimeException("Simulated memory issue for testing");
             
             case "ConcurrencyException":
-                throw new BusinessException(
-                    "CONCURRENCY_ERROR",
-                    "Concurrent modification detected",
-                    Map.of(
-                        "resource", "booking",
-                        "resourceId", "booking-789",
-                        "version", "2"
-                    )
-                );
+                throw new BusinessException("Concurrent modification detected", "CONCURRENCY_ERROR");
             
             case "RateLimitException":
-                throw new BusinessException(
-                    "RATE_LIMIT_EXCEEDED",
-                    "Rate limit exceeded for testing",
-                    Map.of(
-                        "limit", "100",
-                        "window", "1h",
-                        "current", "101"
-                    )
-                );
+                throw BusinessException.rateLimit("Rate limit exceeded for testing");
             
             default:
                 throw new IllegalArgumentException("Unknown error type: " + errorType);
@@ -172,13 +138,13 @@ public class ErrorTestController {
         
         try {
             // First error - database issue
-            throw ServiceUnavailableException.databaseUnavailable("Primary database connection failed");
+            throw ServiceUnavailableException.database("Primary database connection failed");
         } catch (Exception e) {
             log.error("Primary error occurred", e);
             
             try {
                 // Second error - fallback also fails
-                throw ServiceUnavailableException.databaseUnavailable("Fallback database also failed");
+                throw ServiceUnavailableException.database("Fallback database also failed");
             } catch (Exception e2) {
                 log.error("Fallback error occurred", e2);
                 
@@ -205,7 +171,7 @@ public class ErrorTestController {
         
         // Randomly fail after the delay
         if (random.nextBoolean()) {
-            throw ServiceUnavailableException.externalApiUnavailable(
+            throw ServiceUnavailableException.externalApi(
                 "slow-service",
                 "Service timed out after " + delaySeconds + " seconds"
             );
@@ -230,55 +196,38 @@ public class ErrorTestController {
         switch (feature.toLowerCase()) {
             case "payment":
                 throw new BusinessException(
-                    "PAYMENT_GATEWAY_ERROR",
                     "Payment gateway is temporarily unavailable",
-                    Map.of(
-                        "feature", "payment",
-                        "gateway", "stripe",
-                        "errorCode", "GATEWAY_TIMEOUT"
-                    )
+                    "PAYMENT_GATEWAY_ERROR"
                 );
             
             case "booking":
                 throw new BusinessException(
-                    "BOOKING_CONFLICT",
                     "Booking slot is no longer available",
-                    Map.of(
-                        "feature", "booking",
-                        "tripId", "trip-123",
-                        "requestedSlots", "2",
-                        "availableSlots", "0"
-                    )
+                    "BOOKING_CONFLICT"
                 );
             
             case "search":
-                throw ServiceUnavailableException.externalApiUnavailable(
+                throw ServiceUnavailableException.externalApi(
                     "elasticsearch",
                     "Search service is temporarily unavailable"
                 );
             
             case "auth":
                 throw new BusinessException(
-                    "TOKEN_EXPIRED",
                     "Authentication token has expired",
-                    Map.of(
-                        "feature", "auth",
-                        "tokenType", "JWT",
-                        "expiredAt", "2024-01-15T10:30:00Z"
-                    )
+                    "TOKEN_EXPIRED"
                 );
             
             case "map":
-                throw ServiceUnavailableException.externalApiUnavailable(
+                throw ServiceUnavailableException.externalApi(
                     "google-maps",
                     "Map service quota exceeded"
                 );
             
             default:
                 throw new BusinessException(
-                    "UNKNOWN_FEATURE",
                     "Unknown feature: " + feature,
-                    Map.of("feature", feature)
+                    "UNKNOWN_FEATURE"
                 );
         }
     }

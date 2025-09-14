@@ -1,0 +1,113 @@
+{
+  "production": {
+    "recs_v1": {
+      "enabled": true,
+      "description": "Recommendation engine v1",
+      "rollout_percentage": 100
+    },
+    "visual_search_v2": {
+      "enabled": true,
+      "description": "Visual search functionality v2",
+      "rollout_percentage": 100
+    },
+    "heatmap_v2": {
+      "enabled": true,
+      "description": "Location heatmap visualization v2",
+      "rollout_percentage": 100
+    },
+    "pwa": {
+      "enabled": true,
+      "description": "Progressive Web App features",
+      "rollout_percentage": 100
+    },
+    "payments": {
+      "enabled": true,
+      "description": "Payment processing (Stripe/bKash)",
+      "rollout_percentage": 100
+    },
+    "experimental_ai_chat": {
+      "enabled": false,
+      "description": "Experimental AI chat features",
+      "rollout_percentage": 0
+    },
+    "beta_social_features": {
+      "enabled": false,
+      "description": "Beta social networking features",
+      "rollout_percentage": 0
+    }
+  },
+  "staging": {
+    "recs_v1": {
+      "enabled": true,
+      "description": "Recommendation engine v1",
+      "rollout_percentage": 100
+    },
+    "visual_search_v2": {
+      "enabled": true,
+      "description": "Visual search functionality v2",
+      "rollout_percentage": 100
+    },
+    "heatmap_v2": {
+      "enabled": true,
+      "description": "Location heatmap visualization v2",
+      "rollout_percentage": 100
+    },
+    "pwa": {
+      "enabled": true,
+      "description": "Progressive Web App features",
+      "rollout_percentage": 100
+    },
+    "payments": {
+      "enabled": true,
+      "description": "Payment processing (test mode)",
+      "rollout_percentage": 100
+    },
+    "experimental_ai_chat": {
+      "enabled": true,
+      "description": "Experimental AI chat features",
+      "rollout_percentage": 50
+    },
+    "beta_social_features": {
+      "enabled": true,
+      "description": "Beta social networking features",
+      "rollout_percentage": 25
+    }
+  },
+  "development": {
+    "recs_v1": {
+      "enabled": true,
+      "description": "Recommendation engine v1",
+      "rollout_percentage": 100
+    },
+    "visual_search_v2": {
+      "enabled": true,
+      "description": "Visual search functionality v2",
+      "rollout_percentage": 100
+    },
+    "heatmap_v2": {
+      "enabled": true,
+      "description": "Location heatmap visualization v2",
+      "rollout_percentage": 100
+    },
+    "pwa": {
+      "enabled": true,
+      "description": "Progressive Web App features",
+      "rollout_percentage": 100
+    },
+    "payments": {
+      "enabled": true,
+      "description": "Payment processing (sandbox mode)",
+      "rollout_percentage": 100
+    },
+    "experimental_ai_chat": {
+      "enabled": true,
+      "description": "Experimental AI chat features",
+      "rollout_percentage": 100
+    },
+    "beta_social_features": {
+      "enabled": true,
+      "description": "Beta social networking features",
+      "rollout_percentage": 100
+    }
+  }
+}

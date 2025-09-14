@@ -27,8 +27,13 @@ public class FeatureFlagService {
     
     @Cacheable(value = "feature-flags", key = "#key")
     public boolean isFeatureEnabled(String key) {
-        Optional<FeatureFlag> flag = featureFlagRepository.findByKey(key);
-        return flag.map(FeatureFlag::getEnabled).orElse(false);
+        try {
+            Optional<FeatureFlag> flag = featureFlagRepository.findByKey(key);
+            return flag.map(FeatureFlag::getEnabled).orElse(false);
+        } catch (Exception e) {
+            // Return false if database is not ready or table doesn't exist
+            return false;
+        }
     }
     
     public Optional<FeatureFlag> getFeatureFlag(String key) {
@@ -53,24 +58,29 @@ public class FeatureFlagService {
     }
     
     public void initializeDefaultFlags() {
-        // Initialize recs_v1 flag if it doesn't exist
-        if (!featureFlagRepository.existsByKey("recs_v1")) {
-            createOrUpdateFlag(
-                "recs_v1", 
-                "Enable recommendations system v1 features", 
-                false, // Start disabled for gradual rollout
-                "{\"rollout_percentage\": 0}"
-            );
-        }
-        
-        // Add other default flags as needed
-        if (!featureFlagRepository.existsByKey("new_ui_design")) {
-            createOrUpdateFlag(
-                "new_ui_design", 
-                "Enable new UI design components", 
-                false,
-                null
-            );
+        try {
+            // Initialize recs_v1 flag if it doesn't exist
+            if (!featureFlagRepository.existsByKey("recs_v1")) {
+                createOrUpdateFlag(
+                    "recs_v1", 
+                    "Enable recommendations system v1 features", 
+                    false, // Start disabled for gradual rollout
+                    "{\"rollout_percentage\": 0}"
+                );
+            }
+            
+            // Add other default flags as needed
+            if (!featureFlagRepository.existsByKey("new_ui_design")) {
+                createOrUpdateFlag(
+                    "new_ui_design", 
+                    "Enable new UI design components", 
+                    false,
+                    null
+                );
+            }
+        } catch (Exception e) {
+            // Re-throw to be handled by the caller
+            throw new RuntimeException("Failed to initialize default feature flags", e);
         }
     }
 }

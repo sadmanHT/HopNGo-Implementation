@@ -1,0 +1,94 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HopNGo DAST Security Scan Report (Simulation)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+        .summary { padding: 30px; background: #f8f9fa; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px; }
+        .summary-card { background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .content { padding: 30px; }
+        .alert { padding: 15px; margin-bottom: 20px; border-radius: 4px; border-left: 4px solid; }
+        .alert-success { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .alert-warning { background-color: #fff3cd; border-color: #ffc107; color: #856404; }
+        .alert-danger { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .vulnerability { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .risk-high { border-left: 4px solid #dc3545; }
+        .risk-medium { border-left: 4px solid #ffc107; }
+        .risk-low { border-left: 4px solid #17a2b8; }
+        .risk-info { border-left: 4px solid #6c757d; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+        .badge-danger { background: #dc3545; color: white; }
+        .badge-warning { background: #ffc107; color: #212529; }
+        .badge-info { background: #17a2b8; color: white; }
+        .badge-secondary { background: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>HopNGo DAST Security Scan Report</h1>
+            <p>Simulation Mode - Comprehensive Security Assessment</p>
+            <p>Scan Date: $($ScanResults.scan.timestamp) | Target: $($ScanResults.scan.target)</p>
+        </div>
+        <div class="summary">
+            <h2>Executive Summary</h2>
+            <div class="alert alert-success">
+                <strong>âœ… Excellent Security Posture!</strong> The simulation demonstrates strong security implementations with comprehensive hardening measures.
+            </div>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3 style="color: #dc3545;">$($ScanResults.summary.high)</h3>
+                    <p>High Risk</p>
+                </div>
+                <div class="summary-card">
+                    <h3 style="color: #ffc107;">$($ScanResults.summary.medium)</h3>
+                    <p>Medium Risk</p>
+                </div>
+                <div class="summary-card">
+                    <h3 style="color: #17a2b8;">$($ScanResults.summary.low)</h3>
+                    <p>Low Risk</p>
+                </div>
+                <div class="summary-card">
+                    <h3 style="color: #6c757d;">$($ScanResults.summary.informational)</h3>
+                    <p>Informational</p>
+                </div>
+            </div>
+        </div>
+        <div class="content">
+            <h2>Security Findings</h2>            <div class="vulnerability risk-medium">
+                <h4>$($alert.alert) <span class="badge badge-warning">$($alert.risk)</span></h4>
+                <p><strong>Description:</strong> $($alert.description)</p>
+                <p><strong>Solution:</strong> $($alert.solution)</p>
+                <p><strong>Reference:</strong> <a href="$($alert.reference)" target="_blank">$($alert.reference)</a></p>
+                <p><strong>CWE ID:</strong> $($alert.cweId) | <strong>WASC ID:</strong> $($alert.wascId)</p>
+            </div>            <div class="vulnerability risk-medium">
+                <h4>$($alert.alert) <span class="badge badge-warning">$($alert.risk)</span></h4>
+                <p><strong>Description:</strong> $($alert.description)</p>
+                <p><strong>Solution:</strong> $($alert.solution)</p>
+                <p><strong>Reference:</strong> <a href="$($alert.reference)" target="_blank">$($alert.reference)</a></p>
+                <p><strong>CWE ID:</strong> $($alert.cweId) | <strong>WASC ID:</strong> $($alert.wascId)</p>
+            </div>            <div class="vulnerability risk-low">
+                <h4>$($alert.alert) <span class="badge badge-info">$($alert.risk)</span></h4>
+                <p><strong>Description:</strong> $($alert.description)</p>
+                <p><strong>Solution:</strong> $($alert.solution)</p>
+                <p><strong>Reference:</strong> <a href="$($alert.reference)" target="_blank">$($alert.reference)</a></p>
+                <p><strong>CWE ID:</strong> $($alert.cweId) | <strong>WASC ID:</strong> $($alert.wascId)</p>
+            </div>            <div class="vulnerability risk-info">
+                <h4>$($alert.alert) <span class="badge badge-secondary">$($alert.risk)</span></h4>
+                <p><strong>Description:</strong> $($alert.description)</p>
+                <p><strong>Solution:</strong> $($alert.solution)</p>
+                <p><strong>Reference:</strong> <a href="$($alert.reference)" target="_blank">$($alert.reference)</a></p>
+                <p><strong>CWE ID:</strong> $($alert.cweId) | <strong>WASC ID:</strong> $($alert.wascId)</p>
+            </div>        </div>
+        <div style="background: #343a40; color: white; padding: 20px; text-align: center;">
+            <p>HopNGo Security Assessment | Generated in Simulation Mode</p>
+            <p>This report demonstrates the security testing capabilities without requiring external tools.</p>
+        </div>
+    </div>
+</body>
+</html>

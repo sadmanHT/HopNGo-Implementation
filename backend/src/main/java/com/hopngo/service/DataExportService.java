@@ -99,7 +99,7 @@ public class DataExportService {
      * Get user's export history
      */
     public List<DataExportJob> getUserExportHistory(Long userId, int limit) {
-        return exportJobRepository.findByUserIdOrderByRequestedAtDesc(userId, limit);
+        return exportJobRepository.findByUserIdOrderByCreatedAtDesc(userId, limit);
     }
 
     /**

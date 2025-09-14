@@ -59,13 +59,13 @@ public interface DataExportJobRepository extends JpaRepository<DataExportJob, Lo
     Optional<DataExportJob> findByIdAndUserId(Long id, Long userId);
 
     /**
-     * Find export jobs for a user ordered by requested date (descending), limited
+     * Find export jobs by user ID ordered by created date (most recent first)
      */
-    @Query("SELECT j FROM DataExportJob j WHERE j.userId = :userId ORDER BY j.createdAt DESC")
-    List<DataExportJob> findByUserIdOrderByRequestedAtDesc(@Param("userId") Long userId, Pageable pageable);
+    @Query("SELECT j FROM DataExportJob j WHERE j.user.id = :userId ORDER BY j.createdAt DESC")
+    List<DataExportJob> findByUserIdOrderByCreatedAtDesc(@Param("userId") Long userId, Pageable pageable);
 
-    default List<DataExportJob> findByUserIdOrderByRequestedAtDesc(Long userId, int limit) {
-        return findByUserIdOrderByRequestedAtDesc(userId, PageRequest.of(0, limit));
+    default List<DataExportJob> findByUserIdOrderByCreatedAtDesc(Long userId, int limit) {
+        return findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(0, limit));
     }
 
     /**

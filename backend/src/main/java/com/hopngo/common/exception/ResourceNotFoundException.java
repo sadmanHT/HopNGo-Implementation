@@ -24,7 +24,7 @@ public class ResourceNotFoundException extends RuntimeException {
         this.resourceId = resourceId;
     }
     
-    public ResourceNotFoundException(String message, String errorCode) {
+    public ResourceNotFoundException(String message, String errorCode, boolean isCustomError) {
         super(message);
         this.errorCode = errorCode;
         this.resourceType = null;

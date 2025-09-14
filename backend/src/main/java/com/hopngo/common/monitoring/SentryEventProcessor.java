@@ -1,6 +1,7 @@
 package com.hopngo.common.monitoring;
 
 import io.sentry.EventProcessor;
+import io.sentry.Hint;
 import io.sentry.SentryEvent;
 import io.sentry.SentryLevel;
 import io.sentry.protocol.SentryException;
@@ -27,7 +28,7 @@ public class SentryEventProcessor implements EventProcessor {
     private static final long MAX_EVENTS_PER_WINDOW = 100;
     
     @Override
-    public SentryEvent process(SentryEvent event, Object hint) {
+    public SentryEvent process(SentryEvent event, Hint hint) {
         try {
             // Apply rate limiting
             if (!shouldProcessEvent()) {
@@ -101,8 +102,8 @@ public class SentryEventProcessor implements EventProcessor {
     
     private void filterSensitiveData(SentryEvent event) {
         // Filter sensitive data from extra context
-        if (event.getExtra() != null) {
-            event.getExtra().entrySet().removeIf(entry -> 
+        if (event.getExtras() != null) {
+            event.getExtras().entrySet().removeIf(entry -> 
                 isSensitiveKey(entry.getKey()) || isSensitiveValue(entry.getValue())
             );
         }
@@ -167,7 +168,7 @@ public class SentryEventProcessor implements EventProcessor {
                 SentryStackTrace stackTrace = firstException.getStacktrace();
                 if (stackTrace != null && stackTrace.getFrames() != null) {
                     for (SentryStackFrame frame : stackTrace.getFrames()) {
-                        if (Boolean.TRUE.equals(frame.getInApp())) {
+                        if (frame.isInApp() != null && frame.isInApp()) {
                             event.setFingerprints(List.of(
                                 exceptionType,
                                 frame.getModule(),

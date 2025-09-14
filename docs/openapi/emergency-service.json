@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "emergency-service API",
+    "description": "Emergency assistance and safety features (Service unavailable)",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {},
+  "servers": [
+    {
+      "url": "http://localhost:8092",
+      "description": "Service endpoint"
+    }
+  ]
+}

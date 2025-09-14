@@ -30,6 +30,41 @@ const services = [
     name: 'chat-service',
     url: 'http://localhost:8085/v3/api-docs',
     description: 'Real-time chat and messaging'
+  },
+  {
+    name: 'market-service',
+    url: 'http://localhost:8086/v3/api-docs',
+    description: 'Marketplace and vendor listings'
+  },
+  {
+    name: 'search-service',
+    url: 'http://localhost:8087/v3/api-docs',
+    description: 'Search and discovery functionality'
+  },
+  {
+    name: 'ai-service',
+    url: 'http://localhost:8088/v3/api-docs',
+    description: 'AI-powered recommendations and insights'
+  },
+  {
+    name: 'trip-planning-service',
+    url: 'http://localhost:8089/v3/api-docs',
+    description: 'Trip planning and itinerary management'
+  },
+  {
+    name: 'admin-service',
+    url: 'http://localhost:8090/v3/api-docs',
+    description: 'Administrative operations and management'
+  },
+  {
+    name: 'analytics-service',
+    url: 'http://localhost:8091/v3/api-docs',
+    description: 'Analytics and reporting'
+  },
+  {
+    name: 'emergency-service',
+    url: 'http://localhost:8092/v3/api-docs',
+    description: 'Emergency assistance and safety features'
   }
 ];
 

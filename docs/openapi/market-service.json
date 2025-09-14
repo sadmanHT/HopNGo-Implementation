@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "market-service API",
+    "description": "Marketplace and vendor listings (Service unavailable)",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {},
+  "servers": [
+    {
+      "url": "http://localhost:8086",
+      "description": "Service endpoint"
+    }
+  ]
+}

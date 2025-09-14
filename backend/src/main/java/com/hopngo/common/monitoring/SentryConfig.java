@@ -3,7 +3,6 @@ package com.hopngo.common.monitoring;
 import io.sentry.Sentry;
 import io.sentry.SentryOptions;
 import io.sentry.protocol.User;
-import io.sentry.spring.boot.EnableSentry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,15 +11,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.annotation.PostConstruct;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@EnableSentry
 public class SentryConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(SentryConfig.class);
@@ -110,7 +108,9 @@ public class SentryConfig {
                 requestContext.put("user_agent", request.getHeader("User-Agent"));
                 requestContext.put("remote_addr", getClientIpAddress(request));
                 
-                event.setContext("request", requestContext);
+                Sentry.configureScope(scope -> {
+                    scope.setContexts("request", requestContext);
+                });
                 
                 // Add trace context if available
                 String traceId = request.getHeader("X-Trace-Id");
@@ -157,7 +157,7 @@ public class SentryConfig {
     /**
      * Hash user ID for privacy
      */
-    private String hashUserId(String userId) {
+    public String hashUserId(String userId) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] hash = md.digest(userId.getBytes());
@@ -184,7 +184,7 @@ public class SentryConfig {
     public static void captureException(Throwable throwable, Map<String, Object> extra) {
         Sentry.withScope(scope -> {
             if (extra != null) {
-                extra.forEach(scope::setExtra);
+                extra.forEach((key, value) -> scope.setExtra(key, value != null ? value.toString() : null));
             }
             Sentry.captureException(throwable);
         });
@@ -196,7 +196,7 @@ public class SentryConfig {
     public static void captureMessage(String message, io.sentry.SentryLevel level, Map<String, Object> extra) {
         Sentry.withScope(scope -> {
             if (extra != null) {
-                extra.forEach(scope::setExtra);
+                extra.forEach((key, value) -> scope.setExtra(key, value != null ? value.toString() : null));
             }
             scope.setLevel(level);
             Sentry.captureMessage(message);
@@ -207,7 +207,11 @@ public class SentryConfig {
      * Add breadcrumb for tracking user actions
      */
     public static void addBreadcrumb(String message, String category, io.sentry.SentryLevel level) {
-        Sentry.addBreadcrumb(message, category, level);
+        io.sentry.Breadcrumb breadcrumb = new io.sentry.Breadcrumb();
+        breadcrumb.setMessage(message);
+        breadcrumb.setCategory(category);
+        breadcrumb.setLevel(level);
+        Sentry.addBreadcrumb(breadcrumb);
     }
 
     /**
