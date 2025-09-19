@@ -8,21 +8,47 @@ import { Button } from '../../../components/ui/button';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
 
+interface Activity {
+  id: string;
+  name: string;
+  type: string;
+  price?: number;
+  [key: string]: any;
+}
+
+interface Itinerary {
+  id?: string;
+  activities: Activity[];
+  [key: string]: any;
+}
+
+interface Notification {
+  type: 'success' | 'error';
+  message: string;
+}
+
+interface Hotel {
+  id: string;
+  name: string;
+  pricePerNight: number;
+  [key: string]: any;
+}
+
 const TripPlanningPage = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState('planning'); // 'planning', 'itinerary', 'booking'
-  const [generatedItinerary, setGeneratedItinerary] = useState(null);
-  const [bookingStatus, setBookingStatus] = useState({});
-  const [error, setError] = useState(null);
-  const [notification, setNotification] = useState(null);
+  const [generatedItinerary, setGeneratedItinerary] = useState<Itinerary | null>(null);
+  const [bookingStatus, setBookingStatus] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<Notification | null>(null);
 
-  const handlePlanGenerated = (itinerary) => {
+  const handlePlanGenerated = (itinerary: Itinerary) => {
     setGeneratedItinerary(itinerary);
     setCurrentStep('itinerary');
     setError(null);
   };
 
-  const handleBookActivity = async (activity) => {
+  const handleBookActivity = async (activity: Activity) => {
     try {
       setError(null);
       
@@ -64,13 +90,13 @@ const TripPlanningPage = () => {
       setError(`Failed to book ${activity.title}. Please try again.`);
       
       // Handle specific error cases
-      if (error.message.includes('timeout') || error.name === 'TimeoutError') {
+      if (error instanceof Error && (error.message.includes('timeout') || error.name === 'TimeoutError')) {
         setError('The booking service is currently unavailable. Please try again later.');
       }
     }
   };
 
-  const handleBookHotel = async (hotel) => {
+  const handleBookHotel = async (hotel: Hotel) => {
     try {
       setError(null);
       
@@ -102,22 +128,20 @@ const TripPlanningPage = () => {
       }));
       
       // Redirect to payment flow
-      router.push({
-        pathname: '/checkout',
-        query: {
-          type: 'hotel',
-          bookingId: booking.id,
-          amount: hotel.pricePerNight * generatedItinerary?.duration,
-          itemName: hotel.name
-        }
+      const queryParams = new URLSearchParams({
+        type: 'hotel',
+        bookingId: booking.id,
+        amount: (hotel.pricePerNight * (generatedItinerary?.duration || 1)).toString(),
+        itemName: hotel.name
       });
+      router.push(`/checkout?${queryParams.toString()}`);
       
     } catch (error) {
       console.error('Hotel booking error:', error);
       setError(`Failed to book ${hotel.name}. Please try again.`);
       
       // Handle specific error cases
-      if (error.message.includes('timeout') || error.name === 'TimeoutError') {
+      if (error instanceof Error && (error.message.includes('timeout') || error.name === 'TimeoutError')) {
         setError('The hotel booking service is currently unavailable. Please try again later.');
       }
     }

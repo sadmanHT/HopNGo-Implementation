@@ -175,7 +175,7 @@ public class AuthService {
         
         // Check if user is still active
         if (!user.getIsActive()) {
-            refreshTokenService.revokeUserRefreshTokens(user.getId());
+            refreshTokenService.revokeAllUserTokens(user.getId());
             throw new RuntimeException("User account is inactive");
         }
         

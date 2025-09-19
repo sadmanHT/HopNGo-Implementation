@@ -484,7 +484,7 @@ export const AccessibleTabs: React.FC<AccessibleTabsProps> = ({
   orientation = 'horizontal',
 }) => {
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const { currentIndex } = useRovingTabindex(tabRefs.current, orientation);
+  const { currentIndex } = useRovingTabindex(tabRefs.current.filter((ref): ref is HTMLButtonElement => ref !== null), orientation);
 
   const activeTabContent = tabs.find(tab => tab.id === activeTab)?.content;
 

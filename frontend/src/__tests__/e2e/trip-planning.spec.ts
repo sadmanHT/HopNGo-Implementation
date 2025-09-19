@@ -283,4 +283,215 @@ test.describe('Trip Planning Features', () => {
     // Re-enable online mode
     await page.context().setOffline(false);
   });
+
+  test('should perform visual search for destinations', async ({ page }) => {
+    await page.click('[data-testid="nav-destinations"]');
+    await expect(page.locator('[data-testid="destinations-page"]')).toBeVisible();
+
+    // Access visual search feature
+    await page.click('[data-testid="visual-search-button"]');
+    await expect(page.locator('[data-testid="visual-search-modal"]')).toBeVisible();
+
+    // Upload image for visual search
+    const fileInput = page.locator('[data-testid="image-upload-input"]');
+    await fileInput.setInputFiles('tests/fixtures/sample-travel-photo.jpg');
+    
+    // Wait for image processing
+    await expect(page.locator('[data-testid="image-preview"]')).toBeVisible();
+    await page.click('[data-testid="analyze-image-button"]');
+    
+    // Wait for AI analysis
+    await expect(page.locator('[data-testid="analysis-loading"]')).toBeVisible();
+    await expect(page.locator('[data-testid="analysis-results"]')).toBeVisible({ timeout: 10000 });
+    
+    // Verify detected features
+    await expect(page.locator('[data-testid="detected-features"]')).toBeVisible();
+    await expect(page.locator('[data-testid="similar-destinations"]')).toBeVisible();
+    
+    // Select a similar destination
+    await page.click('[data-testid="similar-destination-card"]:first-child');
+    await expect(page.locator('[data-testid="destination-details"]')).toBeVisible();
+  });
+
+  test('should use camera for real-time visual search', async ({ page }) => {
+    await page.click('[data-testid="nav-destinations"]');
+    await page.click('[data-testid="visual-search-button"]');
+    
+    // Grant camera permissions (mocked)
+    await page.evaluate(() => {
+      navigator.mediaDevices.getUserMedia = () => Promise.resolve({
+        getTracks: () => [{ stop: () => {} }]
+      });
+    });
+    
+    // Use camera for visual search
+    await page.click('[data-testid="use-camera-button"]');
+    await expect(page.locator('[data-testid="camera-preview"]')).toBeVisible();
+    
+    // Capture photo
+    await page.click('[data-testid="capture-photo-button"]');
+    await expect(page.locator('[data-testid="captured-image"]')).toBeVisible();
+    
+    // Analyze captured image
+    await page.click('[data-testid="analyze-captured-image"]');
+    await expect(page.locator('[data-testid="analysis-results"]')).toBeVisible({ timeout: 10000 });
+    
+    // Verify real-time suggestions
+    await expect(page.locator('[data-testid="instant-suggestions"]')).toBeVisible();
+  });
+
+  test('should generate AI-powered trip recommendations', async ({ page }) => {
+    await page.click('[data-testid="nav-trips"]');
+    await page.click('[data-testid="ai-trip-planner-button"]');
+    
+    await expect(page.locator('[data-testid="ai-planner-modal"]')).toBeVisible();
+    
+    // Provide detailed preferences
+    await page.fill('[data-testid="trip-description"]', 'I want a cultural and adventure trip to Bangladesh with historical sites and nature');
+    await page.selectOption('[data-testid="travel-season"]', 'WINTER');
+    await page.selectOption('[data-testid="group-size"]', '2-4');
+    await page.selectOption('[data-testid="accommodation-type"]', 'MID_RANGE');
+    
+    // Set interests with sliders
+    await page.locator('[data-testid="culture-interest-slider"]').fill('90');
+    await page.locator('[data-testid="adventure-interest-slider"]').fill('70');
+    await page.locator('[data-testid="nature-interest-slider"]').fill('80');
+    await page.locator('[data-testid="food-interest-slider"]').fill('60');
+    
+    // Generate AI recommendations
+    await page.click('[data-testid="generate-ai-trip"]');
+    
+    // Wait for AI processing
+    await expect(page.locator('[data-testid="ai-processing"]')).toBeVisible();
+    await expect(page.locator('[data-testid="ai-recommendations"]')).toBeVisible({ timeout: 15000 });
+    
+    // Verify comprehensive recommendations
+    await expect(page.locator('[data-testid="recommended-itinerary"]')).toBeVisible();
+    await expect(page.locator('[data-testid="recommended-accommodations"]')).toBeVisible();
+    await expect(page.locator('[data-testid="recommended-activities"]')).toBeVisible();
+    await expect(page.locator('[data-testid="budget-estimation"]')).toBeVisible();
+    
+    // Accept AI-generated trip
+    await page.click('[data-testid="accept-ai-trip"]');
+    await page.fill('[data-testid="trip-name"]', 'AI-Powered Bangladesh Adventure');
+    await page.click('[data-testid="create-ai-trip"]');
+    
+    await expect(page.locator('text=AI-Powered Bangladesh Adventure')).toBeVisible();
+  });
+
+  test('should optimize existing trip itinerary', async ({ page }) => {
+    await page.click('[data-testid="nav-trips"]');
+    await page.click('[data-testid="trip-card"]:first-child');
+    
+    // Access itinerary optimization
+    await page.click('[data-testid="optimize-itinerary-button"]');
+    await expect(page.locator('[data-testid="optimization-modal"]')).toBeVisible();
+    
+    // Set optimization preferences
+    await page.check('[data-testid="minimize-travel-time"]');
+    await page.check('[data-testid="maximize-experiences"]');
+    await page.check('[data-testid="budget-conscious"]');
+    
+    // Run optimization
+    await page.click('[data-testid="run-optimization"]');
+    
+    // Wait for optimization results
+    await expect(page.locator('[data-testid="optimization-results"]')).toBeVisible({ timeout: 10000 });
+    
+    // Review suggested changes
+    await expect(page.locator('[data-testid="suggested-changes"]')).toBeVisible();
+    await expect(page.locator('[data-testid="time-savings"]')).toBeVisible();
+    await expect(page.locator('[data-testid="cost-impact"]')).toBeVisible();
+    
+    // Apply optimizations
+    await page.click('[data-testid="apply-optimizations"]');
+    await expect(page.locator('text=Itinerary optimized successfully')).toBeVisible();
+    
+    // Verify optimized itinerary
+    await expect(page.locator('[data-testid="optimized-badge"]')).toBeVisible();
+  });
+
+  test('should discover destinations through image similarity', async ({ page }) => {
+    await page.click('[data-testid="nav-destinations"]');
+    
+    // Browse destinations and find similar ones
+    await page.click('[data-testid="destination-card"]:first-child');
+    await expect(page.locator('[data-testid="destination-details"]')).toBeVisible();
+    
+    // Use "Find Similar" feature
+    await page.click('[data-testid="find-similar-button"]');
+    await expect(page.locator('[data-testid="similar-destinations-modal"]')).toBeVisible();
+    
+    // Verify similar destinations based on visual features
+    await expect(page.locator('[data-testid="similar-destination-card"]')).toHaveCount.toBeGreaterThan(2);
+    await expect(page.locator('[data-testid="similarity-score"]')).toBeVisible();
+    
+    // Filter similar destinations
+    await page.selectOption('[data-testid="similarity-filter"]', 'LANDSCAPE');
+    await expect(page.locator('[data-testid="filtered-similar-destinations"]')).toBeVisible();
+    
+    // Add similar destination to trip
+    await page.click('[data-testid="add-similar-to-trip"]:first-child');
+    await page.selectOption('[data-testid="select-trip"]', 'Amazing Bangladesh Adventure');
+    await page.click('[data-testid="confirm-add-similar"]');
+    
+    await expect(page.locator('text=Similar destination added to trip')).toBeVisible();
+  });
+
+  test('should handle smart trip suggestions based on user behavior', async ({ page }) => {
+    await page.click('[data-testid="nav-trips"]');
+    
+    // Verify smart suggestions appear
+    await expect(page.locator('[data-testid="smart-suggestions"]')).toBeVisible();
+    await expect(page.locator('[data-testid="suggestion-card"]')).toHaveCount.toBeGreaterThan(0);
+    
+    // View suggestion details
+    await page.click('[data-testid="suggestion-card"]:first-child');
+    await expect(page.locator('[data-testid="suggestion-details"]')).toBeVisible();
+    await expect(page.locator('[data-testid="suggestion-reasoning"]')).toBeVisible();
+    
+    // Accept smart suggestion
+    await page.click('[data-testid="accept-suggestion"]');
+    await page.fill('[data-testid="suggested-trip-name"]', 'Smart Suggested Adventure');
+    await page.click('[data-testid="create-suggested-trip"]');
+    
+    await expect(page.locator('text=Smart Suggested Adventure')).toBeVisible();
+    
+    // Dismiss suggestion
+    await page.click('[data-testid="suggestion-card"]:nth-child(2)');
+    await page.click('[data-testid="dismiss-suggestion"]');
+    await page.selectOption('[data-testid="dismiss-reason"]', 'NOT_INTERESTED');
+    await page.click('[data-testid="confirm-dismiss"]');
+    
+    await expect(page.locator('[data-testid="suggestion-dismissed"]')).toBeVisible();
+  });
+
+  test('should provide weather-aware trip planning', async ({ page }) => {
+    await page.click('[data-testid="nav-trips"]');
+    await page.click('[data-testid="create-trip-button"]');
+    
+    // Fill basic trip information
+    await page.fill('[data-testid="trip-title"]', 'Weather-Optimized Trip');
+    await page.fill('[data-testid="trip-start-date"]', '2024-12-01');
+    await page.fill('[data-testid="trip-end-date"]', '2024-12-07');
+    
+    // Enable weather optimization
+    await page.check('[data-testid="weather-optimization"]');
+    await page.click('[data-testid="analyze-weather"]');
+    
+    // Wait for weather analysis
+    await expect(page.locator('[data-testid="weather-analysis"]')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('[data-testid="weather-recommendations"]')).toBeVisible();
+    
+    // View weather-based suggestions
+    await expect(page.locator('[data-testid="weather-suitable-activities"]')).toBeVisible();
+    await expect(page.locator('[data-testid="weather-warnings"]')).toBeVisible();
+    
+    // Apply weather recommendations
+    await page.click('[data-testid="apply-weather-recommendations"]');
+    await page.click('[data-testid="create-weather-optimized-trip"]');
+    
+    await expect(page.locator('text=Weather-Optimized Trip')).toBeVisible();
+    await expect(page.locator('[data-testid="weather-optimized-badge"]')).toBeVisible();
+  });
 });

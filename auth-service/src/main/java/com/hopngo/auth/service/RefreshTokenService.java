@@ -31,14 +31,17 @@ public class RefreshTokenService {
     
     private final RefreshTokenRepository refreshTokenRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final UserService userService;
     
     @Value("${jwt.refresh.expiration:604800000}") // 7 days in milliseconds
     private long refreshTokenExpiration;
     
     public RefreshTokenService(RefreshTokenRepository refreshTokenRepository,
-                              @Qualifier("redisObjectTemplate") RedisTemplate<String, Object> redisTemplate) {
+                              @Qualifier("redisObjectTemplate") RedisTemplate<String, Object> redisTemplate,
+                              UserService userService) {
         this.refreshTokenRepository = refreshTokenRepository;
         this.redisTemplate = redisTemplate;
+        this.userService = userService;
     }
     
     /**
@@ -93,7 +96,7 @@ public class RefreshTokenService {
                 oldRefreshToken.getUser().getEmail());
             
             // Revoke all tokens for this user as security measure
-            revokeUserRefreshTokens(oldRefreshToken.getUser().getId());
+            revokeAllUserTokens(oldRefreshToken.getUser().getId());
             
             // Log security incident
             logSecurityIncident(oldRefreshToken.getUser().getId(), "REFRESH_TOKEN_REUSE", 
@@ -189,9 +192,19 @@ public class RefreshTokenService {
     }
     
     /**
-     * Revoke all refresh tokens for a user
+     * Revoke all refresh tokens for a user by username
      */
-    public void revokeUserRefreshTokens(Long userId) {
+    public void revokeAllUserTokens(String username) {
+        var userOpt = userService.findByUsername(username);
+        if (userOpt.isPresent()) {
+            revokeAllUserTokens(userOpt.get().getId());
+        }
+    }
+    
+    /**
+     * Revoke all refresh tokens for a user by user ID
+     */
+    public void revokeAllUserTokens(Long userId) {
         logger.info("Revoking all refresh tokens for user: {}", userId);
         
         refreshTokenRepository.findByUserId(userId)

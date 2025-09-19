@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
-import { User } from '@sentry/types';
+import type { User } from '@sentry/nextjs';
 import { RateLimitedLogger } from './error-rate-limiter';
 
 /**
@@ -230,14 +230,13 @@ export class SentryService {
   }
 
   /**
-   * Start a transaction for performance monitoring
+   * Start a span for performance monitoring
    */
-  static startTransaction(name: string, op: string, description?: string) {
-    return Sentry.startTransaction({
+  static startSpan(name: string, op: string, description?: string) {
+    return Sentry.startSpan({
       name,
       op,
-      description,
-    });
+    }, (span) => span);
   }
 
   /**
@@ -248,21 +247,19 @@ export class SentryService {
     fn: () => Promise<T>,
     op: string = 'function'
   ): Promise<T> {
-    const transaction = this.startTransaction(name, op);
-    
-    try {
-      const result = await fn();
-      transaction.setStatus('ok');
-      return result;
-    } catch (error) {
-      transaction.setStatus('internal_error');
-      this.captureException(error as Error, {
-        tags: { measurementFunction: name },
-      });
-      throw error;
-    } finally {
-      transaction.finish();
-    }
+    return await Sentry.startSpan({
+      name,
+      op,
+    }, async () => {
+      try {
+        return await fn();
+      } catch (error) {
+        this.captureException(error as Error, {
+          tags: { measurementFunction: name },
+        });
+        throw error;
+      }
+    });
   }
 
   /**
@@ -357,6 +354,6 @@ export const {
   captureApiError,
   captureNavigationError,
   captureFormError,
-  startTransaction,
+  startSpan,
   measureAsync,
 } = SentryService;

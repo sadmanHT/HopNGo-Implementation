@@ -9,8 +9,8 @@ import { PageTransition } from '../ui/page-transitions';
 import { TopNavigation, BottomNavigation, BackButton } from '../navigation/enhanced-navigation';
 import { OfflineBanner, NetworkStatusIndicator } from '../ui/offline-handler';
 import { AccessibilityAuditTrigger, AutoAccessibilityAudit } from '../ui/accessibility-audit';
-import { SkipToContent, FocusTrap } from '../ui/accessibility';
-import { InteractiveToast } from '../ui/micro-interactions';
+import { SkipToContent, useFocusTrap } from '../ui/accessibility';
+import { AnimatedToast } from '../ui/micro-interactions';
 import { ErrorBoundary } from '../../utils/console-fixes';
 
 // Layout configuration
@@ -94,10 +94,11 @@ export const EnhancedAppLayout: React.FC<EnhancedAppLayoutProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' | 'info' }>>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const containerRef = useFocusTrap(isMenuOpen);
 
   // Get current route configuration
   const getRouteConfig = (): LayoutConfig => {
-    const routeConfig = routeConfigs[pathname] || {};
+    const routeConfig = pathname ? routeConfigs[pathname] || {} : {};
     return { ...defaultConfig, ...routeConfig };
   };
 
@@ -212,8 +213,8 @@ export const EnhancedAppLayout: React.FC<EnhancedAppLayoutProps> = ({
               className="sticky top-0 z-40"
             >
               <TopNavigation
-                onMenuToggle={() => setIsMenuOpen(!isMenuOpen)}
-                isMenuOpen={isMenuOpen}
+                items={[]}
+                className=""
               />
             </motion.div>
           )}
@@ -246,9 +247,9 @@ export const EnhancedAppLayout: React.FC<EnhancedAppLayoutProps> = ({
             timing="normal"
             className="min-h-screen"
           >
-            <FocusTrap isActive={isMenuOpen}>
+            <div ref={containerRef}>
               {children}
-            </FocusTrap>
+            </div>
           </PageTransition>
         </main>
         
@@ -262,7 +263,7 @@ export const EnhancedAppLayout: React.FC<EnhancedAppLayoutProps> = ({
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className="fixed bottom-0 left-0 right-0 z-40"
             >
-              <BottomNavigation />
+              <BottomNavigation items={[]} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -278,7 +279,7 @@ export const EnhancedAppLayout: React.FC<EnhancedAppLayoutProps> = ({
                 exit={{ x: 300, opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               >
-                <InteractiveToast
+                <AnimatedToast
                   message={toast.message}
                   type={toast.type}
                   onClose={() => removeToast(toast.id)}

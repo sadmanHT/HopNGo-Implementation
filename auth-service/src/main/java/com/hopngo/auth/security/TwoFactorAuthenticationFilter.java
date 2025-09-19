@@ -1,7 +1,9 @@
 package com.hopngo.auth.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hopngo.auth.model.User;
+import com.hopngo.auth.entity.User;
+import com.hopngo.auth.model.UserSession;
+import com.hopngo.auth.service.SessionManagementService;
 import com.hopngo.auth.service.TwoFactorAuthService;
 import com.hopngo.auth.service.UserService;
 import jakarta.servlet.FilterChain;
@@ -32,6 +34,9 @@ public class TwoFactorAuthenticationFilter extends OncePerRequestFilter {
     private UserService userService;
 
     @Autowired
+    private SessionManagementService sessionManagementService;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     private static final String[] PROVIDER_PATHS = {
@@ -40,11 +45,18 @@ public class TwoFactorAuthenticationFilter extends OncePerRequestFilter {
     };
 
     private static final String[] EXEMPT_PATHS = {
+        "/api/auth/login",
+        "/api/auth/register",
+        "/api/auth/refresh",
+        "/api/auth/forgot-password",
+        "/api/auth/reset-password",
         "/api/auth/2fa/setup",
         "/api/auth/2fa/verify",
         "/api/auth/2fa/status",
         "/api/auth/logout",
-        "/api/health"
+        "/api/health",
+        "/actuator/health",
+        "/error"
     };
 
     @Override
@@ -65,23 +77,30 @@ public class TwoFactorAuthenticationFilter extends OncePerRequestFilter {
             
             if (authentication != null && authentication.isAuthenticated()) {
                 String username = authentication.getName();
-                User user = userService.findByUsername(username);
+                User user = userService.findByUsername(username).orElse(null);
                 
                 if (user != null && isPrivilegedUser(user)) {
                     // Check if user has 2FA enabled
-                    if (!twoFactorAuthService.is2FAEnabled(user.getId())) {
+                    if (!user.is2faEnabled()) {
                         sendTwoFactorRequiredResponse(response, "2FA_SETUP_REQUIRED", 
                             "Two-factor authentication setup is required for this account type");
                         return;
                     }
                     
                     // Check if current session has valid 2FA verification
-                    String twoFactorToken = request.getHeader("X-2FA-Token");
-                    if (twoFactorToken == null || !twoFactorAuthService.isValidSession2FA(user.getId(), twoFactorToken)) {
-                        sendTwoFactorRequiredResponse(response, "2FA_VERIFICATION_REQUIRED", 
-                            "Two-factor authentication verification required");
-                        return;
-                    }
+                     String sessionId = extractSessionId(request);
+                     if (sessionId != null) {
+                         UserSession session = sessionManagementService.getSession(sessionId);
+                         if (session != null && session.isTwoFactorVerified()) {
+                             // Session already verified, continue
+                             filterChain.doFilter(request, response);
+                             return;
+                         }
+                     }
+                     
+                     sendTwoFactorRequiredResponse(response, "2FA_VERIFICATION_REQUIRED", 
+                         "Two-factor authentication verification required");
+                     return;
                 }
             }
         }
@@ -108,8 +127,8 @@ public class TwoFactorAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private boolean isPrivilegedUser(User user) {
-        return user.getRoles().stream()
-            .anyMatch(role -> "PROVIDER".equals(role.getName()) || "ADMIN".equals(role.getName()));
+        User.Role role = user.getRole();
+        return role == User.Role.SERVICE_PROVIDER || role == User.Role.ADMIN;
     }
 
     private void sendTwoFactorRequiredResponse(HttpServletResponse response, String code, String message) 
@@ -129,5 +148,28 @@ public class TwoFactorAuthenticationFilter extends OncePerRequestFilter {
         }
         
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
+    }
+
+    private String extractSessionId(HttpServletRequest request) {
+        // Try to get session ID from Authorization header or session cookie
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            // For JWT tokens, we might need to extract session info from the token
+            // For now, return null as session management might be handled differently
+            return null;
+        }
+        
+        // Try to get from session cookie or custom header
+        String sessionId = request.getHeader("X-Session-ID");
+        if (sessionId != null) {
+            return sessionId;
+        }
+        
+        // Fallback to HTTP session ID if available
+        if (request.getSession(false) != null) {
+            return request.getSession().getId();
+        }
+        
+        return null;
     }
 }

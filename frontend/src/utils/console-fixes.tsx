@@ -1,6 +1,8 @@
 // Console Warnings Fix Utility
 // This file contains utilities to fix common React console warnings
 
+import React from 'react';
+
 /**
  * Generate unique keys for React lists
  * Fixes: "Warning: Each child in a list should have a unique 'key' prop"
@@ -419,10 +421,10 @@ export const validateProps = {
   boolean: (value: any, fallback = false): boolean => {
     return typeof value === 'boolean' ? value : fallback;
   },
-  array: <T>(value: any, fallback: T[] = []): T[] => {
+  array<T>(value: any, fallback: T[] = []): T[] {
     return Array.isArray(value) ? value : fallback;
   },
-  object: <T>(value: any, fallback: T | null = null): T | null => {
+  object<T>(value: any, fallback: T | null = null): T | null {
     return value && typeof value === 'object' && !Array.isArray(value) ? value : fallback;
   },
 };
@@ -430,7 +432,6 @@ export const validateProps = {
 /**
  * React import for TypeScript
  */
-import React from 'react';
 
 // Export types for better TypeScript support
 export type SafeComponentProps = {

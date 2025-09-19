@@ -28,7 +28,7 @@ public class KycRequest {
     private KycStatus status = KycStatus.PENDING;
     
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(nullable = false, columnDefinition = "jsonb")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private Map<String, Object> fields;
     
     @CreationTimestamp

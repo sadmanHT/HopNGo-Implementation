@@ -115,6 +115,5 @@ Sentry.init({
   // Integrations
   integrations: [
     // Add Node.js specific integrations
-    Sentry.nodeProfilingIntegration(),
   ],
 });

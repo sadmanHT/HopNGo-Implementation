@@ -1,9 +1,12 @@
 package com.hopngo.auth.config;
 
 import com.hopngo.auth.security.*;
+import com.hopngo.auth.service.SessionManagementService;
+import com.hopngo.auth.service.RefreshTokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -15,9 +18,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Arrays;
 
@@ -37,13 +44,27 @@ public class Enhanced2FASecurityConfig {
     private JwtRequestFilter jwtRequestFilter;
 
     @Autowired
+    @Lazy
     private TwoFactorAuthenticationFilter twoFactorAuthenticationFilter;
 
     @Autowired
     private SessionManagementService sessionManagementService;
 
     @Autowired
+    @Lazy
     private RefreshTokenService refreshTokenService;
+
+    @Value("${spring.mail.host}")
+    private String mailHost;
+
+    @Value("${spring.mail.port}")
+    private int mailPort;
+
+    @Value("${spring.mail.username}")
+    private String mailUsername;
+
+    @Value("${spring.mail.password}")
+    private String mailPassword;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -56,6 +77,28 @@ public class Enhanced2FASecurityConfig {
     }
 
     @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+
+    @Bean
+    public JavaMailSender javaMailSender() {
+        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+        mailSender.setHost(mailHost);
+        mailSender.setPort(mailPort);
+        mailSender.setUsername(mailUsername);
+        mailSender.setPassword(mailPassword);
+        
+        java.util.Properties props = mailSender.getJavaMailProperties();
+        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.debug", "false");
+        
+        return mailSender;
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -65,7 +108,7 @@ public class Enhanced2FASecurityConfig {
                 // Public endpoints
                 .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
                 .requestMatchers("/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
-                .requestMatchers("/api/health", "/actuator/health").permitAll()
+                .requestMatchers("/api/health", "/actuator/health", "/error").permitAll()
                 
                 // 2FA setup endpoints (require basic auth)
                 .requestMatchers("/api/auth/2fa/setup", "/api/auth/2fa/verify").authenticated()

@@ -83,7 +83,7 @@ export function TopNavigation({
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
             {items.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              const isActive = pathname === item.href || (pathname && pathname.startsWith(item.href + '/'));
               return (
                 <motion.button
                   key={item.id}
@@ -208,7 +208,7 @@ export function TopNavigation({
               
               {/* Mobile Navigation Items */}
               {items.map((item, index) => {
-                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                const isActive = pathname === item.href || (pathname && pathname.startsWith(item.href + '/'));
                 return (
                   <motion.button
                     key={item.id}
@@ -264,7 +264,7 @@ export function BottomNavigation({ items, className }: BottomNavigationProps) {
     )}>
       <div className="flex items-center justify-around px-2 py-2">
         {items.slice(0, 5).map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          const isActive = pathname === item.href || (pathname && pathname.startsWith(item.href + '/'));
           return (
             <motion.button
               key={item.id}

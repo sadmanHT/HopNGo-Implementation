@@ -19,17 +19,17 @@ export { AnalyticsServiceClient, analyticsClient } from './analytics/client';
 export { EmergencyServiceClient, emergencyClient } from './emergency/client';
 
 // Export all types
-export type { Paths as AuthPaths } from './auth/types';
-export type { Paths as SocialPaths } from './social/types';
-export type { Paths as BookingPaths } from './booking/types';
-export type { Paths as ChatPaths } from './chat/types';
-export type { Paths as MarketPaths } from './market/types';
-export type { Paths as SearchPaths } from './search/types';
-export type { Paths as AiPaths } from './ai/types';
-export type { Paths as TripPlanningPaths } from './tripPlanning/types';
-export type { Paths as AdminPaths } from './admin/types';
-export type { Paths as AnalyticsPaths } from './analytics/types';
-export type { Paths as EmergencyPaths } from './emergency/types';
+export type { paths as AuthPaths } from './auth/types';
+export type { paths as SocialPaths } from './social/types';
+export type { paths as BookingPaths } from './booking/types';
+export type { paths as ChatPaths } from './chat/types';
+export type { paths as MarketPaths } from './market/types';
+export type { paths as SearchPaths } from './search/types';
+export type { paths as AiPaths } from './ai/types';
+export type { paths as TripPlanningPaths } from './tripPlanning/types';
+export type { paths as AdminPaths } from './admin/types';
+export type { paths as AnalyticsPaths } from './analytics/types';
+export type { paths as EmergencyPaths } from './emergency/types';
 
 // Export common types
 export type { ApiClientConfig, ApiResponse, ApiError } from './auth/client';

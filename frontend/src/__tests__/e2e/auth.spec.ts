@@ -226,4 +226,126 @@ test.describe('Authentication Flow', () => {
     await page.click('[data-testid="proceed-to-login"]');
     await expect(page.locator('[data-testid="login-form"]')).toBeVisible();
   });
+
+  test('should setup 2FA for user account', async ({ page }) => {
+    // Login first
+    await page.click('text=Sign In');
+    await page.fill('[data-testid="login-email"]', 'user@example.com');
+    await page.fill('[data-testid="login-password"]', 'password123');
+    await page.click('[data-testid="login-button"]');
+
+    // Navigate to security settings
+    await page.click('[data-testid="user-menu"]');
+    await page.click('[data-testid="security-settings"]');
+
+    // Enable 2FA
+    await page.click('[data-testid="enable-2fa-button"]');
+    
+    // Verify QR code is displayed
+    await expect(page.locator('[data-testid="qr-code"]')).toBeVisible();
+    await expect(page.locator('text=Scan this QR code with your authenticator app')).toBeVisible();
+    
+    // Enter verification code (mock)
+    await page.fill('[data-testid="2fa-verification-code"]', '123456');
+    await page.click('[data-testid="verify-2fa-button"]');
+    
+    // Verify 2FA is enabled
+    await expect(page.locator('text=Two-factor authentication enabled successfully!')).toBeVisible();
+    await expect(page.locator('[data-testid="2fa-status"]')).toContainText('Enabled');
+    
+    // Verify backup codes are shown
+    await expect(page.locator('[data-testid="backup-codes"]')).toBeVisible();
+    await expect(page.locator('text=Save these backup codes in a safe place')).toBeVisible();
+  });
+
+  test('should login with 2FA enabled', async ({ page }) => {
+    // Attempt login with 2FA enabled account
+    await page.click('text=Sign In');
+    await page.fill('[data-testid="login-email"]', '2fa-user@example.com');
+    await page.fill('[data-testid="login-password"]', 'password123');
+    await page.click('[data-testid="login-button"]');
+
+    // Should be redirected to 2FA verification page
+    await expect(page.locator('[data-testid="2fa-verification-form"]')).toBeVisible();
+    await expect(page.locator('text=Enter your 6-digit authentication code')).toBeVisible();
+    
+    // Enter correct 2FA code
+    await page.fill('[data-testid="2fa-code-input"]', '654321');
+    await page.click('[data-testid="verify-2fa-code-button"]');
+    
+    // Should successfully login
+    await expect(page.locator('[data-testid="user-dashboard"]')).toBeVisible();
+    await expect(page.locator('text=Welcome back!')).toBeVisible();
+  });
+
+  test('should handle invalid 2FA code', async ({ page }) => {
+    // Attempt login with 2FA enabled account
+    await page.click('text=Sign In');
+    await page.fill('[data-testid="login-email"]', '2fa-user@example.com');
+    await page.fill('[data-testid="login-password"]', 'password123');
+    await page.click('[data-testid="login-button"]');
+
+    // Enter invalid 2FA code
+    await page.fill('[data-testid="2fa-code-input"]', '000000');
+    await page.click('[data-testid="verify-2fa-code-button"]');
+    
+    // Should show error message
+    await expect(page.locator('[data-testid="2fa-error"]')).toBeVisible();
+    await expect(page.locator('text=Invalid authentication code. Please try again.')).toBeVisible();
+    
+    // Should remain on 2FA verification page
+    await expect(page.locator('[data-testid="2fa-verification-form"]')).toBeVisible();
+  });
+
+  test('should login with backup code when 2FA unavailable', async ({ page }) => {
+    // Attempt login with 2FA enabled account
+    await page.click('text=Sign In');
+    await page.fill('[data-testid="login-email"]', '2fa-user@example.com');
+    await page.fill('[data-testid="login-password"]', 'password123');
+    await page.click('[data-testid="login-button"]');
+
+    // Click "Use backup code" link
+    await page.click('[data-testid="use-backup-code-link"]');
+    
+    // Should show backup code input
+    await expect(page.locator('[data-testid="backup-code-input"]')).toBeVisible();
+    await expect(page.locator('text=Enter one of your backup codes')).toBeVisible();
+    
+    // Enter valid backup code
+    await page.fill('[data-testid="backup-code-input"]', 'BACKUP-CODE-123');
+    await page.click('[data-testid="verify-backup-code-button"]');
+    
+    // Should successfully login
+    await expect(page.locator('[data-testid="user-dashboard"]')).toBeVisible();
+    await expect(page.locator('text=Welcome back!')).toBeVisible();
+    
+    // Should show warning about backup code usage
+    await expect(page.locator('text=You used a backup code to sign in')).toBeVisible();
+  });
+
+  test('should disable 2FA from security settings', async ({ page }) => {
+    // Login with 2FA
+    await page.click('text=Sign In');
+    await page.fill('[data-testid="login-email"]', '2fa-user@example.com');
+    await page.fill('[data-testid="login-password"]', 'password123');
+    await page.click('[data-testid="login-button"]');
+    await page.fill('[data-testid="2fa-code-input"]', '654321');
+    await page.click('[data-testid="verify-2fa-code-button"]');
+
+    // Navigate to security settings
+    await page.click('[data-testid="user-menu"]');
+    await page.click('[data-testid="security-settings"]');
+
+    // Disable 2FA
+    await page.click('[data-testid="disable-2fa-button"]');
+    
+    // Confirm password for security
+    await page.fill('[data-testid="confirm-password"]', 'password123');
+    await page.click('[data-testid="confirm-disable-2fa"]');
+    
+    // Verify 2FA is disabled
+    await expect(page.locator('text=Two-factor authentication disabled successfully!')).toBeVisible();
+    await expect(page.locator('[data-testid="2fa-status"]')).toContainText('Disabled');
+    await expect(page.locator('[data-testid="enable-2fa-button"]')).toBeVisible();
+  });
 });

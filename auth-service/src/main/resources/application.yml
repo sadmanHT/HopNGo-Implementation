@@ -40,18 +40,6 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
-# JWT Configuration
-jwt:
-  secret: ${JWT_SECRET:hopngo-jwt-secret-key-change-in-production}
-  expiration: 86400000 # 24 hours in milliseconds
-  private-key-path: ${JWT_PRIVATE_KEY_PATH:classpath:keys/private_key.pem}
-  public-key-path: ${JWT_PUBLIC_KEY_PATH:classpath:keys/public_key.pem}
-  rsa:
-    private-key: ${JWT_RSA_PRIVATE_KEY:}
-    public-key: ${JWT_RSA_PUBLIC_KEY:}
-  refresh-expiration: 604800000  # 7 days in milliseconds
-  issuer: hopngo-auth-service
-
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
@@ -63,6 +51,18 @@ jwt:
           auth: true
           starttls:
             enable: true
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:hopngo-jwt-secret-key-change-in-production}
+  expiration: 86400000 # 24 hours in milliseconds
+  private-key-path: ${JWT_PRIVATE_KEY_PATH:classpath:keys/private_key.pem}
+  public-key-path: ${JWT_PUBLIC_KEY_PATH:classpath:keys/public_key.pem}
+  rsa:
+    private-key: ${JWT_RSA_PRIVATE_KEY:}
+    public-key: ${JWT_RSA_PUBLIC_KEY:}
+  refresh-expiration: 604800000  # 7 days in milliseconds
+  issuer: hopngo-auth-service
   
   security:
     oauth2:

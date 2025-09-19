@@ -50,11 +50,11 @@ const pageVariants: Record<string, Variants> = {
 
 // Transition timing configurations
 const transitionConfigs = {
-  fast: { duration: 0.2, ease: 'easeInOut' },
-  normal: { duration: 0.3, ease: 'easeInOut' },
-  slow: { duration: 0.5, ease: 'easeInOut' },
-  spring: { type: 'spring', stiffness: 300, damping: 30 },
-  bouncy: { type: 'spring', stiffness: 400, damping: 25 },
+  fast: { duration: 0.2 },
+  normal: { duration: 0.3 },
+  slow: { duration: 0.5 },
+  spring: { type: 'spring' as const, stiffness: 300, damping: 30 },
+  bouncy: { type: 'spring' as const, stiffness: 400, damping: 25 },
 };
 
 // Page Transition Wrapper
@@ -108,10 +108,14 @@ export const RouteTransition: React.FC<RouteTransitionProps> = ({
   const [previousPath, setPreviousPath] = useState<string>('');
   
   useEffect(() => {
-    setPreviousPath(pathname);
+    if (pathname) {
+      setPreviousPath(pathname);
+    }
   }, [pathname]);
 
   const getTransitionVariant = () => {
+    if (!pathname) return defaultVariant;
+    
     // Check for specific route transitions
     if (routes[pathname]) {
       return routes[pathname];

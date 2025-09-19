@@ -7,6 +7,29 @@ import { Badge } from '../../../components/ui/badge';
 import { Separator } from '../../../components/ui/separator';
 import { CheckCircle, Calendar, MapPin, CreditCard, Download, Share, Home } from 'lucide-react';
 
+interface BookingDetails {
+  id: string;
+  type: string;
+  itemName: string;
+  amount: number;
+  status: string;
+  bookingDate: string;
+  confirmationNumber: string;
+  paymentId: string;
+  details?: {
+    checkIn?: string;
+    checkOut?: string;
+    guests?: number;
+    roomType?: string;
+    address?: string;
+    date?: string;
+    time?: string;
+    duration?: string;
+    location?: string;
+    participants?: number;
+  };
+}
+
 const BookingConfirmationContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -15,7 +38,7 @@ const BookingConfirmationContent = () => {
   const type = searchParams?.get('type');
   const itemName = searchParams?.get('itemName');
   const amount = searchParams?.get('amount');
-  const [bookingDetails, setBookingDetails] = useState(null);
+  const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,14 +63,14 @@ const BookingConfirmationContent = () => {
         } else {
           // Mock booking details if API fails
           setBookingDetails({
-            id: bookingId,
-            type: type,
-            itemName: itemName,
-            amount: parseFloat(amount),
+            id: bookingId || '',
+            type: type || 'unknown',
+            itemName: itemName || 'Unknown Item',
+            amount: parseFloat(amount || '0'),
             status: 'confirmed',
             bookingDate: new Date().toISOString(),
             confirmationNumber: `HNG-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-            paymentId: paymentId,
+            paymentId: paymentId || '',
             details: type === 'hotel' ? {
               checkIn: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
               checkOut: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -67,14 +90,14 @@ const BookingConfirmationContent = () => {
         console.error('Error fetching booking details:', error);
         // Set mock data on error
         setBookingDetails({
-          id: bookingId,
-          type: type,
-          itemName: itemName,
-          amount: parseFloat(amount),
+          id: bookingId || '',
+          type: type || 'unknown',
+          itemName: itemName || 'Unknown Item',
+          amount: parseFloat(amount || '0'),
           status: 'confirmed',
           bookingDate: new Date().toISOString(),
           confirmationNumber: `HNG-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-          paymentId: paymentId
+          paymentId: paymentId || ''
         });
       } finally {
         setLoading(false);
@@ -85,6 +108,8 @@ const BookingConfirmationContent = () => {
   }, [bookingId, paymentId, type, itemName, amount, router]);
 
   const handleDownloadConfirmation = () => {
+    if (!bookingDetails) return;
+    
     // Mock download functionality
     const confirmationData = {
       confirmationNumber: bookingDetails.confirmationNumber,
@@ -107,6 +132,8 @@ const BookingConfirmationContent = () => {
   };
 
   const handleShare = async () => {
+    if (!bookingDetails) return;
+    
     const shareData = {
       title: 'HopNGo Booking Confirmation',
       text: `My ${bookingDetails.type} booking for ${bookingDetails.itemName} has been confirmed! Confirmation: ${bookingDetails.confirmationNumber}`,
@@ -146,6 +173,20 @@ const BookingConfirmationContent = () => {
             <Button onClick={() => router.push('/trip-planning')}>Back to Trip Planning</Button>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  if (!bookingDetails) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-600 mb-4">Loading booking details...</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -212,11 +253,11 @@ const BookingConfirmationContent = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="text-gray-500">Check-in</p>
-                        <p className="font-semibold">{new Date(bookingDetails.details.checkIn).toLocaleDateString()}</p>
+                        <p className="font-semibold">{bookingDetails.details.checkIn ? new Date(bookingDetails.details.checkIn).toLocaleDateString() : 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-gray-500">Check-out</p>
-                        <p className="font-semibold">{new Date(bookingDetails.details.checkOut).toLocaleDateString()}</p>
+                        <p className="font-semibold">{bookingDetails.details.checkOut ? new Date(bookingDetails.details.checkOut).toLocaleDateString() : 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-gray-500">Guests</p>
@@ -239,7 +280,7 @@ const BookingConfirmationContent = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="text-gray-500">Date</p>
-                        <p className="font-semibold">{new Date(bookingDetails.details.date).toLocaleDateString()}</p>
+                        <p className="font-semibold">{bookingDetails.details.date ? new Date(bookingDetails.details.date).toLocaleDateString() : 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-gray-500">Time</p>

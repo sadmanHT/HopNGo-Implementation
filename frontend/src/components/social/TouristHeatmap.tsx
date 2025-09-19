@@ -8,6 +8,7 @@ import { Badge } from '../ui/badge';
 import { useSocialStore } from '../../lib/state';
 import { MapPin, Users, Camera, TrendingUp, Filter } from 'lucide-react';
 import { Post } from '../../lib/state/social';
+import { getBDDestinationsByRegion, bdDestinations } from '../../data/bd-destinations';
 
 // Set Mapbox access token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
@@ -16,6 +17,7 @@ interface TouristHeatmapProps {
   className?: string;
   height?: string;
   showControls?: boolean;
+  selectedRegion?: string;
 }
 
 interface HeatmapData {
@@ -29,12 +31,14 @@ interface MapFilters {
   timeRange: '24h' | '7d' | '30d' | 'all';
   postType: 'all' | 'photos' | 'text';
   minActivity: number;
+  region: string;
 }
 
 export const TouristHeatmap: React.FC<TouristHeatmapProps> = ({
   className,
   height = '500px',
-  showControls = true
+  showControls = true,
+  selectedRegion = 'all'
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -43,7 +47,8 @@ export const TouristHeatmap: React.FC<TouristHeatmapProps> = ({
   const [filters, setFilters] = useState<MapFilters>({
     timeRange: '7d',
     postType: 'all',
-    minActivity: 1
+    minActivity: 1,
+    region: selectedRegion
   });
   const [heatmapData, setHeatmapData] = useState<HeatmapData[]>([]);
   const [stats, setStats] = useState({
@@ -91,6 +96,10 @@ export const TouristHeatmap: React.FC<TouristHeatmapProps> = ({
   }, [posts, filters]);
 
   useEffect(() => {
+    setFilters(prev => ({ ...prev, region: selectedRegion }));
+  }, [selectedRegion]);
+
+  useEffect(() => {
     if (isLoaded && heatmapData.length > 0) {
       updateHeatmapLayer();
       updateMarkers();
@@ -105,6 +114,11 @@ export const TouristHeatmap: React.FC<TouristHeatmapProps> = ({
       '30d': 30 * 24 * 60 * 60 * 1000,
       'all': Infinity
     }[filters.timeRange];
+
+    // Get region-specific destinations for filtering
+    const regionDestinations = filters.region === 'all' 
+      ? bdDestinations 
+      : getBDDestinationsByRegion(filters.region);
 
     // Filter posts based on criteria
     const filteredPosts = posts.filter(post => {
@@ -121,7 +135,27 @@ export const TouristHeatmap: React.FC<TouristHeatmapProps> = ({
       }
 
       // Must have location
-      return post.location && post.location.coordinates;
+      if (!post.location || !post.location.coordinates) return false;
+
+      // Region filter - check if post location is near any destination in the selected region
+      if (filters.region !== 'all' && regionDestinations.length > 0) {
+        const postLat = post.location.coordinates[1];
+        const postLng = post.location.coordinates[0];
+        
+        // Check if post is within ~50km of any destination in the region
+        const isInRegion = regionDestinations.some(dest => {
+          const destLat = dest.coordinates.lat;
+          const destLng = dest.coordinates.lng;
+          const distance = Math.sqrt(
+            Math.pow(postLat - destLat, 2) + Math.pow(postLng - destLng, 2)
+          );
+          return distance < 0.5; // Approximately 50km in degrees
+        });
+        
+        if (!isInRegion) return false;
+      }
+
+      return true;
     });
 
     // Group posts by location

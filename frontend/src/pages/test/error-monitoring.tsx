@@ -10,8 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
-import { sentryService } from '@/lib/sentry';
-import { apiClientWithSentry } from '@/lib/api-client-sentry';
+import { SentryService } from '@/lib/sentry';
+import { apiClient } from '@/lib/api-client-sentry';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { FallbackUI } from '@/components/common/FallbackUI';
 import { AlertTriangle, Bug, Zap, Clock, Database, CreditCard, Shield, Search, Map, Users } from 'lucide-react';
@@ -60,7 +60,7 @@ const ErrorMonitoringTest: React.FC = () => {
     
     setIsLoading(true);
     try {
-      await apiClientWithSentry.post('/api/test/error', {
+      await apiClient.post('/api/test/error', {
         errorType: selectedErrorType
       });
       
@@ -71,17 +71,16 @@ const ErrorMonitoringTest: React.FC = () => {
         timestamp: new Date()
       });
     } catch (error: any) {
-      const errorId = await handleApiError(error, {
-        context: 'error-monitoring-test',
-        errorType: selectedErrorType
+      await handleApiError(error, {
+        component: 'error-monitoring-test',
+        action: selectedErrorType
       });
       
       addTestResult({
         type: 'Backend Error',
         success: true,
         message: `Successfully triggered ${selectedErrorType}`,
-        timestamp: new Date(),
-        errorId
+        timestamp: new Date()
       });
     } finally {
       setIsLoading(false);
@@ -91,12 +90,12 @@ const ErrorMonitoringTest: React.FC = () => {
   const triggerFrontendError = async () => {
     setIsLoading(true);
     try {
-      const errorId = await handleError(
+      await handleError(
         new Error(customMessage || `Test frontend error: ${selectedErrorType}`),
         {
-          context: 'frontend-error-test',
-          errorType: selectedErrorType,
-          userTriggered: true
+          component: 'frontend-error-test',
+          action: selectedErrorType,
+          additionalData: { userTriggered: true }
         }
       );
       
@@ -104,8 +103,7 @@ const ErrorMonitoringTest: React.FC = () => {
         type: 'Frontend Error',
         success: true,
         message: `Successfully captured frontend error`,
-        timestamp: new Date(),
-        errorId
+        timestamp: new Date()
       });
     } catch (error) {
       addTestResult({
@@ -122,7 +120,7 @@ const ErrorMonitoringTest: React.FC = () => {
   const triggerFeatureError = async (feature: string) => {
     setIsLoading(true);
     try {
-      await apiClientWithSentry.post(`/api/test/error/feature/${feature}`, {
+      await apiClient.post(`/api/test/error/feature/${feature}`, {
         errorType: 'BusinessException'
       });
       
@@ -133,18 +131,17 @@ const ErrorMonitoringTest: React.FC = () => {
         timestamp: new Date()
       });
     } catch (error: any) {
-      const errorId = await handleApiError(error, {
-        context: 'feature-error-test',
-        feature,
-        userTriggered: true
+      await handleApiError(error, {
+        component: 'feature-error-test',
+        action: feature,
+        additionalData: { userTriggered: true }
       });
       
       addTestResult({
         type: 'Feature Error',
         success: true,
         message: `Successfully triggered ${feature} feature error`,
-        timestamp: new Date(),
-        errorId
+        timestamp: new Date()
       });
     } finally {
       setIsLoading(false);
@@ -154,7 +151,7 @@ const ErrorMonitoringTest: React.FC = () => {
   const triggerBulkErrors = async () => {
     setIsLoading(true);
     try {
-      await apiClientWithSentry.post('/api/test/error/bulk', null, {
+      await apiClient.post('/api/test/error/bulk', null, {
         params: {
           count: 5,
           errorType: selectedErrorType || 'ServiceUnavailableException'
@@ -168,18 +165,17 @@ const ErrorMonitoringTest: React.FC = () => {
         timestamp: new Date()
       });
     } catch (error: any) {
-      const errorId = await handleApiError(error, {
-        context: 'bulk-error-test',
-        errorType: selectedErrorType,
-        bulkTest: true
+      await handleApiError(error, {
+        component: 'bulk-error-test',
+        action: selectedErrorType,
+        additionalData: { bulkTest: true }
       });
       
       addTestResult({
         type: 'Bulk Errors',
         success: true,
         message: 'Successfully triggered bulk errors',
-        timestamp: new Date(),
-        errorId
+        timestamp: new Date()
       });
     } finally {
       setIsLoading(false);
@@ -196,8 +192,8 @@ const ErrorMonitoringTest: React.FC = () => {
         throw new Error(customMessage || 'Async operation failed');
       },
       {
-        context: 'async-error-test',
-        operation: 'test-async-operation'
+        component: 'async-error-test',
+        action: 'test-async-operation'
       }
     );
     
@@ -205,58 +201,54 @@ const ErrorMonitoringTest: React.FC = () => {
       type: 'Async Error',
       success: true,
       message: 'Successfully captured async error',
-      timestamp: new Date(),
-      errorId
+      timestamp: new Date()
     });
     
     setIsLoading(false);
   };
 
   const triggerFormError = async () => {
-    const errorId = await handleFormError(
+    await handleFormError(
       new Error(customMessage || 'Form validation failed'),
-      {
-        field: 'testField',
-        value: 'invalid-value',
-        constraint: 'test-constraint'
-      }
+      'error-monitoring-test-form'
     );
     
     addTestResult({
       type: 'Form Error',
       success: true,
       message: 'Successfully captured form error',
-      timestamp: new Date(),
-      errorId
+      timestamp: new Date()
     });
   };
 
   const testSentryIntegration = async () => {
     // Test various Sentry features
-    sentryService.setUserContext({
+    SentryService.setUser({
       id: 'test-user-123',
       email: 'test@example.com',
       username: 'testuser'
     });
     
-    sentryService.addTag('test-session', 'error-monitoring');
-    sentryService.addContext('test-info', {
+    SentryService.setTags({ 'test-session': 'error-monitoring' });
+    SentryService.setContext('test-info', {
       testType: 'integration-test',
       timestamp: new Date().toISOString()
     });
     
-    sentryService.addBreadcrumb({
-      message: 'Starting Sentry integration test',
-      category: 'test',
-      level: 'info'
-    });
+    SentryService.addBreadcrumb(
+      'Starting Sentry integration test',
+      'test',
+      'info'
+    );
     
-    const errorId = await sentryService.captureMessage(
+    const errorId = await SentryService.captureMessage(
       'Sentry integration test message',
       'info',
       {
-        testType: 'integration',
-        userTriggered: true
+        extra: {
+          testType: 'integration',
+          userTriggered: true
+        }
       }
     );
     

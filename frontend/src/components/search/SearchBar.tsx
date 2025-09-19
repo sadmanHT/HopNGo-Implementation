@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Search, X, Filter, Camera } from 'lucide-react';
+import { Search, X, Filter, Camera, Languages } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useSearchStore } from '@/lib/state/search';
@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { useFeatureFlag } from '@/lib/flags';
 import { VisualSearch } from './VisualSearch';
 import { VisualSearchDrawer } from './VisualSearchDrawer';
+import { useTransliterationSearch, containsBangla, containsEnglish } from '@/utils/transliteration';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,8 +40,12 @@ export function SearchBar({
   const [localQuery, setLocalQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showVisualSearch, setShowVisualSearch] = useState(false);
+  const [isTransliterating, setIsTransliterating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  
+  // Transliteration hook
+  const { searchWithTransliteration, createSmartSearchQuery } = useTransliterationSearch();
   
   // Feature flags for visual search
   const { isEnabled: isVisualSearchEnabled } = useFeatureFlag('visual-search');
@@ -58,10 +63,18 @@ export function SearchBar({
     clearResults
   } = useSearchStore();
 
-  // Debounced suggestions
+  // Debounced suggestions with transliteration
   useEffect(() => {
     const timer = setTimeout(() => {
       if (localQuery.length >= 2) {
+        // Generate transliterated suggestions
+        const smartQuery = createSmartSearchQuery(localQuery);
+        const enhancedSuggestions = [
+          localQuery,
+          ...smartQuery.variations.filter(v => v !== localQuery && v.trim().length > 0)
+        ];
+        
+        // Get regular suggestions and merge with transliterated ones
         getSuggestions(localQuery);
         setShowSuggestions(true);
       } else {
@@ -70,7 +83,7 @@ export function SearchBar({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [localQuery, getSuggestions]);
+  }, [localQuery, getSuggestions, createSmartSearchQuery]);
 
   // Handle clicks outside to close suggestions
   useEffect(() => {
@@ -95,18 +108,43 @@ export function SearchBar({
     setQuery(searchQuery);
     setLocalQuery(searchQuery);
     setShowSuggestions(false);
+    setIsTransliterating(true);
     
-    // Navigate to search results page
-    router.push('/search');
-    
-    // Perform the search
-    await search(searchQuery, filters);
-    setOpen(true);
+    try {
+      // Use transliteration-enhanced search
+      await searchWithTransliteration(searchQuery, async (searchTerms: string[]) => {
+        // Navigate to search results page
+        router.push('/search');
+        
+        // Perform the search with all variations
+        const results = await search(searchTerms.join(' OR '), filters);
+        setOpen(true);
+        return results;
+      });
+    } catch (error) {
+      console.error('Search failed:', error);
+      // Fallback to regular search
+      router.push('/search');
+      await search(searchQuery, filters);
+      setOpen(true);
+    } finally {
+      setIsTransliterating(false);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setLocalQuery(value);
+    
+    // Update placeholder based on detected language
+    const hasEnglish = containsEnglish(value);
+    const hasBangla = containsBangla(value);
+    
+    if (hasBangla && !hasEnglish) {
+      // Bangla input detected
+    } else if (hasEnglish && !hasBangla) {
+      // English input detected  
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -175,15 +213,34 @@ export function SearchBar({
                 setShowSuggestions(true);
               }
             }}
-            className="pl-10 pr-10 h-10"
-            disabled={isLoading}
+            className={cn(
+              "pl-10 pr-10 h-10",
+              containsBangla(localQuery) && "font-bengali",
+              isTransliterating && "animate-pulse"
+            )}
+            disabled={isLoading || isTransliterating}
           />
+          {/* Language indicator */}
+          {localQuery && (containsBangla(localQuery) || containsEnglish(localQuery)) && (
+            <div className="absolute right-12 top-1/2 -translate-y-1/2">
+              <Languages className={cn(
+                "h-3 w-3",
+                containsBangla(localQuery) && containsEnglish(localQuery) 
+                  ? "text-blue-500" 
+                  : containsBangla(localQuery) 
+                    ? "text-green-500" 
+                    : "text-gray-500",
+                isTransliterating && "animate-spin"
+              )} />
+            </div>
+          )}
           {localQuery && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handleClear}
               className="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-transparent"
+              disabled={isTransliterating}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -262,14 +319,15 @@ export function SearchBar({
       </div>
 
       {/* Suggestions Dropdown */}
-      {showSuggestions && suggestions.length > 0 && (
+      {showSuggestions && (suggestions.length > 0 || localQuery.length >= 2) && (
         <div 
           ref={suggestionsRef}
           className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto"
         >
+          {/* Original suggestions */}
           {suggestions.map((suggestion, index) => (
             <button
-              key={index}
+              key={`original-${index}`}
               onClick={() => handleSuggestionClick(suggestion)}
               className="w-full px-4 py-2 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none first:rounded-t-md last:rounded-b-md"
             >
@@ -279,6 +337,35 @@ export function SearchBar({
               </div>
             </button>
           ))}
+          
+          {/* Transliterated suggestions */}
+          {localQuery.length >= 2 && (() => {
+            const smartQuery = createSmartSearchQuery(localQuery);
+            const transliteratedSuggestions = smartQuery.variations.filter(
+              v => v !== localQuery && v.trim().length > 0 && !suggestions.includes(v)
+            );
+            
+            return transliteratedSuggestions.map((suggestion, index) => (
+              <button
+                key={`transliterated-${index}`}
+                onClick={() => handleSuggestionClick(suggestion)}
+                className="w-full px-4 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none border-l-2 border-l-blue-200"
+              >
+                <div className="flex items-center">
+                  <Languages className="h-4 w-4 text-blue-500 mr-3" />
+                  <span className={cn(
+                    "text-sm",
+                    containsBangla(suggestion) && "font-bengali"
+                  )}>
+                    {suggestion}
+                  </span>
+                  <span className="ml-auto text-xs text-blue-500">
+                    {containsBangla(suggestion) ? 'বাংলা' : 'English'}
+                  </span>
+                </div>
+              </button>
+            ));
+          })()}
         </div>
       )}
     </div>

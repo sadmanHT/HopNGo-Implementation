@@ -1,4 +1,104 @@
-# Global ownership
+(TraeAI-3) D:\projects\HopNGo [0:0] $ node scripts/test-error-monitoring.js --backend-url http://localhost:8080 --frontend-url http://localhost:3000
+[INFO] Starting Error Monitoring Test Suite...
+[INFO] =====================================
+
+[INFO] 
+--- Running Backend Health Test ---
+[INFO] Testing backend health...
+[FAIL] Backend health check failed: 
+[INFO] 
+--- Running Error Types Test ---
+[INFO] Testing different error types...
+[DEBUG] Testing ResourceNotFoundException...
+[FAIL] ResourceNotFoundException did not trigger as expected
+[DEBUG] Testing ServiceUnavailableException...
+[FAIL] ServiceUnavailableException did not trigger as expected
+[DEBUG] Testing PaymentException...
+[FAIL] PaymentException did not trigger as expected
+[DEBUG] Testing AuthenticationException...
+[FAIL] AuthenticationException did not trigger as expected
+[DEBUG] Testing ValidationException...
+[FAIL] ValidationException did not trigger as expected
+[DEBUG] Testing TimeoutException...
+[FAIL] TimeoutException did not trigger as expected
+[DEBUG] Testing ConcurrencyException...
+[FAIL] ConcurrencyException did not trigger as expected
+[DEBUG] Testing RateLimitException...
+[FAIL] RateLimitException did not trigger as expected
+[INFO] Error types test: 0 passed, 8 failed
+[INFO] 
+--- Running Feature Errors Test ---
+[INFO] Testing feature-specific errors...
+[DEBUG] Testing payment feature error...
+[FAIL] payment feature error did not trigger as expected
+[DEBUG] Testing booking feature error...
+[FAIL] booking feature error did not trigger as expected
+[DEBUG] Testing search feature error...
+[FAIL] search feature error did not trigger as expected
+[DEBUG] Testing auth feature error...
+[FAIL] auth feature error did not trigger as expected
+[DEBUG] Testing map feature error...
+[FAIL] map feature error did not trigger as expected
+[INFO] Feature errors test: 0 passed, 5 failed
+[INFO] 
+--- Running Bulk Errors Test ---
+[INFO] Testing bulk error handling...
+[FAIL] Bulk errors did not trigger as expected
+[INFO]
+--- Running Concurrent Errors Test ---
+[INFO] Testing concurrent error handling...
+[PASS] Concurrent errors handled successfully
+[INFO]
+--- Running Cascading Errors Test ---
+[INFO] Testing cascading error handling...
+[FAIL] Cascading errors did not trigger as expected
+[INFO]
+--- Running Slow Requests Test ---
+[INFO] Testing slow request handling...
+[FAIL] Slow request not detected properly
+[INFO]
+--- Running Rate Limiting Test ---
+[INFO] Testing error rate limiting...
+[PASS] Rate limiting test completed - 20 errors triggered
+[INFO]
+--- Running Frontend Integration Test ---
+[INFO] Testing frontend error monitoring integration...
+[WARN] Frontend error monitoring page not accessible - skipping frontend tests
+[INFO]
+=====================================
+[INFO] Error Monitoring Test Suite Complete
+[INFO]
+=== Test Metrics ===
+[INFO] Total Tests: 19
+[INFO] Passed: 2
+[INFO] Failed: 17
+[INFO] Skipped: 1
+[INFO] Error Rate: 89.47%
+[INFO] Total Requests: 43
+[INFO]
+Test report saved to: D:\projects\HopNGo\test-results\error-monitoring-report.json
+[FAIL]
+Some tests failed! ❌
+[FAIL] Errors:
+[FAIL]   - Backend health check failed
+[FAIL]   - ResourceNotFoundException test failed
+[FAIL]   - ServiceUnavailableException test failed
+[FAIL]   - PaymentException test failed
+[FAIL]   - AuthenticationException test failed
+[FAIL]   - ValidationException test failed
+[FAIL]   - TimeoutException test failed
+[FAIL]   - ConcurrencyException test failed
+[FAIL]   - RateLimitException test failed
+[FAIL]   - payment feature error test failed
+[FAIL]   - booking feature error test failed
+[FAIL]   - search feature error test failed
+[FAIL]   - auth feature error test failed
+[FAIL]   - map feature error test failed
+[FAIL]   - Bulk errors test failed
+[FAIL]   - Cascading errors test failed
+[FAIL]   - Slow request test failed
+(TraeAI-3) D:\projects\HopNGo [1:1] $ 
+(TraeAI-3) D:\projects\HopNGo [1:1] $ # Global ownership
 * @me
 
 # Frontend specific

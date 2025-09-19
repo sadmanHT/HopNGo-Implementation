@@ -4,7 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-interface SkeletonProps {
+interface SkeletonProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onDrag' | 'onDragEnd' | 'onDragStart' | 'onDragEnter' | 'onDragExit' | 'onDragLeave' | 'onDragOver' | 'onDrop' | 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'> {
   className?: string;
   variant?: 'default' | 'rounded' | 'circular';
   animation?: 'pulse' | 'wave' | 'shimmer';
@@ -19,7 +19,7 @@ export function Skeleton({
   width,
   height,
   ...props
-}: SkeletonProps & React.HTMLAttributes<HTMLDivElement>) {
+}: SkeletonProps) {
   const baseClasses = 'bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800';
   
   const variantClasses = {
@@ -34,7 +34,6 @@ export function Skeleton({
       transition: {
         duration: 1.5,
         repeat: Infinity,
-        ease: 'easeInOut',
       },
     },
     wave: {
@@ -42,7 +41,6 @@ export function Skeleton({
       transition: {
         duration: 1.5,
         repeat: Infinity,
-        ease: 'linear',
       },
     },
     shimmer: {
@@ -50,7 +48,6 @@ export function Skeleton({
       transition: {
         duration: 2,
         repeat: Infinity,
-        ease: 'linear',
       },
     },
   };
