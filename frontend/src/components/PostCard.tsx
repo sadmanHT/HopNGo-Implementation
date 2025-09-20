@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { LazyAvatar } from '@/components/ui/lazy-image'
 import { MoreHorizontal, Flag, Heart, MessageCircle, Share } from 'lucide-react'
 import { ReportModal } from '@/components/modals/ReportModal'
 import { useReportModal } from '@/hooks/useReportModal'
@@ -66,10 +67,11 @@ export function PostCard({ post, onLike, onComment, onShare }: PostCardProps) {
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
               {post.author.avatar ? (
-                <img
+                <LazyAvatar
                   src={post.author.avatar}
                   alt={post.author.name}
-                  className="w-10 h-10 rounded-full object-cover"
+                  size={40}
+                  className="w-10 h-10"
                 />
               ) : (
                 <span className="text-sm font-medium text-gray-600">

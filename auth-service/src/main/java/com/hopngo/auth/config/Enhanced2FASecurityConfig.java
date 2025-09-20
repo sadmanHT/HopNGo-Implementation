@@ -108,7 +108,10 @@ public class Enhanced2FASecurityConfig {
                 // Public endpoints
                 .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
                 .requestMatchers("/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
+                .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh").permitAll()
+                .requestMatchers("/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
                 .requestMatchers("/api/health", "/actuator/health", "/error").permitAll()
+                .requestMatchers("/h2-console/**").permitAll()
                 
                 // 2FA setup endpoints (require basic auth)
                 .requestMatchers("/api/auth/2fa/setup", "/api/auth/2fa/verify").authenticated()
@@ -149,6 +152,7 @@ public class Enhanced2FASecurityConfig {
             "https://hopngo.com",
             "https://*.hopngo.com",
             "http://localhost:3000", // Development
+            "http://localhost:3002", // Frontend dev server
             "http://localhost:8080"  // Development
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));

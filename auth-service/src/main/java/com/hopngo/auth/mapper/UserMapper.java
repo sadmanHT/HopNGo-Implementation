@@ -23,7 +23,7 @@ public interface UserMapper {
     @Mapping(target = "email", source = "email")
     @Mapping(target = "firstName", source = "firstName")
     @Mapping(target = "lastName", source = "lastName")
-    @Mapping(target = "role", source = "role")
+    @Mapping(target = "role", expression = "java(user.getRole().name())")
     @Mapping(target = "isActive", source = "isActive")
     @Mapping(target = "verifiedProvider", ignore = true)
     @Mapping(target = "createdAt", source = "createdAt")

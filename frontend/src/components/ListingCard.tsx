@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { LazyCard, LazyAvatar } from '@/components/ui/lazy-image'
 import { MoreHorizontal, Flag, MapPin, Clock } from 'lucide-react'
 import { ReportModal } from '@/components/modals/ReportModal'
 import { useReportModal } from '@/hooks/useReportModal'
@@ -89,11 +90,12 @@ export function ListingCard({ listing, onContact, onFavorite }: ListingCardProps
       <Card className="overflow-hidden hover:shadow-lg transition-shadow">
         {/* Listing Image */}
         {listing.images && listing.images.length > 0 && (
-          <div className="aspect-video bg-gray-200 relative">
-            <img
+          <div className="relative">
+            <LazyCard
               src={listing.images[0]}
               alt={listing.title}
-              className="w-full h-full object-cover"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="w-full"
             />
             <Badge className={`absolute top-2 right-2 ${getStatusColor(listing.status)}`}>
               {listing.status}
@@ -162,10 +164,11 @@ export function ListingCard({ listing, onContact, onFavorite }: ListingCardProps
             <div className="flex items-center space-x-2">
               <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
                 {listing.author.avatar ? (
-                  <img
+                  <LazyAvatar
                     src={listing.author.avatar}
                     alt={listing.author.name}
-                    className="w-6 h-6 rounded-full object-cover"
+                    size={24}
+                    className="w-6 h-6"
                   />
                 ) : (
                   <span className="text-xs font-medium text-gray-600">

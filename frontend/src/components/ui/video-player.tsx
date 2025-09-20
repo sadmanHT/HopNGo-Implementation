@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { Play, Pause, Volume2, VolumeX, Maximize } from 'lucide-react';
-import { OptimizedImage, getOptimizedCloudinaryUrl } from './optimized-image';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 interface VideoPlayerProps {
@@ -13,88 +14,105 @@ interface VideoPlayerProps {
   muted?: boolean;
   loop?: boolean;
   controls?: boolean;
-  width?: number;
-  height?: number;
-  onLoad?: () => void;
-  onError?: () => void;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onEnded?: () => void;
+  inFeed?: boolean; // Special behavior for social feed
 }
 
-export function VideoPlayer({
+export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   src,
   poster,
   className,
   autoPlay = false,
-  muted = false,
+  muted = true,
   loop = false,
   controls = true,
-  width,
-  height,
-  onLoad,
-  onError
-}: VideoPlayerProps) {
+  onPlay,
+  onPause,
+  onEnded,
+  inFeed = false,
+}) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(muted);
-  const [showControls, setShowControls] = useState(false);
+  const [showControls, setShowControls] = useState(!inFeed);
+  const [isInViewport, setIsInViewport] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
 
+  // Intersection Observer for viewport detection
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    if (!containerRef.current || !inFeed) return;
 
-    const handleLoadedMetadata = () => {
-      setDuration(video.duration);
-      setIsLoading(false);
-      onLoad?.();
-    };
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInViewport(entry.isIntersecting);
+        
+        if (entry.isIntersecting && autoPlay && !hasStarted) {
+          handlePlay();
+          setHasStarted(true);
+        } else if (!entry.isIntersecting && isPlaying) {
+          handlePause();
+        }
+      },
+      {
+        threshold: 0.5, // Video must be 50% visible
+      }
+    );
 
-    const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime);
-    };
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [autoPlay, hasStarted, isPlaying, inFeed]);
 
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleError = () => {
-      setHasError(true);
-      setIsLoading(false);
-      onError?.();
-    };
+  // Video event handlers
+  const handlePlay = useCallback(() => {
+    if (videoRef.current) {
+      videoRef.current.play();
+      setIsPlaying(true);
+      onPlay?.();
+    }
+  }, [onPlay]);
 
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-    video.addEventListener('error', handleError);
-
-    return () => {
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
-      video.removeEventListener('error', handleError);
-    };
-  }, [onLoad, onError]);
+  const handlePause = useCallback(() => {
+    if (videoRef.current) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+      onPause?.();
+    }
+  }, [onPause]);
 
   const togglePlay = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
     if (isPlaying) {
-      video.pause();
+      handlePause();
     } else {
-      video.play();
+      handlePlay();
     }
   };
 
   const toggleMute = () => {
-    const video = videoRef.current;
-    if (!video) return;
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
 
-    video.muted = !isMuted;
-    setIsMuted(!isMuted);
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      const current = videoRef.current.currentTime;
+      const total = videoRef.current.duration;
+      setCurrentTime(current);
+      setProgress((current / total) * 100);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+    }
   };
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -108,127 +126,171 @@ export function VideoPlayer({
   };
 
   const formatTime = (time: number) => {
+    if (!time || isNaN(time)) return '0:00';
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const generatePosterUrl = (videoUrl: string) => {
-    return getOptimizedCloudinaryUrl(videoUrl, {
-      width: width || 400,
-      height: height || 300,
-      crop: 'fill',
-      quality: 'auto',
-      format: 'jpg'
-    }).replace('/video/', '/video/so_0/');
+  const handleFullscreen = () => {
+    if (videoRef.current) {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        videoRef.current.requestFullscreen();
+      }
+    }
   };
 
-  if (hasError) {
-    return (
-      <div className={cn(
-        'flex items-center justify-center bg-gray-100 text-gray-400 aspect-video',
-        className
-      )}>
-        <span className="text-sm">Failed to load video</span>
-      </div>
-    );
-  }
+  // Click to unmute in feed mode
+  const handleVideoClick = () => {
+    if (inFeed) {
+      if (isMuted) {
+        toggleMute();
+      } else {
+        togglePlay();
+      }
+    } else {
+      togglePlay();
+    }
+  };
 
   return (
-    <div 
-      className={cn('relative group', className)}
-      onMouseEnter={() => setShowControls(true)}
-      onMouseLeave={() => setShowControls(false)}
-    >
-      {isLoading && (
-        <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
-          <span className="text-sm text-gray-500">Loading video...</span>
-        </div>
+    <div
+      ref={containerRef}
+      className={cn(
+        "relative group overflow-hidden rounded-lg bg-black",
+        inFeed ? "cursor-pointer" : "",
+        className
       )}
-      
+      onMouseEnter={() => setShowControls(true)}
+      onMouseLeave={() => setShowControls(!inFeed)}
+    >
+      {/* Video Element */}
       <video
         ref={videoRef}
         src={src}
-        poster={poster || generatePosterUrl(src)}
-        autoPlay={autoPlay}
+        poster={poster}
         muted={isMuted}
         loop={loop}
-        className={cn(
-          'w-full h-full object-cover transition-opacity duration-300',
-          isLoading ? 'opacity-0' : 'opacity-100'
-        )}
-        width={width}
-        height={height}
+        playsInline
+        className="w-full h-full object-cover"
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => {
+          setIsPlaying(false);
+          onEnded?.();
+        }}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onClick={handleVideoClick}
       />
 
-      {controls && (
-        <div className={cn(
-          'absolute inset-0 bg-black bg-opacity-0 transition-all duration-300',
-          showControls || !isPlaying ? 'bg-opacity-20' : ''
-        )}>
-          {/* Play/Pause overlay */}
-          <div 
-            className="absolute inset-0 flex items-center justify-center cursor-pointer"
-            onClick={togglePlay}
-          >
-            {!isPlaying && (
-              <div className="bg-black bg-opacity-50 rounded-full p-4 transition-opacity duration-300">
-                <Play className="w-8 h-8 text-white" />
-              </div>
-            )}
-          </div>
+      {/* Poster overlay when not started */}
+      {!hasStarted && poster && (
+        <div className="absolute inset-0">
+          <Image
+            src={poster}
+            alt="Video poster"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 50vw"
+          />
+        </div>
+      )}
 
-          {/* Controls bar */}
-          <div className={cn(
-            'absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4 transition-opacity duration-300',
-            showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
-          )}>
-            {/* Progress bar */}
-            <div 
-              className="w-full h-1 bg-white bg-opacity-30 rounded-full mb-3 cursor-pointer"
+      {/* Play button overlay */}
+      {(!isPlaying || !hasStarted) && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleVideoClick}
+            className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm"
+          >
+            <Play className="w-6 h-6 text-black ml-1" fill="currentColor" />
+          </motion.button>
+        </motion.div>
+      )}
+
+      {/* Mute indicator for feed videos */}
+      {inFeed && isMuted && isPlaying && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute top-4 right-4 bg-black/50 rounded-full p-2"
+        >
+          <VolumeX className="w-4 h-4 text-white" />
+        </motion.div>
+      )}
+
+      {/* Controls overlay */}
+      {controls && showControls && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"
+        >
+          {/* Progress bar */}
+          <div className="absolute bottom-16 left-4 right-4">
+            <div
+              className="w-full h-1 bg-white/30 rounded-full cursor-pointer group"
               onClick={handleSeek}
             >
-              <div 
-                className="h-full bg-white rounded-full transition-all duration-100"
+              <div
+                className="h-full bg-white rounded-full transition-all duration-100 group-hover:bg-blue-400"
                 style={{ width: `${(currentTime / duration) * 100}%` }}
               />
             </div>
-
-            {/* Control buttons */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={togglePlay}
-                  className="text-white hover:text-gray-300 transition-colors"
-                >
-                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                </button>
-                
-                <button
-                  onClick={toggleMute}
-                  className="text-white hover:text-gray-300 transition-colors"
-                >
-                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                </button>
-                
-                <span className="text-white text-sm">
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </span>
-              </div>
-              
-              <button
-                onClick={() => videoRef.current?.requestFullscreen()}
-                className="text-white hover:text-gray-300 transition-colors"
-              >
-                <Maximize className="w-5 h-5" />
-              </button>
-            </div>
           </div>
-        </div>
+
+          {/* Control buttons */}
+          <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={togglePlay}
+                className="text-white hover:text-blue-400 transition-colors"
+              >
+                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={toggleMute}
+                className="text-white hover:text-blue-400 transition-colors"
+              >
+                {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              </motion.button>
+
+              <span className="text-white text-sm font-medium">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleFullscreen}
+              className="text-white hover:text-blue-400 transition-colors"
+            >
+              <Maximize className="w-5 h-5" />
+            </motion.button>
+          </div>
+        </motion.div>
       )}
     </div>
   );
-}
+};
+
+
 
 // Utility function to extract video poster from Cloudinary
 export function getVideoPosterUrl(
@@ -249,11 +311,12 @@ export function getVideoPosterUrl(
     timeOffset = 0
   } = options;
 
-  return getOptimizedCloudinaryUrl(videoUrl, {
-    width,
-    height,
-    quality,
-    format,
-    crop: 'fill'
-  }).replace('/video/upload/', `/video/upload/so_${timeOffset}/`);
+  // Convert Cloudinary video URL to poster image URL
+  if (videoUrl.includes('cloudinary.com')) {
+    return videoUrl
+      .replace('/video/upload/', `/video/upload/w_${width},h_${height},c_fill,q_${quality},f_${format},so_${timeOffset}/`)
+      .replace(/\.[^.]+$/, `.${format}`);
+  }
+
+  return videoUrl;
 }

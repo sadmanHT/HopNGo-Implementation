@@ -73,6 +73,12 @@
             <version>${springdoc.version}</version>
         </dependency>
 
+        <!-- Jackson JSR310 for Java 8 Time -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

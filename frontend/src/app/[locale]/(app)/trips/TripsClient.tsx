@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from '@/lib/state/auth';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { formatCurrency, formatDate } from '@/lib/formatting';
 import { normalizeForSearch, generateSearchVariations } from '@/lib/transliteration';

@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: hopngo-postgres
+    environment:
+      POSTGRES_DB: hopngo
+      POSTGRES_USER: hopngo_user
+      POSTGRES_PASSWORD: hopngo_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hopngo-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: hopngo-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - hopngo-network
+
+  # Gateway Service
+  gateway:
+    image: hopngo/gateway:latest
+    container_name: hopngo-gateway
+    ports:
+      - "8085:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/hopngo
+      - DATABASE_USERNAME=hopngo_user
+      - DATABASE_PASSWORD=hopngo_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - hopngo-network
+
+  # Auth Service
+  auth-service:
+    image: hopngo-auth-service:latest
+    container_name: hopngo-auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/hopngo
+      - DATABASE_USERNAME=hopngo_user
+      - DATABASE_PASSWORD=hopngo_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - hopngo-network
+
+  # Booking Service
+  booking-service:
+    image: hopngo-booking-service:latest
+    container_name: hopngo-booking-service
+    ports:
+      - "8086:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/hopngo
+      - DATABASE_USERNAME=hopngo_user
+      - DATABASE_PASSWORD=hopngo_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - hopngo-network
+
+  # Market Service
+  market-service:
+    image: hopngo-market-service:latest
+    container_name: hopngo-market-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/hopngo
+      - DATABASE_USERNAME=hopngo_user
+      - DATABASE_PASSWORD=hopngo_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - hopngo-network
+
+  # Chat Service
+  chat-service:
+    image: hopngo-chat-service:latest
+    container_name: hopngo-chat-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/hopngo
+      - DATABASE_USERNAME=hopngo_user
+      - DATABASE_PASSWORD=hopngo_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - hopngo-network
+
+  # Search Service
+  search-service:
+    image: hopngo/search-service:latest
+    container_name: hopngo-search-service
+    ports:
+      - "8091:8091"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/hopngo
+      - DATABASE_USERNAME=hopngo_user
+      - DATABASE_PASSWORD=hopngo_password
+    depends_on:
+      - postgres
+    networks:
+      - hopngo-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  hopngo-network:
+    driver: bridge

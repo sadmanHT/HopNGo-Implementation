@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-09-19T21:53:09.627Z",
+  "summary": {
+    "total_tests": 16,
+    "passed": 5,
+    "failed": 5,
+    "skipped": 1,
+    "success_rate": "33.3%",
+    "overall_status": "critical"
+  },
+  "detailed_results": {
+    "sentry": {
+      "configuration": "failed",
+      "connectivity": "skipped",
+      "error_capture": "passed",
+      "release_tracking": "pending"
+    },
+    "prometheus": {
+      "connectivity": "passed",
+      "metrics_collection": "failed",
+      "recording_rules": "pending",
+      "sli_calculations": "pending"
+    },
+    "grafana": {
+      "connectivity": "failed",
+      "dashboards": "failed",
+      "slo_visualization": "pending",
+      "alerting": "pending"
+    },
+    "slo_compliance": {
+      "availability": "passed",
+      "latency": "passed",
+      "error_rate": "passed",
+      "error_budget": "failed"
+    },
+    "overall_status": "critical"
+  },
+  "recommendations": [
+    "🔧 Configure Sentry DSN in environment variables",
+    "🔧 Verify Grafana credentials and network connectivity",
+    "⚠️  Review error budget burn rates and consider scaling"
+  ]
+}

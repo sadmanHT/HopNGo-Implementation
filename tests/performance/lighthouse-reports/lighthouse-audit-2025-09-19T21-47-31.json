@@ -1,0 +1,2452 @@
+{
+  "timestamp": "2025-09-19T21-47-31",
+  "baseURL": "https://hopngo.com",
+  "budgets": {
+    "performance": 90,
+    "accessibility": 95,
+    "bestPractices": 90,
+    "seo": 90,
+    "pwa": 85
+  },
+  "summary": {
+    "success": false,
+    "successRate": 0,
+    "totalAudits": 20,
+    "passedAudits": 0,
+    "failedAudits": 20,
+    "budgetViolations": 51,
+    "averageScores": {
+      "performance": 72.8,
+      "accessibility": 96.4,
+      "bestPractices": 90.7,
+      "seo": 92.9,
+      "pwa": 87.55
+    },
+    "recommendations": [
+      "🚨 CRITICAL: Overall success rate below 90% - immediate optimization required",
+      "⚡ Optimize 17 pages with performance scores below 90",
+      "♿ Fix accessibility issues on 8 pages",
+      "🎨 Improve First Contentful Paint on 14 pages (target: <1.8s)",
+      "🖼️  Optimize Largest Contentful Paint on 11 pages (target: <2.5s)",
+      "📐 Fix layout shifts on 9 pages (target: <0.1)"
+    ]
+  },
+  "results": {
+    "passed": [],
+    "failed": [
+      "Homepage-Desktop",
+      "Search Results-Desktop",
+      "User Login-Desktop",
+      "User Registration-Desktop",
+      "Trip Planning-Desktop",
+      "Booking Flow-Desktop",
+      "User Profile-Desktop",
+      "Social Feed-Desktop",
+      "Emergency Features-Desktop",
+      "Help & Support-Desktop",
+      "Homepage-Mobile",
+      "Search Results-Mobile",
+      "User Login-Mobile",
+      "User Registration-Mobile",
+      "Trip Planning-Mobile",
+      "Booking Flow-Mobile",
+      "User Profile-Mobile",
+      "Social Feed-Mobile",
+      "Emergency Features-Mobile",
+      "Help & Support-Mobile"
+    ],
+    "warnings": [],
+    "metrics": {
+      "Homepage-Desktop": {
+        "scores": {
+          "performance": 93,
+          "accessibility": 100,
+          "bestPractices": 86,
+          "seo": 94,
+          "pwa": 86
+        },
+        "metrics": {
+          "firstContentfulPaint": 2460,
+          "largestContentfulPaint": 1523,
+          "firstMeaningfulPaint": 2844,
+          "speedIndex": 3469,
+          "timeToInteractive": 2194,
+          "totalBlockingTime": 311,
+          "cumulativeLayoutShift": 0.036,
+          "totalByteWeight": 2021255,
+          "unusedCssBytes": 92541,
+          "unusedJavaScriptBytes": 141684,
+          "networkRequests": 21,
+          "networkRTT": 52.72092437445244,
+          "networkThroughput": 10906.765093498772
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.5 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 1,
+            "displayValue": "1.5 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 1,
+            "displayValue": "0.036",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "311 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 93,
+            "wastedBytes": 92541
+          },
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 177,
+            "wastedBytes": 141684
+          },
+          {
+            "id": "uses-optimized-images",
+            "title": "Efficiently encode images",
+            "description": "Optimized images load faster and consume less cellular data.",
+            "overallSavingsMs": 1412.0809894554086,
+            "wastedBytes": 606377
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "21 requests"
+          },
+          {
+            "id": "total-byte-weight",
+            "title": "Avoid enormous network payloads",
+            "description": "Large network payloads cost users real money and are highly correlated with long load times.",
+            "displayValue": "Total size was 1.9 MiB"
+          }
+        ],
+        "executionTime": 2632,
+        "url": "https://hopngo.com/",
+        "timestamp": "2025-09-19T21:47:34.062Z"
+      },
+      "Search Results-Desktop": {
+        "scores": {
+          "performance": 75,
+          "accessibility": 93,
+          "bestPractices": 99,
+          "seo": 91,
+          "pwa": 89
+        },
+        "metrics": {
+          "firstContentfulPaint": 2237,
+          "largestContentfulPaint": 2181,
+          "firstMeaningfulPaint": 2737,
+          "speedIndex": 1804,
+          "timeToInteractive": 2091,
+          "totalBlockingTime": 86,
+          "cumulativeLayoutShift": 0.124,
+          "totalByteWeight": 1239967,
+          "unusedCssBytes": 69566,
+          "unusedJavaScriptBytes": 49267,
+          "networkRequests": 54,
+          "networkRTT": 46.31215844628371,
+          "networkThroughput": 9363.389165471564
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.2 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 1,
+            "displayValue": "2.2 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 0.5,
+            "displayValue": "0.124",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 1,
+            "displayValue": "86 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 70,
+            "wastedBytes": 69566
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "54 requests"
+          },
+          {
+            "id": "total-byte-weight",
+            "title": "Avoid enormous network payloads",
+            "description": "Large network payloads cost users real money and are highly correlated with long load times.",
+            "displayValue": "Total size was 1.2 MiB"
+          }
+        ],
+        "executionTime": 4161,
+        "url": "https://hopngo.com/search?location=dhaka",
+        "timestamp": "2025-09-19T21:47:38.741Z"
+      },
+      "User Login-Desktop": {
+        "scores": {
+          "performance": 95,
+          "accessibility": 99,
+          "bestPractices": 88,
+          "seo": 95,
+          "pwa": 76
+        },
+        "metrics": {
+          "firstContentfulPaint": 805,
+          "largestContentfulPaint": 2218,
+          "firstMeaningfulPaint": 2700,
+          "speedIndex": 3006,
+          "timeToInteractive": 5442,
+          "totalBlockingTime": 594,
+          "cumulativeLayoutShift": 0.037,
+          "totalByteWeight": 1728861,
+          "unusedCssBytes": 71213,
+          "unusedJavaScriptBytes": 36489,
+          "networkRequests": 53,
+          "networkRTT": 54.51008351566969,
+          "networkThroughput": 10952.863555252477
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 1,
+            "displayValue": "0.8 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 1,
+            "displayValue": "2.2 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 1,
+            "displayValue": "0.037",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "594 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 71,
+            "wastedBytes": 71213
+          },
+          {
+            "id": "uses-optimized-images",
+            "title": "Efficiently encode images",
+            "description": "Optimized images load faster and consume less cellular data.",
+            "overallSavingsMs": 620.7450813195615,
+            "wastedBytes": 518658
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "53 requests"
+          },
+          {
+            "id": "total-byte-weight",
+            "title": "Avoid enormous network payloads",
+            "description": "Large network payloads cost users real money and are highly correlated with long load times.",
+            "displayValue": "Total size was 1.6 MiB"
+          }
+        ],
+        "executionTime": 4144,
+        "url": "https://hopngo.com/login",
+        "timestamp": "2025-09-19T21:47:43.389Z"
+      },
+      "User Registration-Desktop": {
+        "scores": {
+          "performance": 92,
+          "accessibility": 94,
+          "bestPractices": 98,
+          "seo": 88,
+          "pwa": 98
+        },
+        "metrics": {
+          "firstContentfulPaint": 2751,
+          "largestContentfulPaint": 1279,
+          "firstMeaningfulPaint": 1252,
+          "speedIndex": 3344,
+          "timeToInteractive": 2919,
+          "totalBlockingTime": 242,
+          "cumulativeLayoutShift": 0.01,
+          "totalByteWeight": 567518,
+          "unusedCssBytes": 58768,
+          "unusedJavaScriptBytes": 66862,
+          "networkRequests": 40,
+          "networkRTT": 60.208045533105235,
+          "networkThroughput": 11578.41892431082
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.8 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 1,
+            "displayValue": "1.3 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 1,
+            "displayValue": "0.010",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "242 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 59,
+            "wastedBytes": 58768
+          },
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 84,
+            "wastedBytes": 66862
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "40 requests"
+          }
+        ],
+        "executionTime": 3679,
+        "url": "https://hopngo.com/register",
+        "timestamp": "2025-09-19T21:47:47.573Z"
+      },
+      "Trip Planning-Desktop": {
+        "scores": {
+          "performance": 81,
+          "accessibility": 99,
+          "bestPractices": 89,
+          "seo": 96,
+          "pwa": 98
+        },
+        "metrics": {
+          "firstContentfulPaint": 997,
+          "largestContentfulPaint": 3316,
+          "firstMeaningfulPaint": 2539,
+          "speedIndex": 2697,
+          "timeToInteractive": 2778,
+          "totalBlockingTime": 519,
+          "cumulativeLayoutShift": 0.079,
+          "totalByteWeight": 985849,
+          "unusedCssBytes": 90269,
+          "unusedJavaScriptBytes": 17361,
+          "networkRequests": 85,
+          "networkRTT": 47.061522526313865,
+          "networkThroughput": 10726.231649887277
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 1,
+            "displayValue": "1.0 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 0.5,
+            "displayValue": "3.3 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 1,
+            "displayValue": "0.079",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "519 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 0,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 90,
+            "wastedBytes": 90269
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "85 requests"
+          }
+        ],
+        "executionTime": 4742,
+        "url": "https://hopngo.com/trips/create",
+        "timestamp": "2025-09-19T21:47:52.819Z"
+      },
+      "Booking Flow-Desktop": {
+        "scores": {
+          "performance": 60,
+          "accessibility": 100,
+          "bestPractices": 88,
+          "seo": 93,
+          "pwa": 77
+        },
+        "metrics": {
+          "firstContentfulPaint": 2556,
+          "largestContentfulPaint": 2993,
+          "firstMeaningfulPaint": 2806,
+          "speedIndex": 2763,
+          "timeToInteractive": 5124,
+          "totalBlockingTime": 149,
+          "cumulativeLayoutShift": 0.25,
+          "totalByteWeight": 2467351,
+          "unusedCssBytes": 50361,
+          "unusedJavaScriptBytes": 123644,
+          "networkRequests": 90,
+          "networkRTT": 86.80340101752145,
+          "networkThroughput": 11092.171638722684
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.6 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 0.5,
+            "displayValue": "3.0 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 0,
+            "displayValue": "0.250",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 1,
+            "displayValue": "149 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 50,
+            "wastedBytes": 50361
+          },
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 155,
+            "wastedBytes": 123644
+          },
+          {
+            "id": "uses-optimized-images",
+            "title": "Efficiently encode images",
+            "description": "Optimized images load faster and consume less cellular data.",
+            "overallSavingsMs": 1120.2245513300345,
+            "wastedBytes": 740205
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "90 requests"
+          },
+          {
+            "id": "total-byte-weight",
+            "title": "Avoid enormous network payloads",
+            "description": "Large network payloads cost users real money and are highly correlated with long load times.",
+            "displayValue": "Total size was 2.4 MiB"
+          }
+        ],
+        "executionTime": 2833,
+        "url": "https://hopngo.com/bookings",
+        "timestamp": "2025-09-19T21:47:56.157Z"
+      },
+      "User Profile-Desktop": {
+        "scores": {
+          "performance": 72,
+          "accessibility": 94,
+          "bestPractices": 89,
+          "seo": 93,
+          "pwa": 79
+        },
+        "metrics": {
+          "firstContentfulPaint": 2457,
+          "largestContentfulPaint": 3747,
+          "firstMeaningfulPaint": 1063,
+          "speedIndex": 3362,
+          "timeToInteractive": 3540,
+          "totalBlockingTime": 433,
+          "cumulativeLayoutShift": 0.053,
+          "totalByteWeight": 1898291,
+          "unusedCssBytes": 41103,
+          "unusedJavaScriptBytes": 110451,
+          "networkRequests": 65,
+          "networkRTT": 56.80924471365955,
+          "networkThroughput": 8227.745491886359
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.5 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 0.5,
+            "displayValue": "3.7 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 1,
+            "displayValue": "0.053",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "433 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 0,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 41,
+            "wastedBytes": 41103
+          },
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 138,
+            "wastedBytes": 110451
+          },
+          {
+            "id": "uses-optimized-images",
+            "title": "Efficiently encode images",
+            "description": "Optimized images load faster and consume less cellular data.",
+            "overallSavingsMs": 659.0502234020021,
+            "wastedBytes": 569487
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "65 requests"
+          },
+          {
+            "id": "total-byte-weight",
+            "title": "Avoid enormous network payloads",
+            "description": "Large network payloads cost users real money and are highly correlated with long load times.",
+            "displayValue": "Total size was 1.8 MiB"
+          }
+        ],
+        "executionTime": 4512,
+        "url": "https://hopngo.com/profile",
+        "timestamp": "2025-09-19T21:48:01.185Z"
+      },
+      "Social Feed-Desktop": {
+        "scores": {
+          "performance": 85,
+          "accessibility": 99,
+          "bestPractices": 86,
+          "seo": 88,
+          "pwa": 99
+        },
+        "metrics": {
+          "firstContentfulPaint": 2256,
+          "largestContentfulPaint": 2455,
+          "firstMeaningfulPaint": 3024,
+          "speedIndex": 3596,
+          "timeToInteractive": 3768,
+          "totalBlockingTime": 495,
+          "cumulativeLayoutShift": 0.13,
+          "totalByteWeight": 1028965,
+          "unusedCssBytes": 73783,
+          "unusedJavaScriptBytes": 184807,
+          "networkRequests": 96,
+          "networkRTT": 78.23630128452558,
+          "networkThroughput": 10241.14878798283
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.3 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 1,
+            "displayValue": "2.5 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 0.5,
+            "displayValue": "0.130",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "495 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 74,
+            "wastedBytes": 73783
+          },
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 231,
+            "wastedBytes": 184807
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "96 requests"
+          },
+          {
+            "id": "total-byte-weight",
+            "title": "Avoid enormous network payloads",
+            "description": "Large network payloads cost users real money and are highly correlated with long load times.",
+            "displayValue": "Total size was 1.0 MiB"
+          }
+        ],
+        "executionTime": 2463,
+        "url": "https://hopngo.com/feed",
+        "timestamp": "2025-09-19T21:48:04.154Z"
+      },
+      "Emergency Features-Desktop": {
+        "scores": {
+          "performance": 74,
+          "accessibility": 100,
+          "bestPractices": 94,
+          "seo": 100,
+          "pwa": 93
+        },
+        "metrics": {
+          "firstContentfulPaint": 1094,
+          "largestContentfulPaint": 2733,
+          "firstMeaningfulPaint": 3375,
+          "speedIndex": 3694,
+          "timeToInteractive": 5812,
+          "totalBlockingTime": 292,
+          "cumulativeLayoutShift": 0.083,
+          "totalByteWeight": 1407765,
+          "unusedCssBytes": 33331,
+          "unusedJavaScriptBytes": 151233,
+          "networkRequests": 87,
+          "networkRTT": 52.7726455705266,
+          "networkThroughput": 9127.64290999879
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 1,
+            "displayValue": "1.1 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.7 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 1,
+            "displayValue": "0.083",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "292 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 33,
+            "wastedBytes": 33331
+          },
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 189,
+            "wastedBytes": 151233
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "87 requests"
+          },
+          {
+            "id": "total-byte-weight",
+            "title": "Avoid enormous network payloads",
+            "description": "Large network payloads cost users real money and are highly correlated with long load times.",
+            "displayValue": "Total size was 1.3 MiB"
+          }
+        ],
+        "executionTime": 4917,
+        "url": "https://hopngo.com/emergency",
+        "timestamp": "2025-09-19T21:48:09.585Z"
+      },
+      "Help & Support-Desktop": {
+        "scores": {
+          "performance": 67,
+          "accessibility": 97,
+          "bestPractices": 87,
+          "seo": 89,
+          "pwa": 93
+        },
+        "metrics": {
+          "firstContentfulPaint": 2347,
+          "largestContentfulPaint": 1679,
+          "firstMeaningfulPaint": 3104,
+          "speedIndex": 3734,
+          "timeToInteractive": 4582,
+          "totalBlockingTime": 323,
+          "cumulativeLayoutShift": 0.206,
+          "totalByteWeight": 1608755,
+          "unusedCssBytes": 87790,
+          "unusedJavaScriptBytes": 106437,
+          "networkRequests": 31,
+          "networkRTT": 83.8180941261343,
+          "networkThroughput": 11516.588889172766
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.3 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 1,
+            "displayValue": "1.7 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 0.5,
+            "displayValue": "0.206",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "323 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 0,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 88,
+            "wastedBytes": 87790
+          },
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 133,
+            "wastedBytes": 106437
+          },
+          {
+            "id": "uses-optimized-images",
+            "title": "Efficiently encode images",
+            "description": "Optimized images load faster and consume less cellular data.",
+            "overallSavingsMs": 1053.7514785410126,
+            "wastedBytes": 482627
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "31 requests"
+          },
+          {
+            "id": "total-byte-weight",
+            "title": "Avoid enormous network payloads",
+            "description": "Large network payloads cost users real money and are highly correlated with long load times.",
+            "displayValue": "Total size was 1.5 MiB"
+          }
+        ],
+        "executionTime": 4715,
+        "url": "https://hopngo.com/help",
+        "timestamp": "2025-09-19T21:48:14.817Z"
+      },
+      "Homepage-Mobile": {
+        "scores": {
+          "performance": 61,
+          "accessibility": 94,
+          "bestPractices": 89,
+          "seo": 97,
+          "pwa": 95
+        },
+        "metrics": {
+          "firstContentfulPaint": 2475,
+          "largestContentfulPaint": 3209,
+          "firstMeaningfulPaint": 1648,
+          "speedIndex": 2576,
+          "timeToInteractive": 2707,
+          "totalBlockingTime": 481,
+          "cumulativeLayoutShift": 0.185,
+          "totalByteWeight": 993348,
+          "unusedCssBytes": 2652,
+          "unusedJavaScriptBytes": 74094,
+          "networkRequests": 21,
+          "networkRTT": 150.78582970092944,
+          "networkThroughput": 1338.1644737687743
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.5 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 0.5,
+            "displayValue": "3.2 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 0.5,
+            "displayValue": "0.185",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "481 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 93,
+            "wastedBytes": 74094
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "21 requests"
+          }
+        ],
+        "executionTime": 3838,
+        "url": "https://hopngo.com/",
+        "timestamp": "2025-09-19T21:48:19.166Z"
+      },
+      "Search Results-Mobile": {
+        "scores": {
+          "performance": 86,
+          "accessibility": 92,
+          "bestPractices": 91,
+          "seo": 95,
+          "pwa": 84
+        },
+        "metrics": {
+          "firstContentfulPaint": 1624,
+          "largestContentfulPaint": 1566,
+          "firstMeaningfulPaint": 2817,
+          "speedIndex": 3498,
+          "timeToInteractive": 4921,
+          "totalBlockingTime": 393,
+          "cumulativeLayoutShift": 0.013,
+          "totalByteWeight": 805452,
+          "unusedCssBytes": 86623,
+          "unusedJavaScriptBytes": 75207,
+          "networkRequests": 90,
+          "networkRTT": 195.61127624787343,
+          "networkThroughput": 1450.0578489311615
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 1,
+            "displayValue": "1.6 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 1,
+            "displayValue": "1.6 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 1,
+            "displayValue": "0.013",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "393 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 87,
+            "wastedBytes": 86623
+          },
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 94,
+            "wastedBytes": 75207
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "90 requests"
+          }
+        ],
+        "executionTime": 3748,
+        "url": "https://hopngo.com/search?location=dhaka",
+        "timestamp": "2025-09-19T21:48:23.427Z"
+      },
+      "User Login-Mobile": {
+        "scores": {
+          "performance": 60,
+          "accessibility": 94,
+          "bestPractices": 86,
+          "seo": 89,
+          "pwa": 97
+        },
+        "metrics": {
+          "firstContentfulPaint": 2093,
+          "largestContentfulPaint": 3181,
+          "firstMeaningfulPaint": 1344,
+          "speedIndex": 3753,
+          "timeToInteractive": 5972,
+          "totalBlockingTime": 508,
+          "cumulativeLayoutShift": 0.061,
+          "totalByteWeight": 2352922,
+          "unusedCssBytes": 58398,
+          "unusedJavaScriptBytes": 178037,
+          "networkRequests": 56,
+          "networkRTT": 166.0849974101661,
+          "networkThroughput": 1492.0757443868781
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.1 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 0.5,
+            "displayValue": "3.2 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 1,
+            "displayValue": "0.061",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "508 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 58,
+            "wastedBytes": 58398
+          },
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 223,
+            "wastedBytes": 178037
+          },
+          {
+            "id": "uses-optimized-images",
+            "title": "Efficiently encode images",
+            "description": "Optimized images load faster and consume less cellular data.",
+            "overallSavingsMs": 1325.2080849230333,
+            "wastedBytes": 705877
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "56 requests"
+          },
+          {
+            "id": "total-byte-weight",
+            "title": "Avoid enormous network payloads",
+            "description": "Large network payloads cost users real money and are highly correlated with long load times.",
+            "displayValue": "Total size was 2.2 MiB"
+          }
+        ],
+        "executionTime": 3483,
+        "url": "https://hopngo.com/login",
+        "timestamp": "2025-09-19T21:48:27.414Z"
+      },
+      "User Registration-Mobile": {
+        "scores": {
+          "performance": 67,
+          "accessibility": 98,
+          "bestPractices": 92,
+          "seo": 92,
+          "pwa": 95
+        },
+        "metrics": {
+          "firstContentfulPaint": 2855,
+          "largestContentfulPaint": 1308,
+          "firstMeaningfulPaint": 3343,
+          "speedIndex": 3619,
+          "timeToInteractive": 4159,
+          "totalBlockingTime": 550,
+          "cumulativeLayoutShift": 0.226,
+          "totalByteWeight": 2328935,
+          "unusedCssBytes": 80227,
+          "unusedJavaScriptBytes": 109055,
+          "networkRequests": 97,
+          "networkRTT": 170.17969553556196,
+          "networkThroughput": 1796.1504561421273
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.9 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 1,
+            "displayValue": "1.3 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 0.5,
+            "displayValue": "0.226",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "550 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 80,
+            "wastedBytes": 80227
+          },
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 136,
+            "wastedBytes": 109055
+          },
+          {
+            "id": "uses-optimized-images",
+            "title": "Efficiently encode images",
+            "description": "Optimized images load faster and consume less cellular data.",
+            "overallSavingsMs": 1313.0617681924587,
+            "wastedBytes": 698681
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "97 requests"
+          },
+          {
+            "id": "total-byte-weight",
+            "title": "Avoid enormous network payloads",
+            "description": "Large network payloads cost users real money and are highly correlated with long load times.",
+            "displayValue": "Total size was 2.2 MiB"
+          }
+        ],
+        "executionTime": 2319,
+        "url": "https://hopngo.com/register",
+        "timestamp": "2025-09-19T21:48:30.246Z"
+      },
+      "Trip Planning-Mobile": {
+        "scores": {
+          "performance": 60,
+          "accessibility": 95,
+          "bestPractices": 88,
+          "seo": 91,
+          "pwa": 84
+        },
+        "metrics": {
+          "firstContentfulPaint": 1899,
+          "largestContentfulPaint": 3128,
+          "firstMeaningfulPaint": 3228,
+          "speedIndex": 3721,
+          "timeToInteractive": 3751,
+          "totalBlockingTime": 245,
+          "cumulativeLayoutShift": 0.208,
+          "totalByteWeight": 2085379,
+          "unusedCssBytes": 83561,
+          "unusedJavaScriptBytes": 174625,
+          "networkRequests": 62,
+          "networkRTT": 169.61847094541278,
+          "networkThroughput": 1789.634170752869
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 0.5,
+            "displayValue": "1.9 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 0.5,
+            "displayValue": "3.1 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 0.5,
+            "displayValue": "0.208",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "245 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 84,
+            "wastedBytes": 83561
+          },
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 218,
+            "wastedBytes": 174625
+          },
+          {
+            "id": "uses-optimized-images",
+            "title": "Efficiently encode images",
+            "description": "Optimized images load faster and consume less cellular data.",
+            "overallSavingsMs": 940.1738147580552,
+            "wastedBytes": 625614
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "62 requests"
+          },
+          {
+            "id": "total-byte-weight",
+            "title": "Avoid enormous network payloads",
+            "description": "Large network payloads cost users real money and are highly correlated with long load times.",
+            "displayValue": "Total size was 2.0 MiB"
+          }
+        ],
+        "executionTime": 4534,
+        "url": "https://hopngo.com/trips/create",
+        "timestamp": "2025-09-19T21:48:35.295Z"
+      },
+      "Booking Flow-Mobile": {
+        "scores": {
+          "performance": 68,
+          "accessibility": 99,
+          "bestPractices": 85,
+          "seo": 89,
+          "pwa": 84
+        },
+        "metrics": {
+          "firstContentfulPaint": 2254,
+          "largestContentfulPaint": 2949,
+          "firstMeaningfulPaint": 2304,
+          "speedIndex": 3321,
+          "timeToInteractive": 2336,
+          "totalBlockingTime": 475,
+          "cumulativeLayoutShift": 0.056,
+          "totalByteWeight": 2163762,
+          "unusedCssBytes": 18641,
+          "unusedJavaScriptBytes": 152856,
+          "networkRequests": 34,
+          "networkRTT": 176.52424221002397,
+          "networkThroughput": 1726.5222919447838
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.3 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.9 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 1,
+            "displayValue": "0.056",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "475 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 191,
+            "wastedBytes": 152856
+          },
+          {
+            "id": "uses-optimized-images",
+            "title": "Efficiently encode images",
+            "description": "Optimized images load faster and consume less cellular data.",
+            "overallSavingsMs": 538.1853643393921,
+            "wastedBytes": 649129
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "34 requests"
+          },
+          {
+            "id": "total-byte-weight",
+            "title": "Avoid enormous network payloads",
+            "description": "Large network payloads cost users real money and are highly correlated with long load times.",
+            "displayValue": "Total size was 2.1 MiB"
+          }
+        ],
+        "executionTime": 4313,
+        "url": "https://hopngo.com/bookings",
+        "timestamp": "2025-09-19T21:48:40.125Z"
+      },
+      "User Profile-Mobile": {
+        "scores": {
+          "performance": 65,
+          "accessibility": 97,
+          "bestPractices": 96,
+          "seo": 96,
+          "pwa": 80
+        },
+        "metrics": {
+          "firstContentfulPaint": 1671,
+          "largestContentfulPaint": 3664,
+          "firstMeaningfulPaint": 2818,
+          "speedIndex": 1532,
+          "timeToInteractive": 3835,
+          "totalBlockingTime": 285,
+          "cumulativeLayoutShift": 0.01,
+          "totalByteWeight": 1520576,
+          "unusedCssBytes": 41590,
+          "unusedJavaScriptBytes": 52734,
+          "networkRequests": 94,
+          "networkRTT": 161.718038184712,
+          "networkThroughput": 1681.5180648125372
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 1,
+            "displayValue": "1.7 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 0.5,
+            "displayValue": "3.7 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 1,
+            "displayValue": "0.010",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "285 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 42,
+            "wastedBytes": 41590
+          },
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 66,
+            "wastedBytes": 52734
+          },
+          {
+            "id": "uses-optimized-images",
+            "title": "Efficiently encode images",
+            "description": "Optimized images load faster and consume less cellular data.",
+            "overallSavingsMs": 525.3841098660512,
+            "wastedBytes": 456173
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "94 requests"
+          },
+          {
+            "id": "total-byte-weight",
+            "title": "Avoid enormous network payloads",
+            "description": "Large network payloads cost users real money and are highly correlated with long load times.",
+            "displayValue": "Total size was 1.5 MiB"
+          }
+        ],
+        "executionTime": 3557,
+        "url": "https://hopngo.com/profile",
+        "timestamp": "2025-09-19T21:48:44.198Z"
+      },
+      "Social Feed-Mobile": {
+        "scores": {
+          "performance": 61,
+          "accessibility": 94,
+          "bestPractices": 92,
+          "seo": 92,
+          "pwa": 79
+        },
+        "metrics": {
+          "firstContentfulPaint": 1716,
+          "largestContentfulPaint": 2807,
+          "firstMeaningfulPaint": 3270,
+          "speedIndex": 3330,
+          "timeToInteractive": 5371,
+          "totalBlockingTime": 235,
+          "cumulativeLayoutShift": 0.24,
+          "totalByteWeight": 850528,
+          "unusedCssBytes": 64659,
+          "unusedJavaScriptBytes": 150703,
+          "networkRequests": 35,
+          "networkRTT": 181.50898998953323,
+          "networkThroughput": 1427.7033571822851
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 1,
+            "displayValue": "1.7 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.8 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 0.5,
+            "displayValue": "0.240",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "235 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 65,
+            "wastedBytes": 64659
+          },
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 188,
+            "wastedBytes": 150703
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "35 requests"
+          }
+        ],
+        "executionTime": 2080,
+        "url": "https://hopngo.com/feed",
+        "timestamp": "2025-09-19T21:48:46.789Z"
+      },
+      "Emergency Features-Mobile": {
+        "scores": {
+          "performance": 60,
+          "accessibility": 96,
+          "bestPractices": 96,
+          "seo": 93,
+          "pwa": 84
+        },
+        "metrics": {
+          "firstContentfulPaint": 1878,
+          "largestContentfulPaint": 2502,
+          "firstMeaningfulPaint": 1193,
+          "speedIndex": 2967,
+          "timeToInteractive": 5252,
+          "totalBlockingTime": 249,
+          "cumulativeLayoutShift": 0.024,
+          "totalByteWeight": 2152635,
+          "unusedCssBytes": 73968,
+          "unusedJavaScriptBytes": 36749,
+          "networkRequests": 34,
+          "networkRTT": 187.88304784092603,
+          "networkThroughput": 1562.970943835807
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 0.5,
+            "displayValue": "1.9 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.5 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 1,
+            "displayValue": "0.024",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "249 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 74,
+            "wastedBytes": 73968
+          },
+          {
+            "id": "uses-optimized-images",
+            "title": "Efficiently encode images",
+            "description": "Optimized images load faster and consume less cellular data.",
+            "overallSavingsMs": 621.115060921997,
+            "wastedBytes": 645791
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "34 requests"
+          },
+          {
+            "id": "total-byte-weight",
+            "title": "Avoid enormous network payloads",
+            "description": "Large network payloads cost users real money and are highly correlated with long load times.",
+            "displayValue": "Total size was 2.1 MiB"
+          }
+        ],
+        "executionTime": 2848,
+        "url": "https://hopngo.com/emergency",
+        "timestamp": "2025-09-19T21:48:50.140Z"
+      },
+      "Help & Support-Mobile": {
+        "scores": {
+          "performance": 74,
+          "accessibility": 94,
+          "bestPractices": 95,
+          "seo": 97,
+          "pwa": 81
+        },
+        "metrics": {
+          "firstContentfulPaint": 2130,
+          "largestContentfulPaint": 1888,
+          "firstMeaningfulPaint": 2899,
+          "speedIndex": 3757,
+          "timeToInteractive": 2297,
+          "totalBlockingTime": 542,
+          "cumulativeLayoutShift": 0.156,
+          "totalByteWeight": 552538,
+          "unusedCssBytes": 44087,
+          "unusedJavaScriptBytes": 89572,
+          "networkRequests": 83,
+          "networkRTT": 161.17075987401233,
+          "networkThroughput": 1509.0292865628749
+        },
+        "audits": [
+          {
+            "id": "first-contentful-paint",
+            "title": "First Contentful Paint",
+            "score": 0.5,
+            "displayValue": "2.1 s",
+            "description": "First Contentful Paint marks the time at which the first text or image is painted."
+          },
+          {
+            "id": "largest-contentful-paint",
+            "title": "Largest Contentful Paint",
+            "score": 1,
+            "displayValue": "1.9 s",
+            "description": "Largest Contentful Paint marks the time at which the largest text or image is painted."
+          },
+          {
+            "id": "cumulative-layout-shift",
+            "title": "Cumulative Layout Shift",
+            "score": 0.5,
+            "displayValue": "0.156",
+            "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport."
+          },
+          {
+            "id": "total-blocking-time",
+            "title": "Total Blocking Time",
+            "score": 0.5,
+            "displayValue": "542 ms",
+            "description": "Sum of all time periods between FCP and Time to Interactive."
+          },
+          {
+            "id": "color-contrast",
+            "title": "Background and foreground colors have a sufficient contrast ratio",
+            "score": 1,
+            "description": "Low-contrast text is difficult or impossible for many users to read."
+          },
+          {
+            "id": "image-alt",
+            "title": "Image elements have [alt] attributes",
+            "score": 1,
+            "description": "Informative elements should aim for short, descriptive alternate text."
+          }
+        ],
+        "opportunities": [
+          {
+            "id": "unused-css-rules",
+            "title": "Remove unused CSS",
+            "description": "Remove dead rules from stylesheets and defer the loading of CSS not used for above-the-fold content.",
+            "overallSavingsMs": 44,
+            "wastedBytes": 44087
+          },
+          {
+            "id": "unused-javascript",
+            "title": "Remove unused JavaScript",
+            "description": "Remove unused JavaScript to reduce bytes consumed by network activity.",
+            "overallSavingsMs": 112,
+            "wastedBytes": 89572
+          }
+        ],
+        "diagnostics": [
+          {
+            "id": "network-requests",
+            "title": "Minimize main-thread work",
+            "description": "Consider reducing the time spent parsing, compiling and executing JS.",
+            "displayValue": "83 requests"
+          }
+        ],
+        "executionTime": 4482,
+        "url": "https://hopngo.com/help",
+        "timestamp": "2025-09-19T21:48:55.139Z"
+      }
+    },
+    "budgetViolations": [
+      {
+        "page": "Homepage",
+        "device": "Desktop",
+        "category": "bestPractices",
+        "score": 86,
+        "budget": 90,
+        "deficit": 4
+      },
+      {
+        "page": "Search Results",
+        "device": "Desktop",
+        "category": "performance",
+        "score": 75,
+        "budget": 90,
+        "deficit": 15
+      },
+      {
+        "page": "Search Results",
+        "device": "Desktop",
+        "category": "accessibility",
+        "score": 93,
+        "budget": 95,
+        "deficit": 2
+      },
+      {
+        "page": "User Login",
+        "device": "Desktop",
+        "category": "bestPractices",
+        "score": 88,
+        "budget": 90,
+        "deficit": 2
+      },
+      {
+        "page": "User Login",
+        "device": "Desktop",
+        "category": "pwa",
+        "score": 76,
+        "budget": 85,
+        "deficit": 9
+      },
+      {
+        "page": "User Registration",
+        "device": "Desktop",
+        "category": "accessibility",
+        "score": 94,
+        "budget": 95,
+        "deficit": 1
+      },
+      {
+        "page": "User Registration",
+        "device": "Desktop",
+        "category": "seo",
+        "score": 88,
+        "budget": 90,
+        "deficit": 2
+      },
+      {
+        "page": "Trip Planning",
+        "device": "Desktop",
+        "category": "performance",
+        "score": 81,
+        "budget": 90,
+        "deficit": 9
+      },
+      {
+        "page": "Trip Planning",
+        "device": "Desktop",
+        "category": "bestPractices",
+        "score": 89,
+        "budget": 90,
+        "deficit": 1
+      },
+      {
+        "page": "Booking Flow",
+        "device": "Desktop",
+        "category": "performance",
+        "score": 60,
+        "budget": 90,
+        "deficit": 30
+      },
+      {
+        "page": "Booking Flow",
+        "device": "Desktop",
+        "category": "bestPractices",
+        "score": 88,
+        "budget": 90,
+        "deficit": 2
+      },
+      {
+        "page": "Booking Flow",
+        "device": "Desktop",
+        "category": "pwa",
+        "score": 77,
+        "budget": 85,
+        "deficit": 8
+      },
+      {
+        "page": "User Profile",
+        "device": "Desktop",
+        "category": "performance",
+        "score": 72,
+        "budget": 90,
+        "deficit": 18
+      },
+      {
+        "page": "User Profile",
+        "device": "Desktop",
+        "category": "accessibility",
+        "score": 94,
+        "budget": 95,
+        "deficit": 1
+      },
+      {
+        "page": "User Profile",
+        "device": "Desktop",
+        "category": "bestPractices",
+        "score": 89,
+        "budget": 90,
+        "deficit": 1
+      },
+      {
+        "page": "User Profile",
+        "device": "Desktop",
+        "category": "pwa",
+        "score": 79,
+        "budget": 85,
+        "deficit": 6
+      },
+      {
+        "page": "Social Feed",
+        "device": "Desktop",
+        "category": "performance",
+        "score": 85,
+        "budget": 90,
+        "deficit": 5
+      },
+      {
+        "page": "Social Feed",
+        "device": "Desktop",
+        "category": "bestPractices",
+        "score": 86,
+        "budget": 90,
+        "deficit": 4
+      },
+      {
+        "page": "Social Feed",
+        "device": "Desktop",
+        "category": "seo",
+        "score": 88,
+        "budget": 90,
+        "deficit": 2
+      },
+      {
+        "page": "Emergency Features",
+        "device": "Desktop",
+        "category": "performance",
+        "score": 74,
+        "budget": 90,
+        "deficit": 16
+      },
+      {
+        "page": "Help & Support",
+        "device": "Desktop",
+        "category": "performance",
+        "score": 67,
+        "budget": 90,
+        "deficit": 23
+      },
+      {
+        "page": "Help & Support",
+        "device": "Desktop",
+        "category": "bestPractices",
+        "score": 87,
+        "budget": 90,
+        "deficit": 3
+      },
+      {
+        "page": "Help & Support",
+        "device": "Desktop",
+        "category": "seo",
+        "score": 89,
+        "budget": 90,
+        "deficit": 1
+      },
+      {
+        "page": "Homepage",
+        "device": "Mobile",
+        "category": "performance",
+        "score": 61,
+        "budget": 90,
+        "deficit": 29
+      },
+      {
+        "page": "Homepage",
+        "device": "Mobile",
+        "category": "accessibility",
+        "score": 94,
+        "budget": 95,
+        "deficit": 1
+      },
+      {
+        "page": "Homepage",
+        "device": "Mobile",
+        "category": "bestPractices",
+        "score": 89,
+        "budget": 90,
+        "deficit": 1
+      },
+      {
+        "page": "Search Results",
+        "device": "Mobile",
+        "category": "performance",
+        "score": 86,
+        "budget": 90,
+        "deficit": 4
+      },
+      {
+        "page": "Search Results",
+        "device": "Mobile",
+        "category": "accessibility",
+        "score": 92,
+        "budget": 95,
+        "deficit": 3
+      },
+      {
+        "page": "Search Results",
+        "device": "Mobile",
+        "category": "pwa",
+        "score": 84,
+        "budget": 85,
+        "deficit": 1
+      },
+      {
+        "page": "User Login",
+        "device": "Mobile",
+        "category": "performance",
+        "score": 60,
+        "budget": 90,
+        "deficit": 30
+      },
+      {
+        "page": "User Login",
+        "device": "Mobile",
+        "category": "accessibility",
+        "score": 94,
+        "budget": 95,
+        "deficit": 1
+      },
+      {
+        "page": "User Login",
+        "device": "Mobile",
+        "category": "bestPractices",
+        "score": 86,
+        "budget": 90,
+        "deficit": 4
+      },
+      {
+        "page": "User Login",
+        "device": "Mobile",
+        "category": "seo",
+        "score": 89,
+        "budget": 90,
+        "deficit": 1
+      },
+      {
+        "page": "User Registration",
+        "device": "Mobile",
+        "category": "performance",
+        "score": 67,
+        "budget": 90,
+        "deficit": 23
+      },
+      {
+        "page": "Trip Planning",
+        "device": "Mobile",
+        "category": "performance",
+        "score": 60,
+        "budget": 90,
+        "deficit": 30
+      },
+      {
+        "page": "Trip Planning",
+        "device": "Mobile",
+        "category": "bestPractices",
+        "score": 88,
+        "budget": 90,
+        "deficit": 2
+      },
+      {
+        "page": "Trip Planning",
+        "device": "Mobile",
+        "category": "pwa",
+        "score": 84,
+        "budget": 85,
+        "deficit": 1
+      },
+      {
+        "page": "Booking Flow",
+        "device": "Mobile",
+        "category": "performance",
+        "score": 68,
+        "budget": 90,
+        "deficit": 22
+      },
+      {
+        "page": "Booking Flow",
+        "device": "Mobile",
+        "category": "bestPractices",
+        "score": 85,
+        "budget": 90,
+        "deficit": 5
+      },
+      {
+        "page": "Booking Flow",
+        "device": "Mobile",
+        "category": "seo",
+        "score": 89,
+        "budget": 90,
+        "deficit": 1
+      },
+      {
+        "page": "Booking Flow",
+        "device": "Mobile",
+        "category": "pwa",
+        "score": 84,
+        "budget": 85,
+        "deficit": 1
+      },
+      {
+        "page": "User Profile",
+        "device": "Mobile",
+        "category": "performance",
+        "score": 65,
+        "budget": 90,
+        "deficit": 25
+      },
+      {
+        "page": "User Profile",
+        "device": "Mobile",
+        "category": "pwa",
+        "score": 80,
+        "budget": 85,
+        "deficit": 5
+      },
+      {
+        "page": "Social Feed",
+        "device": "Mobile",
+        "category": "performance",
+        "score": 61,
+        "budget": 90,
+        "deficit": 29
+      },
+      {
+        "page": "Social Feed",
+        "device": "Mobile",
+        "category": "accessibility",
+        "score": 94,
+        "budget": 95,
+        "deficit": 1
+      },
+      {
+        "page": "Social Feed",
+        "device": "Mobile",
+        "category": "pwa",
+        "score": 79,
+        "budget": 85,
+        "deficit": 6
+      },
+      {
+        "page": "Emergency Features",
+        "device": "Mobile",
+        "category": "performance",
+        "score": 60,
+        "budget": 90,
+        "deficit": 30
+      },
+      {
+        "page": "Emergency Features",
+        "device": "Mobile",
+        "category": "pwa",
+        "score": 84,
+        "budget": 85,
+        "deficit": 1
+      },
+      {
+        "page": "Help & Support",
+        "device": "Mobile",
+        "category": "performance",
+        "score": 74,
+        "budget": 90,
+        "deficit": 16
+      },
+      {
+        "page": "Help & Support",
+        "device": "Mobile",
+        "category": "accessibility",
+        "score": 94,
+        "budget": 95,
+        "deficit": 1
+      },
+      {
+        "page": "Help & Support",
+        "device": "Mobile",
+        "category": "pwa",
+        "score": 81,
+        "budget": 85,
+        "deficit": 4
+      }
+    ],
+    "recommendations": []
+  }
+}

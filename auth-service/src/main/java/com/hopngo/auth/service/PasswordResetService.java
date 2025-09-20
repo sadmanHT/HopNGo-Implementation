@@ -1,16 +1,5 @@
 package com.hopngo.auth.service;
 
-import com.hopngo.auth.entity.User;
-import com.hopngo.auth.repository.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -19,6 +8,19 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Optional;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.hopngo.auth.entity.User;
+import com.hopngo.auth.repository.UserRepository;
 
 @Service
 @Transactional
@@ -119,7 +121,7 @@ public class PasswordResetService {
             }
             
             // Update password
-            user.setPassword(passwordEncoder.encode(newPassword));
+            user.setPasswordHash(passwordEncoder.encode(newPassword));
             userRepository.save(user);
             
             logger.info("Password reset completed for user: {}", user.getId());

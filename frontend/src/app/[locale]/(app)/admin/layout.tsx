@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/state';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,11 +13,16 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const { user, token, isAuthenticated } = useAuthStore();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     // Check if user is authenticated
     if (!isAuthenticated || !token) {
-      router.push('/login');
+      isClient && router.push('/login');
       return;
     }
 
@@ -28,7 +33,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const hasAdminRole = checkAdminRole(user, token);
     
     if (!hasAdminRole) {
-      router.push('/dashboard'); // Redirect to main dashboard
+      isClient && router.push('/dashboard'); // Redirect to main dashboard
       return;
     }
   }, [isAuthenticated, token, user, router]);

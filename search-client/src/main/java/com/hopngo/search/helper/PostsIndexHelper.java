@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.script.Script;
+import org.opensearch.script.ScriptType;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.springframework.stereotype.Component;
@@ -22,7 +24,7 @@ import java.util.Map;
 public class PostsIndexHelper {
 
     public static final String INDEX_NAME = "posts_v1";
-    
+
     private final SearchClientService searchClientService;
 
     /**
@@ -66,8 +68,8 @@ public class PostsIndexHelper {
     /**
      * Search posts with text query and optional filters
      */
-    public List<PostDocument> searchPosts(String query, String authorId, List<String> tags, 
-                                         String place, int size, int from) {
+    public List<PostDocument> searchPosts(String query, String authorId, List<String> tags,
+            String place, int size, int from) {
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
 
         // Text search across content fields
@@ -99,8 +101,8 @@ public class PostsIndexHelper {
     /**
      * Hybrid search combining BM25 and vector similarity
      */
-    public List<PostDocument> hybridSearch(String query, float[] embedding, String authorId, 
-                                          List<String> tags, int size, int from) {
+    public List<PostDocument> hybridSearch(String query, float[] embedding, String authorId,
+            List<String> tags, int size, int from) {
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
 
         // BM25 text search
@@ -113,11 +115,17 @@ public class PostsIndexHelper {
         if (embedding != null && embedding.length > 0) {
             // Note: This is a placeholder for kNN search
             // In a real implementation, you would use OpenSearch's kNN plugin
+            Map<String, Object> params = new HashMap<>();
+            params.put("query_vector", embedding);
+            Script script = new Script(
+                    ScriptType.INLINE,
+                    "painless",
+                    "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
+                    params
+            );
             boolQuery.should(QueryBuilders.scriptScoreQuery(
                     QueryBuilders.matchAllQuery(),
-                    // This is a simplified cosine similarity script
-                    // In production, use proper kNN search
-                    "cosineSimilarity(params.query_vector, 'embedding') + 1.0"
+                    script
             ).boost(0.5f));
         }
 
@@ -145,12 +153,12 @@ public class PostsIndexHelper {
      */
     private Map<String, Object> createPostsMapping() {
         Map<String, Object> mapping = new HashMap<>();
-        
+
         // Settings
         Map<String, Object> settings = new HashMap<>();
         settings.put("number_of_shards", 1);
         settings.put("number_of_replicas", 0);
-        
+
         // Analysis settings for multilingual support
         Map<String, Object> analysis = new HashMap<>();
         Map<String, Object> analyzer = new HashMap<>();
@@ -161,13 +169,13 @@ public class PostsIndexHelper {
         analyzer.put("multilingual_analyzer", multilingualAnalyzer);
         analysis.put("analyzer", analyzer);
         settings.put("analysis", analysis);
-        
+
         mapping.put("settings", settings);
-        
+
         // Mappings
         Map<String, Object> mappings = new HashMap<>();
         Map<String, Object> properties = new HashMap<>();
-        
+
         // Field mappings
         properties.put("id", Map.of("type", "keyword"));
         properties.put("authorId", Map.of("type", "keyword"));
@@ -182,10 +190,10 @@ public class PostsIndexHelper {
                 "type", "dense_vector",
                 "dims", 1536
         ));
-        
+
         mappings.put("properties", properties);
         mapping.put("mappings", mappings);
-        
+
         return mapping;
     }
 
@@ -193,6 +201,7 @@ public class PostsIndexHelper {
      * Post document structure for search
      */
     public static class PostDocument {
+
         private String id;
         private String authorId;
         private String text;
@@ -202,10 +211,11 @@ public class PostsIndexHelper {
         private float[] embedding;
 
         // Constructors
-        public PostDocument() {}
+        public PostDocument() {
+        }
 
-        public PostDocument(String id, String authorId, String text, List<String> tags, 
-                           String place, String createdAt, float[] embedding) {
+        public PostDocument(String id, String authorId, String text, List<String> tags,
+                String place, String createdAt, float[] embedding) {
             this.id = id;
             this.authorId = authorId;
             this.text = text;
@@ -216,25 +226,60 @@ public class PostsIndexHelper {
         }
 
         // Getters and setters
-        public String getId() { return id; }
-        public void setId(String id) { this.id = id; }
+        public String getId() {
+            return id;
+        }
 
-        public String getAuthorId() { return authorId; }
-        public void setAuthorId(String authorId) { this.authorId = authorId; }
+        public void setId(String id) {
+            this.id = id;
+        }
 
-        public String getText() { return text; }
-        public void setText(String text) { this.text = text; }
+        public String getAuthorId() {
+            return authorId;
+        }
 
-        public List<String> getTags() { return tags; }
-        public void setTags(List<String> tags) { this.tags = tags; }
+        public void setAuthorId(String authorId) {
+            this.authorId = authorId;
+        }
 
-        public String getPlace() { return place; }
-        public void setPlace(String place) { this.place = place; }
+        public String getText() {
+            return text;
+        }
 
-        public String getCreatedAt() { return createdAt; }
-        public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+        public void setText(String text) {
+            this.text = text;
+        }
 
-        public float[] getEmbedding() { return embedding; }
-        public void setEmbedding(float[] embedding) { this.embedding = embedding; }
+        public List<String> getTags() {
+            return tags;
+        }
+
+        public void setTags(List<String> tags) {
+            this.tags = tags;
+        }
+
+        public String getPlace() {
+            return place;
+        }
+
+        public void setPlace(String place) {
+            this.place = place;
+        }
+
+        public String getCreatedAt() {
+            return createdAt;
+        }
+
+        public void setCreatedAt(String createdAt) {
+            this.createdAt = createdAt;
+        }
+
+        public float[] getEmbedding() {
+            return embedding;
+        }
+
+        public void setEmbedding(float[] embedding) {
+            this.embedding = embedding;
+        }
     }
 }

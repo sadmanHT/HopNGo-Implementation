@@ -1,15 +1,16 @@
 package com.hopngo.auth.service;
 
-import com.hopngo.auth.model.UserSession;
-import com.hopngo.auth.repository.UserSessionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Service;
+
+import com.hopngo.auth.model.UserSession;
+import com.hopngo.auth.repository.UserSessionRepository;
 
 /**
  * Service for managing user sessions and device tracking
@@ -21,7 +22,7 @@ public class SessionManagementService {
     @Autowired
     private UserSessionRepository sessionRepository;
 
-    @Autowired
+    @Autowired(required = false)
     private RedisTemplate<String, Object> redisTemplate;
 
     private static final String SESSION_PREFIX = "session:";
@@ -59,14 +60,16 @@ public class SessionManagementService {
         // Save to database
         session = sessionRepository.save(session);
 
-        // Cache in Redis
-        String sessionKey = SESSION_PREFIX + session.getSessionId();
-        redisTemplate.opsForValue().set(sessionKey, session, SESSION_TIMEOUT_HOURS, TimeUnit.HOURS);
+        // Cache in Redis if available
+        if (redisTemplate != null) {
+            String sessionKey = SESSION_PREFIX + session.getSessionId();
+            redisTemplate.opsForValue().set(sessionKey, session, SESSION_TIMEOUT_HOURS, TimeUnit.HOURS);
 
-        // Add to user sessions set
-        String userSessionsKey = USER_SESSIONS_PREFIX + userId;
-        redisTemplate.opsForSet().add(userSessionsKey, session.getSessionId());
-        redisTemplate.expire(userSessionsKey, SESSION_TIMEOUT_HOURS, TimeUnit.HOURS);
+            // Add to user sessions set
+            String userSessionsKey = USER_SESSIONS_PREFIX + userId;
+            redisTemplate.opsForSet().add(userSessionsKey, session.getSessionId());
+            redisTemplate.expire(userSessionsKey, SESSION_TIMEOUT_HOURS, TimeUnit.HOURS);
+        }
 
         return session;
     }
@@ -78,29 +81,28 @@ public class SessionManagementService {
         return sessionRepository.findByUserIdAndActiveTrue(userId);
     }
 
-    /**
-     * Get session by session ID
-     */
     public UserSession getSession(String sessionId) {
-        // Try Redis first
-        String sessionKey = SESSION_PREFIX + sessionId;
-        UserSession session = (UserSession) redisTemplate.opsForValue().get(sessionKey);
-        
-        if (session == null) {
-            // Fallback to database
-            session = sessionRepository.findBySessionIdAndActiveTrue(sessionId);
-            if (session != null) {
-                // Re-cache
-                redisTemplate.opsForValue().set(sessionKey, session, SESSION_TIMEOUT_HOURS, TimeUnit.HOURS);
+        // Try Redis first if available
+        if (redisTemplate != null) {
+            String sessionKey = SESSION_PREFIX + sessionId;
+            UserSession session = (UserSession) redisTemplate.opsForValue().get(sessionKey);
+            
+            if (session == null) {
+                // Fallback to database
+                session = sessionRepository.findBySessionIdAndActiveTrue(sessionId);
+                if (session != null) {
+                    // Re-cache
+                    redisTemplate.opsForValue().set(sessionKey, session, SESSION_TIMEOUT_HOURS, TimeUnit.HOURS);
+                }
             }
+            
+            return session;
+        } else {
+            // Redis not available, use database only
+            return sessionRepository.findBySessionIdAndActiveTrue(sessionId);
         }
-        
-        return session;
     }
 
-    /**
-     * Update session activity
-     */
     public void updateSessionActivity(String sessionId) {
         UserSession session = getSession(sessionId);
         if (session != null) {
@@ -109,15 +111,14 @@ public class SessionManagementService {
             // Update in database
             sessionRepository.save(session);
             
-            // Update in Redis
-            String sessionKey = SESSION_PREFIX + sessionId;
-            redisTemplate.opsForValue().set(sessionKey, session, SESSION_TIMEOUT_HOURS, TimeUnit.HOURS);
+            // Update in Redis if available
+            if (redisTemplate != null) {
+                String sessionKey = SESSION_PREFIX + sessionId;
+                redisTemplate.opsForValue().set(sessionKey, session, SESSION_TIMEOUT_HOURS, TimeUnit.HOURS);
+            }
         }
     }
 
-    /**
-     * Mark session as 2FA verified
-     */
     public void mark2FAVerified(String sessionId) {
         UserSession session = getSession(sessionId);
         if (session != null) {
@@ -127,15 +128,14 @@ public class SessionManagementService {
             // Update in database
             sessionRepository.save(session);
             
-            // Update in Redis
-            String sessionKey = SESSION_PREFIX + sessionId;
-            redisTemplate.opsForValue().set(sessionKey, session, SESSION_TIMEOUT_HOURS, TimeUnit.HOURS);
+            // Update in Redis if available
+            if (redisTemplate != null) {
+                String sessionKey = SESSION_PREFIX + sessionId;
+                redisTemplate.opsForValue().set(sessionKey, session, SESSION_TIMEOUT_HOURS, TimeUnit.HOURS);
+            }
         }
     }
 
-    /**
-     * Revoke a specific session
-     */
     public boolean revokeSession(String sessionId) {
         UserSession session = getSession(sessionId);
         if (session != null) {
@@ -144,13 +144,15 @@ public class SessionManagementService {
             session.setRevokedAt(LocalDateTime.now());
             sessionRepository.save(session);
             
-            // Remove from Redis
-            String sessionKey = SESSION_PREFIX + sessionId;
-            redisTemplate.delete(sessionKey);
-            
-            // Remove from user sessions set
-            String userSessionsKey = USER_SESSIONS_PREFIX + session.getUserId();
-            redisTemplate.opsForSet().remove(userSessionsKey, sessionId);
+            // Remove from Redis if available
+            if (redisTemplate != null) {
+                String sessionKey = SESSION_PREFIX + sessionId;
+                redisTemplate.delete(sessionKey);
+                
+                // Remove from user sessions set
+                String userSessionsKey = USER_SESSIONS_PREFIX + session.getUserId();
+                redisTemplate.opsForSet().remove(userSessionsKey, sessionId);
+            }
             
             return true;
         }
@@ -171,9 +173,11 @@ public class SessionManagementService {
             revokeSession(session.getSessionId());
         }
         
-        // Clear user sessions set
-        String userSessionsKey = USER_SESSIONS_PREFIX + userId;
-        redisTemplate.delete(userSessionsKey);
+        // Clear user sessions set if Redis available
+        if (redisTemplate != null) {
+            String userSessionsKey = USER_SESSIONS_PREFIX + userId;
+            redisTemplate.delete(userSessionsKey);
+        }
     }
 
     /**

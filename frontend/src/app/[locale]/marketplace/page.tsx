@@ -36,6 +36,7 @@ import {
 import { shoppingService, TravelGear, MarketplaceFilters, SearchResponse } from '../../../services/shopping';
 import { useCartStore } from '../../../lib/state';
 import { useRouter } from 'next/navigation';
+import { LazyCard } from '../../../components/ui/lazy-image';
 
 interface FilterState extends MarketplaceFilters {
   priceRange: { min: number; max: number };
@@ -298,10 +299,11 @@ const MarketplacePage = () => {
           className="aspect-square bg-gray-100 rounded-t-lg overflow-hidden"
         >
           {gear.images.length > 0 ? (
-            <img 
+            <LazyCard
               src={gear.images[0]} 
               alt={gear.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="w-full h-full group-hover:scale-105 transition-transform"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -449,10 +451,11 @@ const MarketplacePage = () => {
             onClick={() => handleGearClick(gear.id)}
           >
             {gear.images.length > 0 ? (
-              <img 
+              <LazyCard
                 src={gear.images[0]} 
                 alt={gear.title}
-                className="w-full h-full object-cover"
+                sizes="96px"
+                className="w-full h-full"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">

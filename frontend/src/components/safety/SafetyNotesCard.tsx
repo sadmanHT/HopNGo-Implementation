@@ -31,11 +31,11 @@ const SafetyNotesCard: React.FC<SafetyNotesCardProps> = ({
 }) => {
   const { weather, advisories, loading, error } = useWeatherAdvisory(destination, coordinates);
   // Convert destination safety notes to SafetyNote format
-  const curatedNotes: SafetyNote[] = destination?.safety_notes?.map(note => ({
+  const curatedNotes: SafetyNote[] = destination?.safety_notes ? [{
     type: 'warning' as const,
-    message: note,
+    message: destination.safety_notes,
     source: 'curated' as const
-  })) || [];
+  }] : [];
 
   // Mock user review sentiment-based safety notes
   const userReviewNotes: SafetyNote[] = destination ? [
@@ -56,7 +56,7 @@ const SafetyNotesCard: React.FC<SafetyNotesCardProps> = ({
     return advisories.map(advisory => ({
       type: advisory.type,
       message: advisory.message,
-      source: advisory.source
+      source: advisory.source === 'seasonal' || advisory.source === 'ai' ? 'weather' : advisory.source
     }));
   };
 
@@ -88,8 +88,9 @@ const SafetyNotesCard: React.FC<SafetyNotesCardProps> = ({
 
   const getIcon = (type: SafetyNote['type'], source?: SafetyNote['source']) => {
     if (source === 'weather') return <Cloud className="h-4 w-4" />;
-    if (source === 'seasonal') return <Thermometer className="h-4 w-4" />;
-    if (source === 'ai') return <Sun className="h-4 w-4" />;
+    if (source === 'curated') return <Shield className="h-4 w-4" />;
+    if (source === 'government') return <AlertTriangle className="h-4 w-4" />;
+    if (source === 'user_reviews') return <Info className="h-4 w-4" />;
     
     switch (type) {
       case 'warning':

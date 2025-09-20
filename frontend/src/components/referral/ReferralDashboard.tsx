@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { Copy, Share2, Users, MousePointer, Trophy, Coins, Plus, ExternalLink } from 'lucide-react';
 import { referralService, ReferralStats, ReferralResponse } from '@/lib/services/referral';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from '@/lib/state/auth';
 
 interface ReferralDashboardProps {
   className?: string;

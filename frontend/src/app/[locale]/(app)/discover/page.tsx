@@ -11,7 +11,7 @@ import { ChevronLeft, ChevronRight, MapPin, Star, Users, Heart } from 'lucide-re
 import Link from 'next/link';
 import recommendationService, { RecommendedItem, RecommendedUser } from '@/services/recommendations';
 import { useFeatureFlag } from '@/lib/flags';
-import { bdDestinations, getBDDestinationsByRegion } from '@/data/bd-destinations';
+import { bdDestinations, getDestinationsByRegion } from '@/data/bd-destinations';
 import { bdFestivals, getFestivalsByRegion } from '@/data/festivals';
 import { TouristHeatmap } from '@/components/social/TouristHeatmap';
 import SafetyNotesCard from '@/components/safety/SafetyNotesCard';
@@ -364,7 +364,7 @@ export default function DiscoverPage() {
       setFilteredDestinations(bdDestinations);
       setFilteredFestivals(bdFestivals);
     } else {
-      const regionDestinations = getBDDestinationsByRegion(selectedRegion);
+      const regionDestinations = getDestinationsByRegion(selectedRegion);
       const regionFestivals = getFestivalsByRegion(selectedRegion);
       setFilteredDestinations(regionDestinations);
       setFilteredFestivals(regionFestivals);

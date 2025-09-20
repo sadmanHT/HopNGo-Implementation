@@ -1,8 +1,25 @@
 package com.hopngo.auth.controller;
 
-import com.hopngo.auth.dto.*;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.hopngo.auth.dto.AuthResponse;
+import com.hopngo.auth.dto.LoginRequest;
+import com.hopngo.auth.dto.RefreshTokenRequest;
+import com.hopngo.auth.dto.RegisterRequest;
+import com.hopngo.auth.dto.UserDto;
 import com.hopngo.auth.service.AuthService;
 import com.hopngo.auth.service.JwtService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -10,13 +27,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -102,8 +112,8 @@ public class AuthController {
     
 
     
-    @GetMapping("/me")
-    @Operation(summary = "Get current user", description = "Get current authenticated user information")
+    @GetMapping("/profile")
+    @Operation(summary = "Get current user profile", description = "Get current authenticated user information")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User information retrieved successfully"),
@@ -141,6 +151,18 @@ public class AuthController {
                     "message", e.getMessage()
             ));
         }
+    }
+    
+    @GetMapping("/me")
+    @Operation(summary = "Get current user", description = "Get current authenticated user information")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User information retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - invalid or missing token"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    public ResponseEntity<?> getCurrentUserMe(HttpServletRequest request) {
+        return getCurrentUser(request);
     }
     
     @PostMapping("/logout")

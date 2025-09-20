@@ -31,7 +31,14 @@
 }
 
 .visually-hidden:focus {
-  @apply sr-only:focus;
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
 }
 
 /* Skip Links */

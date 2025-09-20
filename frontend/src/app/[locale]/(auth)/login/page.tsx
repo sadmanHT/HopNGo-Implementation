@@ -46,7 +46,7 @@ export default function LoginPage() {
 
     try {
       const response = await authApi.login(data);
-      setAuth(response.user, response.token, response.refreshToken);
+      setAuth(response.user, response.accessToken, response.refreshToken);
       
       // Track successful login
       analytics.trackConversion('user_login', 1, {

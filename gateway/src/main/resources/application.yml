@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8084
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
@@ -24,12 +24,11 @@ spring:
       routes:
         # Auth Service
         - id: auth-service
-          uri: http://auth-service:8081
+          uri: http://localhost:8083
           predicates:
             - Path=/api/v1/auth/**
           filters:
             - name: SecurityHeadersFilter
-            - name: JwtAuthenticationFilter
         
         # Social Service
         - id: social-service
@@ -245,6 +244,11 @@ spring:
            args:
              name: Vary
              value: "Accept-Encoding, Authorization, Accept-Language, Origin"
+
+# JWT Configuration
+jwt:
+  secret: hopngo-secret-key-that-should-be-changed-in-production
+  expiration: 86400
 
 # Actuator configuration
 management:

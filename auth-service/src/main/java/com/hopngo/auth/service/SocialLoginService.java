@@ -1,21 +1,23 @@
 package com.hopngo.auth.service;
 
-import com.hopngo.auth.dto.AuthResponse;
-import com.hopngo.auth.dto.SocialLoginRequest;
-import com.hopngo.auth.entity.User;
-import com.hopngo.auth.mapper.UserMapper;
-import com.hopngo.auth.repository.UserRepository;
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
-import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.Optional;
+import com.hopngo.auth.dto.AuthResponse;
+import com.hopngo.auth.dto.SocialLoginRequest;
+import com.hopngo.auth.entity.User;
+import com.hopngo.auth.mapper.UserMapper;
+import com.hopngo.auth.repository.UserRepository;
+
+import reactor.core.publisher.Mono;
 
 @Service
 @Transactional
@@ -141,9 +143,9 @@ public class SocialLoginService {
             newUser.setEmail(googleUser.getEmail());
             newUser.setFirstName(googleUser.getGivenName() != null ? googleUser.getGivenName() : "");
             newUser.setLastName(googleUser.getFamilyName() != null ? googleUser.getFamilyName() : "");
-            newUser.setRole(User.Role.TRAVELER);
+            newUser.setRole(User.Role.USER);
             newUser.setIsActive(true);
-            newUser.setPassword(""); // No password for social login users
+            newUser.setPasswordHash(""); // No password for social login users
             newUser.setCreatedAt(LocalDateTime.now());
             newUser.setUpdatedAt(LocalDateTime.now());
             

@@ -18,7 +18,7 @@ export interface PaginatedResponse<T> {
 
 // Auth types
 export interface User {
-  id: string;
+  id: string | number;
   email: string;
   name: string;
   firstName?: string;
@@ -44,8 +44,10 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
   user: User;
-  token: string;
+  accessToken: string;
   refreshToken: string;
+  tokenType?: string;
+  requires2FA?: boolean;
 }
 
 // Booking types

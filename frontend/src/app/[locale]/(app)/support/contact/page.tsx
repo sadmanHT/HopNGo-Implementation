@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { MessageCircle, Send, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState as useClientState } from 'react';
 
 interface ContactForm {
   name: string;
@@ -39,6 +40,11 @@ const PRIORITIES = [
 
 export default function ContactPage() {
   const router = useRouter();
+  const [isClient, setIsClient] = useClientState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   const [form, setForm] = useState<ContactForm>({
     name: '',
     email: '',
@@ -326,7 +332,7 @@ export default function ContactPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => router.back()}
+                      onClick={() => isClient && router.back()}
                     >
                       Cancel
                     </Button>

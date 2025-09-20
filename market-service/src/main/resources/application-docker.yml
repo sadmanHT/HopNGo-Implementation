@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://postgres:5432/hopngo}
+    username: ${DATABASE_USERNAME:hopngo_user}
+    password: ${DATABASE_PASSWORD:hopngo_password}
+  
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:hopngo}
+    password: ${RABBITMQ_PASSWORD:rabbit_dev_2024!}
+    virtual-host: ${RABBITMQ_VHOST:hopngo}
+  
+  redis:
+    host: ${REDIS_HOST:redis}
+    port: ${REDIS_PORT:6379}
+
+management:
+  otlp:
+    tracing:
+      endpoint: ${TRACING_ENDPOINT:http://tempo:4318/v1/traces}

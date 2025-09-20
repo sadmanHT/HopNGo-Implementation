@@ -4,33 +4,36 @@ import { ApiResponse, AuthResponse, LoginRequest, RegisterRequest, User } from '
 export const authApi = {
   // Login user
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
-    const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/login', credentials);
-    return response.data.data;
+    const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
+    return response.data;
   },
 
   // Register new user
   register: async (userData: RegisterRequest): Promise<AuthResponse> => {
-    const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/register', userData);
-    return response.data.data;
+    const response = await apiClient.post<AuthResponse>('/auth/register', userData);
+    return response.data;
   },
 
   // Get current user profile
   getProfile: async (): Promise<User> => {
-    const response = await apiClient.get<ApiResponse<User>>('/auth/profile');
-    return response.data.data;
+    const response = await apiClient.get<User>('/auth/profile');
+    return response.data;
   },
 
   // Refresh auth token
-  refreshToken: async (refreshToken: string): Promise<{ token: string; refreshToken: string }> => {
-    const response = await apiClient.post<ApiResponse<{ token: string; refreshToken: string }>>('/auth/refresh', {
+  refreshToken: async (refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> => {
+    const response = await apiClient.post<{ accessToken: string; refreshToken: string }>('/auth/refresh', {
       refreshToken,
     });
-    return response.data.data;
+    return response.data;
   },
 
   // Logout user
   logout: async (): Promise<void> => {
-    await apiClient.post('/auth/logout');
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (refreshToken) {
+      await apiClient.post('/auth/logout', { refreshToken });
+    }
     localStorage.removeItem('auth_token');
     localStorage.removeItem('refresh_token');
   },

@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   },
   // Enable experimental features for better performance
   experimental: {
-    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
+    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react', 'framer-motion'],
     turbo: {
       rules: {
         '*.svg': {
@@ -33,38 +33,45 @@ const nextConfig: NextConfig = {
   // Compress responses
   compress: true,
 
-  // Enable SWC minification
-  swcMinify: true,
-
   // Optimize images
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    domains: ['res.cloudinary.com', 'images.unsplash.com'],
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
-  // Bundle analyzer (only in development)
-  ...(process.env.ANALYZE === 'true' && {
-    webpack: (config: any) => {
-      if (process.env.NODE_ENV === 'development') {
-        const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
-        config.plugins.push(
-          new BundleAnalyzerPlugin({
-            analyzerMode: 'server',
-            openAnalyzer: true,
-          })
-        );
-      }
-      return config;
-    },
-  }),
+  // Proxy API requests to backend gateway
+  async rewrites() {
+    return [
+      {
+        source: '/api/v1/:path*',
+        destination: 'http://localhost:8084/api/v1/:path*',
+      },
+    ];
+  },
 
-  // Headers for better caching
+  // Add resource hints for better performance
   async headers() {
     return [
       {
         source: '/(.*)',
         headers: [
+          {
+            key: 'Link',
+            value: [
+              '<https://res.cloudinary.com>; rel=preconnect',
+              '<https://api.hopngo.com>; rel=preconnect',
+              '<https://fonts.googleapis.com>; rel=preconnect',
+              '<https://fonts.gstatic.com>; rel=preconnect; crossorigin',
+            ].join(', '),
+          },
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on'
+          },
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
@@ -90,6 +97,25 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  // Bundle analyzer (only in development)
+  ...(process.env.ANALYZE === 'true' && {
+    webpack: (config: any) => {
+      if (process.env.NODE_ENV === 'development') {
+        const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+        config.plugins.push(
+          new BundleAnalyzerPlugin({
+            analyzerMode: 'server',
+            openAnalyzer: true,
+          })
+        );
+      }
+      return config;
+    },
+  }),
+
+  // Enable standalone output for Docker
+  output: 'standalone',
 };
 
 const pwaConfig = withPWA({

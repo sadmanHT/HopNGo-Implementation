@@ -39,6 +39,11 @@ export function TopNavigation({
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -48,9 +53,11 @@ export function TopNavigation({
   }, [onSearch, searchQuery]);
 
   const handleNavigation = useCallback((href: string) => {
-    router.push(href);
-    setIsMobileMenuOpen(false);
-  }, [router]);
+    if (isClient) {
+      router.push(href);
+      setIsMobileMenuOpen(false);
+    }
+  }, [router, isClient]);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -252,10 +259,17 @@ interface BottomNavigationProps {
 export function BottomNavigation({ items, className }: BottomNavigationProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleNavigation = useCallback((href: string) => {
-    router.push(href);
-  }, [router]);
+    if (isClient) {
+      router.push(href);
+    }
+  }, [router, isClient]);
 
   return (
     <nav className={cn(
@@ -327,10 +341,17 @@ interface BreadcrumbProps {
 
 export function Breadcrumb({ items, className }: BreadcrumbProps) {
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleNavigation = useCallback((href: string) => {
-    router.push(href);
-  }, [router]);
+    if (isClient) {
+      router.push(href);
+    }
+  }, [router, isClient]);
 
   return (
     <nav className={cn('flex items-center space-x-2 text-sm', className)} aria-label="Breadcrumb">
@@ -381,6 +402,11 @@ export function BackButton({
   onBack 
 }: BackButtonProps) {
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleBack = useCallback(() => {
     if (onBack) {
@@ -388,13 +414,15 @@ export function BackButton({
       return;
     }
 
+    if (!isClient) return;
+
     // Check if there's history to go back to
     if (window.history.length > 1) {
       router.back();
     } else {
       router.push(fallbackHref);
     }
-  }, [router, fallbackHref, onBack]);
+  }, [router, fallbackHref, onBack, isClient]);
 
   return (
     <motion.button

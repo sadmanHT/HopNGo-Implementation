@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from '@/lib/state/auth';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
@@ -28,6 +28,8 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { SkipLinks, useKeyboardNavigation } from '@/components/accessibility/AccessibilityProvider';
 import { AccessibilityMenu, AccessibilityShortcuts } from '@/components/accessibility/AccessibilityMenu';
 import { PerformanceMonitor, PerformanceMetrics } from '@/components/performance/PerformanceMonitor';
+import { DemoBanner } from '@/components/demo/DemoBanner';
+import { useDemo } from '@/hooks/useDemo';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -58,6 +60,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { t } = useTranslation();
   const { initializeFlags } = useFeatureFlag();
+  const { isDemoMode, isInitialized } = useDemo();
   
   // Initialize keyboard navigation
   useKeyboardNavigation();
@@ -201,7 +204,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <AccessibilityShortcuts />
       <PerformanceMonitor />
       <PerformanceMetrics />
-      <div className="flex h-screen bg-gray-50">
+      <DemoBanner />
+      <div className={`flex h-screen bg-gray-50 ${isDemoMode ? 'pt-12' : ''}`}>
         {/* Desktop Sidebar */}
         <aside className="hidden lg:flex lg:flex-shrink-0" aria-label="Main navigation">
           <Sidebar />

@@ -93,6 +93,11 @@ public class AuthService {
         user = userRepository.save(user);
         logger.info("User registered successfully with ID: {}", user.getId());
         
+        // Create default user flags
+        UserFlags userFlags = new UserFlags(user.getId());
+        userFlagsRepository.save(userFlags);
+        logger.info("Created default user flags for user ID: {}", user.getId());
+        
         // Generate tokens
         String accessToken = jwtService.generateToken(user);
         String refreshToken = generateRefreshToken(user);

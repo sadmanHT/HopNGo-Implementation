@@ -1,14 +1,22 @@
 package com.hopngo.auth.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import java.time.LocalDateTime;
+import java.util.Objects;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
-import java.util.Objects;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name = "users")
@@ -40,7 +48,7 @@ public class User {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private Role role = Role.TRAVELER;
+    private Role role = Role.USER;
     
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -101,10 +109,6 @@ public class User {
     
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
-    }
-    
-    public void setPassword(String password) {
-        this.passwordHash = password;
     }
     
     public String getFirstName() {
@@ -222,6 +226,6 @@ public class User {
     
     // Role enum
     public enum Role {
-        ADMIN, TRAVELER, SERVICE_PROVIDER
+        USER, ADMIN, TRAVELER, SERVICE_PROVIDER
     }
 }

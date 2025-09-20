@@ -20,7 +20,6 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-@Component
 public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAuthenticationFilter.Config> {
     
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);

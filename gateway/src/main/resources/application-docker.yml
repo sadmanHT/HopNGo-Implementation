@@ -1,0 +1,75 @@
+server:
+  port: 8085
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        # Auth Service
+        - id: auth-service
+          uri: http://auth-service:8081
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - name: SecurityHeadersFilter
+            - name: CircuitBreaker
+              args:
+                name: auth-service
+                fallbackUri: forward:/fallback/auth
+        
+        # Booking Service
+        - id: booking-service
+          uri: http://booking-service:8083
+          predicates:
+            - Path=/api/v1/bookings/**
+          filters:
+            - name: SecurityHeadersFilter
+            - name: CircuitBreaker
+              args:
+                name: booking-service
+                fallbackUri: forward:/fallback/booking
+        
+        # Market Service
+        - id: market-service
+          uri: http://market-service:8083
+          predicates:
+            - Path=/api/v1/markets/**,/api/v1/marketplace/**
+          filters:
+            - name: SecurityHeadersFilter
+            - name: CircuitBreaker
+              args:
+                name: market-service
+                fallbackUri: forward:/fallback/market
+        
+        # Chat Service
+        - id: chat-service
+          uri: http://chat-service:8084
+          predicates:
+            - Path=/api/v1/chats/**,/api/v1/messages/**
+          filters:
+            - name: SecurityHeadersFilter
+            - name: CircuitBreaker
+              args:
+                name: chat-service
+                fallbackUri: forward:/fallback/chat
+        
+        # Search Service
+        - id: search-service
+          uri: http://search-service:8091
+          predicates:
+            - Path=/api/v1/search/**
+          filters:
+            - name: SecurityHeadersFilter
+            - name: CircuitBreaker
+              args:
+                name: search-service
+                fallbackUri: forward:/fallback/search
+
+  redis:
+    host: ${REDIS_HOST:redis}
+    port: ${REDIS_PORT:6379}
+
+management:
+  otlp:
+    tracing:
+      endpoint: ${TRACING_ENDPOINT:http://tempo:4318/v1/traces}

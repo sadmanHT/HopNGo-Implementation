@@ -113,14 +113,15 @@ export function SearchBar({
     try {
       // Use transliteration-enhanced search
       await searchWithTransliteration(searchQuery, async (searchTerms: string[]) => {
-        // Navigate to search results page
-        router.push('/search');
-        
         // Perform the search with all variations
-        const results = await search(searchTerms.join(' OR '), filters);
-        setOpen(true);
-        return results;
+        await search(searchTerms.join(' OR '), filters);
+        // Return empty array since search function updates store directly
+        return [];
       });
+      
+      // Navigate to search results page and show results
+      router.push('/search');
+      setOpen(true);
     } catch (error) {
       console.error('Search failed:', error);
       // Fallback to regular search

@@ -55,7 +55,7 @@ export default function RegisterPage() {
     try {
       const { confirmPassword, ...registerData } = data;
       const response = await authApi.register(registerData);
-      setAuth(response.user, response.token, response.refreshToken);
+      setAuth(response.user, response.accessToken, response.refreshToken);
       
       // Track successful registration
       analytics.trackConversion('user_registration', 1, {

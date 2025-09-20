@@ -171,8 +171,6 @@ export default function MediaTestPage() {
                           timeOffset: 1
                         })}
                         className="w-full h-full rounded-t-lg"
-                        width={400}
-                        height={300}
                         controls
                       />
                     )}

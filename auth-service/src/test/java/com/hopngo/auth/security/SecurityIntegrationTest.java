@@ -63,7 +63,7 @@ public class SecurityIntegrationTest {
     private User createTestUser(String email, String password, User.Role role) {
         User user = new User();
         user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(password));
+        user.setPasswordHash(passwordEncoder.encode(password));
         user.setFirstName("Test");
         user.setLastName("User");
         user.setRole(role);

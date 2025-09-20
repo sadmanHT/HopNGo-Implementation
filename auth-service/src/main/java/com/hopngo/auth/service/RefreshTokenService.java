@@ -1,22 +1,21 @@
 package com.hopngo.auth.service;
 
-import com.hopngo.auth.entity.RefreshToken;
-import com.hopngo.auth.entity.User;
-import com.hopngo.auth.repository.RefreshTokenRepository;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
+import com.hopngo.auth.entity.RefreshToken;
+import com.hopngo.auth.entity.User;
+import com.hopngo.auth.repository.RefreshTokenRepository;
 
 @Service
 @Transactional
@@ -37,7 +36,9 @@ public class RefreshTokenService {
     private long refreshTokenExpiration;
     
     public RefreshTokenService(RefreshTokenRepository refreshTokenRepository,
-                              @Qualifier("redisObjectTemplate") RedisTemplate<String, Object> redisTemplate,
+                              @org.springframework.beans.factory.annotation.Qualifier("redisObjectTemplate") 
+                              @org.springframework.beans.factory.annotation.Autowired(required = false)
+                              RedisTemplate<String, Object> redisTemplate,
                               UserService userService) {
         this.refreshTokenRepository = refreshTokenRepository;
         this.redisTemplate = redisTemplate;

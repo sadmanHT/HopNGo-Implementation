@@ -53,6 +53,7 @@ public class AnalyticsConfig {
             "https://localhost:*",
             "http://127.0.0.1:*",
             "https://127.0.0.1:*",
+            "http://localhost:3002", // Frontend dev server
             "https://*.hopngo.com",
             "https://hopngo.com"
         ));

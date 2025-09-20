@@ -56,7 +56,8 @@ public class TwoFactorAuthenticationFilter extends OncePerRequestFilter {
         "/api/auth/logout",
         "/api/health",
         "/actuator/health",
-        "/error"
+        "/error",
+        "/h2-console"
     };
 
     @Override

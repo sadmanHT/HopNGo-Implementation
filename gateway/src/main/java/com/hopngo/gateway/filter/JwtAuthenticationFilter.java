@@ -19,7 +19,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
-@Component
 public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAuthenticationFilter.Config> {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
@@ -27,10 +26,19 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
     
     // Public endpoints that don't require authentication
     private static final List<String> PUBLIC_ENDPOINTS = Arrays.asList(
+        "/api/v1/auth/login",
+        "/api/v1/auth/register",
+        "/api/v1/auth/refresh",
+        "/api/v1/auth/forgot-password",
+        "/api/v1/auth/reset-password",
         "/api/auth/login",
         "/api/auth/register",
         "/api/health",
-        "/actuator/health"
+        "/actuator/health",
+        "/swagger-ui",
+        "/swagger-ui.html",
+        "/v3/api-docs",
+        "/webjars"
     );
     
     @Value("${jwt.secret:default-secret-key}")

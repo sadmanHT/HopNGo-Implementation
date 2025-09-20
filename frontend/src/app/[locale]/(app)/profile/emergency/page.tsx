@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useState as useClientState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,6 +42,11 @@ interface EmergencyContactRequest {
 
 export default function EmergencyPage() {
   const router = useRouter();
+  const [isClient, setIsClient] = useClientState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   const { user, token } = useAuthStore();
   
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
@@ -62,7 +67,7 @@ export default function EmergencyPage() {
 
   useEffect(() => {
     if (!user || !token) {
-      router.push('/login');
+      isClient && router.push('/login');
       return;
     }
     fetchContacts();
@@ -197,7 +202,7 @@ export default function EmergencyPage() {
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
           <p className="text-gray-600 mb-4">Please log in to access emergency contacts.</p>
-          <Button onClick={() => router.push('/login')}>Go to Login</Button>
+          <Button onClick={() => isClient && router.push('/login')}>Go to Login</Button>
         </div>
       </div>
     );

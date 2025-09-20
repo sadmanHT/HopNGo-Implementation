@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SentryService } from '@/lib/sentry';
 import { toast } from 'sonner';
@@ -23,6 +23,11 @@ interface ErrorContext {
  */
 export function useErrorHandler(options: ErrorHandlerOptions = {}) {
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   const {
     showToast = true,
@@ -74,7 +79,7 @@ export function useErrorHandler(options: ErrorHandlerOptions = {}) {
       }
 
       // Redirect if specified
-      if (redirectOnError) {
+      if (isClient && redirectOnError) {
         setTimeout(() => {
           router.push(redirectOnError);
         }, 2000);
@@ -102,7 +107,9 @@ export function useErrorHandler(options: ErrorHandlerOptions = {}) {
           case 401:
             // Unauthorized - redirect to login
             SentryService.addBreadcrumb('User unauthorized, redirecting to login', 'auth');
-            router.push('/login');
+            if (isClient) {
+              router.push('/login');
+            }
             return;
           
           case 403:

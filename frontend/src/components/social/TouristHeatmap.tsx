@@ -8,7 +8,7 @@ import { Badge } from '../ui/badge';
 import { useSocialStore } from '../../lib/state';
 import { MapPin, Users, Camera, TrendingUp, Filter } from 'lucide-react';
 import { Post } from '../../lib/state/social';
-import { getBDDestinationsByRegion, bdDestinations } from '../../data/bd-destinations';
+import { getDestinationsByRegion, bdDestinations } from '../../data/bd-destinations';
 
 // Set Mapbox access token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
@@ -118,7 +118,7 @@ export const TouristHeatmap: React.FC<TouristHeatmapProps> = ({
     // Get region-specific destinations for filtering
     const regionDestinations = filters.region === 'all' 
       ? bdDestinations 
-      : getBDDestinationsByRegion(filters.region);
+      : getDestinationsByRegion(filters.region);
 
     // Filter posts based on criteria
     const filteredPosts = posts.filter(post => {

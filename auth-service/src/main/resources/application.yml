@@ -5,18 +5,19 @@ spring:
   application:
     name: auth-service
   
-  redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:}
-    database: ${REDIS_DATABASE:0}
-    timeout: 2000ms
-    jedis:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 0
-        max-wait: -1ms
+  # Redis Configuration - Disabled for testing
+  # redis:
+  #   host: ${REDIS_HOST:localhost}
+  #   port: ${REDIS_PORT:6379}
+  #   password: ${REDIS_PASSWORD:}
+  #   database: ${REDIS_DATABASE:0}
+  #   timeout: 2000ms
+  #   jedis:
+  #     pool:
+  #       max-active: 8
+  #       max-idle: 8
+  #       min-idle: 0
+  #       max-wait: -1ms
   datasource:
     url: jdbc:h2:mem:testdb
     username: sa
@@ -28,7 +29,7 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
@@ -39,6 +40,18 @@ spring:
     enabled: false
     locations: classpath:db/migration
     baseline-on-migrate: true
+  
+  sql:
+    init:
+      mode: always
+  
+  # Jackson Configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non_null
 
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
@@ -121,5 +134,7 @@ logging:
   level:
     com.hopngo.auth: DEBUG
     org.springframework.security: DEBUG
+    org.springframework.jdbc.datasource.init: DEBUG
+    org.h2.engine: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE

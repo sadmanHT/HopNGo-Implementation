@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
+import { useState as useClientState } from 'react';
 
 // Import our UX components
 import { PageTransition } from '../ui/page-transitions';
@@ -91,7 +92,12 @@ export const EnhancedAppLayout: React.FC<EnhancedAppLayoutProps> = ({
 }) => {
   const pathname = usePathname();
   const router = useRouter();
+  const [isClient, setIsClient] = useClientState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' | 'info' }>>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const containerRef = useFocusTrap(isMenuOpen);
@@ -137,25 +143,25 @@ export const EnhancedAppLayout: React.FC<EnhancedAppLayoutProps> = ({
       // Alt + H: Go to home
       if (e.altKey && e.key === 'h') {
         e.preventDefault();
-        router.push('/');
+        isClient && router.push('/');
       }
       
       // Alt + S: Go to search
       if (e.altKey && e.key === 's') {
         e.preventDefault();
-        router.push('/search');
+        isClient && router.push('/search');
       }
       
       // Alt + B: Go to bookings
       if (e.altKey && e.key === 'b') {
         e.preventDefault();
-        router.push('/bookings');
+        isClient && router.push('/bookings');
       }
       
       // Alt + P: Go to profile
       if (e.altKey && e.key === 'p') {
         e.preventDefault();
-        router.push('/profile');
+        isClient && router.push('/profile');
       }
       
       // Escape: Close menu/modal

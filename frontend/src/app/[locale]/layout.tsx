@@ -5,6 +5,9 @@ import { AnalyticsProvider } from '@/providers/AnalyticsProvider';
 import { ToastProvider } from '@/components/ui/toast';
 import { languages } from '@/lib/i18n';
 
+// Force dynamic rendering for auth-protected routes
+export const dynamic = 'force-dynamic';
+
 type Props = {
   children: ReactNode;
   params: Promise<{ locale: string }>;

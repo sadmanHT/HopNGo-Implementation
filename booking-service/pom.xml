@@ -127,6 +127,8 @@
             <groupId>com.hopngo</groupId>
             <artifactId>search-client</artifactId>
             <version>0.0.1-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/search-client-0.0.1-SNAPSHOT.jar</systemPath>
         </dependency>
     </dependencies>
     <dependencyManagement>

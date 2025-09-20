@@ -30,7 +30,7 @@ import {
   Calendar,
   Database,
 } from 'lucide-react';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from '@/lib/state/auth';
 import { CookieStatus } from '@/components/ui/cookie-banner';
 import { useToast } from '@/hooks/use-toast';
 

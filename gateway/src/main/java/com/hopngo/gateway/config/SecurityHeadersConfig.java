@@ -29,7 +29,7 @@ public class SecurityHeadersConfig {
      * Security headers filter that adds comprehensive security headers to all responses
      */
     @Bean
-    public WebFilter securityHeadersFilter() {
+    public WebFilter globalSecurityHeadersWebFilter() {
         return (ServerWebExchange exchange, WebFilterChain chain) -> {
             var response = exchange.getResponse();
             var headers = response.getHeaders();

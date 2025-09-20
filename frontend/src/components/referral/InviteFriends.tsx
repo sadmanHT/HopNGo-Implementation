@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { toast } from '@/hooks/use-toast';
 import { Copy, Share2, Users, Gift, Mail, MessageCircle, Facebook, Twitter, Linkedin } from 'lucide-react';
 import { referralService, ReferralResponse } from '@/lib/services/referral';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from '@/lib/state/auth';
 
 interface InviteFriendsProps {
   variant?: 'card' | 'button' | 'inline';

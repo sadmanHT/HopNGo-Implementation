@@ -31,26 +31,5 @@ public class TimezoneConfig {
         System.setProperty("user.timezone", DEFAULT_TIMEZONE);
     }
     
-    /**
-     * Configure ObjectMapper to properly serialize dates with timezone information
-     */
-    @Bean
-    @Primary
-    public ObjectMapper objectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        
-        // Register JavaTimeModule for Java 8 time support
-        JavaTimeModule javaTimeModule = new JavaTimeModule();
-        
-        // Configure ZonedDateTime to use ISO 8601 format
-        javaTimeModule.addSerializer(java.time.ZonedDateTime.class, 
-            new ZonedDateTimeSerializer(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-        
-        mapper.registerModule(javaTimeModule);
-        
-        // Disable writing dates as timestamps
-        mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        
-        return mapper;
-    }
+    // ObjectMapper configuration moved to JacksonConfig.java to avoid bean conflicts
 }

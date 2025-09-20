@@ -7,6 +7,9 @@ WORKDIR /app
 COPY .mvn/ .mvn/
 COPY mvnw.cmd pom.xml ./
 
+# Copy local dependencies
+COPY libs/ ./libs/
+
 # Install Maven
 RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
 
@@ -14,7 +17,7 @@ RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
 COPY src ./src
 
 # Build the application
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -Dmaven.test.skip=true
 
 # Create final image
 FROM eclipse-temurin:17-jre

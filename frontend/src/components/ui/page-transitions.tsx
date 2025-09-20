@@ -72,11 +72,16 @@ export const PageTransition: React.FC<PageTransitionProps> = ({
   className = '',
 }) => {
   const pathname = usePathname();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <AnimatePresence mode="wait">
       <motion.div
-        key={pathname}
+        key={isClient ? pathname : 'loading'}
         variants={pageVariants[variant]}
         initial="initial"
         animate="animate"
@@ -106,15 +111,20 @@ export const RouteTransition: React.FC<RouteTransitionProps> = ({
 }) => {
   const pathname = usePathname();
   const [previousPath, setPreviousPath] = useState<string>('');
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   useEffect(() => {
-    if (pathname) {
+    if (isClient && pathname) {
       setPreviousPath(pathname);
     }
-  }, [pathname]);
+  }, [isClient, pathname]);
 
   const getTransitionVariant = () => {
-    if (!pathname) return defaultVariant;
+    if (!isClient || !pathname) return defaultVariant;
     
     // Check for specific route transitions
     if (routes[pathname]) {
@@ -137,7 +147,7 @@ export const RouteTransition: React.FC<RouteTransitionProps> = ({
   return (
     <AnimatePresence mode="wait">
       <motion.div
-        key={pathname}
+        key={isClient ? pathname : 'loading'}
         variants={pageVariants[getTransitionVariant()]}
         initial="initial"
         animate="animate"

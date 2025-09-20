@@ -1,5 +1,6 @@
 package com.hopngo.auth.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
 
 public class UserDto {
@@ -11,7 +12,10 @@ public class UserDto {
     private String role;
     private Boolean isActive;
     private Boolean verifiedProvider;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
     
     // Constructors
@@ -110,6 +114,19 @@ public class UserDto {
     // Helper methods
     public String getFullName() {
         return firstName + " " + lastName;
+    }
+    
+    // Computed fields for frontend compatibility
+    public String getName() {
+        return getFullName();
+    }
+    
+    public Boolean getIsVerified() {
+        return verifiedProvider;
+    }
+    
+    public String getAvatar() {
+        return null; // Can be implemented later
     }
     
     @Override

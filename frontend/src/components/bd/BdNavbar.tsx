@@ -35,7 +35,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from '@/lib/state/auth';
 import { useCartStore } from '@/stores/cartStore';
 
 interface NavItem {
